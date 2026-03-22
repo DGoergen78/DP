@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IHK Prüfungstrainer – Aufgabe 2: Ausfallanalyse</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117;
+  --bg-card: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-glow: rgba(88,166,255,0.15);
+  --green: #3fb950;
+  --green-bg: rgba(63,185,80,0.1);
+  --red: #f85149;
+  --red-bg: rgba(248,81,73,0.1);
+  --orange: #d29922;
+  --orange-bg: rgba(210,153,34,0.1);
+  --purple: #bc8cff;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Top bar ── */
+.top-bar {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.badge {
+  background: var(--accent-glow);
+  border: 1px solid rgba(88,166,255,0.3);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+.top-bar .title {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  font-weight: 700;
+}
+.top-bar .score {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.score .cs { color: var(--green); }
+.score .ws { color: var(--red); }
+
+/* ── Tabs ── */
+.tabs-wrapper {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.tabs-wrapper::-webkit-scrollbar { display: none; }
+.tabs { display: flex; min-width: max-content; padding: 0 12px; }
+.tab {
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  user-select: none;
+}
+.tab:hover:not(.locked) { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab.done { color: var(--green); }
+.tab.locked { opacity: 0.3; cursor: default; }
+.tab-icon { font-size: 12px; }
+
+/* ── Progress ── */
+.progress-thin { height: 3px; background: var(--border); flex-shrink: 0; }
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
+}
+
+/* ── Content ── */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 20px 50px;
+}
+.content-inner { max-width: 780px; margin: 0 auto; }
+
+.panel { display: none; animation: fadeIn 0.3s ease; }
+.panel.visible { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+.panel-header { margin-bottom: 24px; }
+.panel-header h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(20px,4vw,28px);
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.panel-header .sub { color: var(--text-muted); font-size: 15px; }
+.pts {
+  display: inline-block;
+  background: var(--accent-glow);
+  border: 1px solid rgba(88,166,255,0.25);
+  color: var(--accent);
+  padding: 2px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* ── Shared ── */
+.expl {
+  background: rgba(88,166,255,0.05);
+  border-left: 3px solid var(--accent);
+  padding: 16px 20px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin-bottom: 22px;
+  font-size: 15px;
+  line-height: 1.75;
+}
+.expl h3 {
+  color: var(--accent);
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.expl.or { border-left-color: var(--orange); }
+.expl.pu { border-left-color: var(--purple); }
+.expl.gr { border-left-color: var(--green); }
+
+.dtw { overflow-x:auto; margin:18px 0; border-radius:var(--radius-sm); border:1px solid var(--border); }
+.dt { width:100%; border-collapse:collapse; font-size:13px; font-family:'JetBrains Mono',monospace; }
+.dt th { background:rgba(88,166,255,0.08); color:var(--accent); padding:9px 11px; text-align:left; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
+.dt td { padding:7px 11px; border-top:1px solid var(--border); white-space:nowrap; }
+.dt tr:hover td { background:rgba(255,255,255,0.02); }
+.hlr td { background:var(--orange-bg)!important; }
+.ec { color:var(--red); font-weight:600; }
+.tag { display:inline-block; font-size:11px; padding:2px 7px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-weight:600; }
+.tg { background:var(--green-bg); color:var(--green); }
+.tr { background:var(--red-bg); color:var(--red); }
+
+.qq { font-weight:600; font-size:16px; margin:22px 0 12px; }
+.qo { display:flex; flex-direction:column; gap:9px; }
+.qopt {
+  background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:13px 16px; cursor:pointer; transition:all .2s; font-size:15px;
+  display:flex; align-items:flex-start; gap:11px;
+}
+.qopt:hover { background:rgba(255,255,255,0.06); border-color:var(--accent); }
+.qopt.ok { border-color:var(--green); background:var(--green-bg); }
+.qopt.no { border-color:var(--red); background:var(--red-bg); }
+.qopt.dis { pointer-events:none; }
+.om {
+  width:22px; height:22px; border-radius:50%; border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  font-size:11px; font-weight:600; font-family:'JetBrains Mono',monospace; transition:all .2s;
+}
+.qopt.ok .om { border-color:var(--green); background:var(--green); color:#fff; }
+.qopt.no .om { border-color:var(--red); background:var(--red); color:#fff; }
+
+.cbo { display:flex; flex-direction:column; gap:9px; }
+.cb {
+  display:flex; align-items:center; gap:11px; padding:11px 15px;
+  background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radius-sm);
+  cursor:pointer; transition:all .2s;
+}
+.cb:hover { background:rgba(255,255,255,0.06); }
+.cb.on { border-color:var(--accent); background:var(--accent-glow); }
+.cbx {
+  width:18px; height:18px; border:2px solid var(--border); border-radius:4px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:11px; transition:all .2s;
+}
+.cb.on .cbx { border-color:var(--accent); background:var(--accent); color:#fff; }
+
+.ti {
+  width:100%; min-height:110px; background:rgba(255,255,255,0.03); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:13px 16px; color:var(--text); font-family:'DM Sans',sans-serif;
+  font-size:15px; resize:vertical; line-height:1.6;
+}
+.ti:focus { outline:none; border-color:var(--accent); }
+.ti::placeholder { color:var(--text-muted); }
+
+.ni {
+  width:130px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:9px 13px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:15px;
+}
+.ni:focus { outline:none; border-color:var(--accent); }
+.cr { display:flex; align-items:center; gap:10px; margin:9px 0; font-family:'JetBrains Mono',monospace; font-size:14px; }
+
+.btn {
+  display:inline-flex; align-items:center; gap:7px; padding:11px 22px; border-radius:var(--radius-sm);
+  font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; border:none; transition:all .2s;
+}
+.bp { background:var(--accent); color:#fff; }
+.bp:hover { background:#79bbff; transform:translateY(-1px); }
+.bg { background:transparent; color:var(--text-muted); border:1px solid var(--border); }
+.bg:hover { background:rgba(255,255,255,0.05); color:var(--text); }
+.br { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+
+.fb { padding:13px 16px; border-radius:var(--radius-sm); margin-top:14px; font-size:14px; line-height:1.6; animation:fadeIn .3s ease; }
+.fb.ok { background:var(--green-bg); border:1px solid rgba(63,185,80,0.3); color:var(--green); }
+.fb.no { background:var(--red-bg); border:1px solid rgba(248,81,73,0.3); color:var(--red); }
+.fb.inf { background:rgba(88,166,255,0.08); border:1px solid rgba(88,166,255,0.2); color:var(--accent); }
+
+.sep { border:none; border-top:1px solid var(--border); margin:26px 0; }
+
+.sa {
+  display:none; margin-top:12px; padding:16px 20px;
+  background:rgba(63,185,80,0.06); border:1px solid rgba(63,185,80,0.2);
+  border-radius:var(--radius-sm); font-size:14px; line-height:1.7;
+}
+.sa.show { display:block; animation:fadeIn .3s ease; }
+.sa h4 { color:var(--green); margin-bottom:6px; font-family:'JetBrains Mono',monospace; font-size:12px; }
+
+.formula {
+  background:rgba(188,140,255,0.08); border:1px solid rgba(188,140,255,0.2);
+  border-radius:var(--radius-sm); padding:14px 18px; font-family:'JetBrains Mono',monospace;
+  font-size:15px; text-align:center; margin:18px 0; color:var(--purple);
+}
+
+.chart-box {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; margin:18px 0; overflow-x:auto;
+}
+.chart-box svg text { font-family:'JetBrains Mono',monospace; }
+
+.completion { text-align:center; padding:40px 20px; }
+.completion-icon { font-size:60px; margin-bottom:18px; }
+.completion h2 { font-family:'Playfair Display',serif; font-size:30px; margin-bottom:8px; }
+.cscore { font-size:46px; font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--accent); margin:18px 0; }
+
+@media(max-width:600px) {
+  .content-area { padding:18px 12px 36px; }
+  .top-bar { padding:8px 12px; }
+  .tab { padding:9px 10px; font-size:12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="badge">IHK Winter 2024/25</div>
+  <div class="title">Aufgabe 2 – Ausfallanalyse</div>
+  <div class="score">
+    <span class="cs">✓ <span id="sc">0</span></span>
+    <span class="ws">✗ <span id="sw">0</span></span>
+  </div>
+</div>
+
+<div class="tabs-wrapper">
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-s="0"><span class="tab-icon">📋</span> Kontext</div>
+    <div class="tab locked" data-s="1"><span class="tab-icon">🔒</span> aa) Algorithmen</div>
+    <div class="tab locked" data-s="2"><span class="tab-icon">🔒</span> ab) Entscheidung</div>
+    <div class="tab locked" data-s="3"><span class="tab-icon">🔒</span> b) Grafik</div>
+    <div class="tab locked" data-s="4"><span class="tab-icon">🔒</span> bb/bc) Param. k</div>
+    <div class="tab locked" data-s="5"><span class="tab-icon">🔒</span> c) Aufbereitung</div>
+    <div class="tab locked" data-s="6"><span class="tab-icon">🔒</span> d) Distanz</div>
+    <div class="tab locked" data-s="7"><span class="tab-icon">🔒</span> Ergebnis</div>
+  </div>
+</div>
+
+<div class="progress-thin"><div class="progress-fill" id="pf" style="width:0%"></div></div>
+
+<div class="content-area" id="ca">
+<div class="content-inner">
+
+<!-- ══ 0: Kontext ══ -->
+<div class="panel visible" id="p0">
+  <div class="panel-header">
+    <h2>Ausgangssituation verstehen</h2>
+    <p class="sub">Bevor wir rechnen, müssen wir die Daten und das Ziel kennen.</p>
+  </div>
+  <div class="expl">
+    <h3>Szenario</h3>
+    Die AMAG Soft GmbH betreibt Druckluftanlagen bei Kunden. Damit Maschinen gewartet werden können <strong>bevor</strong> sie ausfallen, sollen Ausfalldaten analysiert werden. Eine CSV-Datei enthält 10.000 Datensätze:
+  </div>
+  <div class="dtw">
+    <table class="dt">
+      <thead><tr><th>ID</th><th>Qual.</th><th>Temp [K]</th><th>rpm</th><th>Nm</th><th>min</th><th>Ergebnis</th></tr></thead>
+      <tbody>
+        <tr><td>M15008</td><td>M</td><td>308,3</td><td>1379</td><td>48</td><td>181</td><td><span class="tag tg">0</span></td></tr>
+        <tr><td>L47329</td><td>L</td><td>308,3</td><td>1473</td><td>39,9</td><td>184</td><td><span class="tag tg">0</span></td></tr>
+        <tr class="hlr"><td>L47340</td><td>L</td><td>308,2</td><td>1282</td><td class="ec">60,7</td><td>216</td><td><span class="tag tr">1</span></td></tr>
+        <tr class="hlr"><td>L47341</td><td>L</td><td>308,1</td><td>1412</td><td>52,3</td><td>218</td><td><span class="tag tr">1</span></td></tr>
+        <tr><td>H29569</td><td>H</td><td>308,2</td><td>1987</td><td>19,8</td><td>198</td><td><span class="tag tg">0</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="expl or">
+    <h3>Legende</h3>
+    <strong>Ergebnis 0</strong> = kein Ausfall &nbsp;|&nbsp; <strong>Ergebnis 1</strong> = Maschine ausgefallen<br>
+    <strong>Qualität:</strong> L = Low, M = Medium, H = High &nbsp;|&nbsp; <strong>Ziel:</strong> Vorhersagen, ob eine Maschine bald ausfällt.
+  </div>
+  <div class="qq">Was bedeutet „Ergebnis = 1"?</div>
+  <div class="qo" id="q0">
+    <div class="qopt" onclick="quiz(0,this,false)"><div class="om">A</div><span>Die Maschine läuft fehlerfrei</span></div>
+    <div class="qopt" onclick="quiz(0,this,true)"><div class="om">B</div><span>Die Maschine ist ausgefallen</span></div>
+    <div class="qopt" onclick="quiz(0,this,false)"><div class="om">C</div><span>Die Maschine wurde gewartet</span></div>
+  </div>
+  <div id="f0"></div>
+</div>
+
+<!-- ══ 1: kNN & ID3 ══ -->
+<div class="panel" id="p1">
+  <div class="panel-header">
+    <h2>Teilaufgabe aa) – Algorithmen erklären <span class="pts">6 Pkt.</span></h2>
+    <p class="sub">Erkläre den kNN-Algorithmus und den ID3-Entscheidungsbaum.</p>
+  </div>
+  <div class="expl">
+    <h3>k-Nearest Neighbors (kNN)</h3>
+    kNN ist ein <strong>überwachtes Lernverfahren</strong> zur Klassifikation:<br><br>
+    1. Neuen Datenpunkt nehmen.<br>
+    2. <strong>Abstand</strong> zu allen bekannten Punkten berechnen (z.B. euklidische Distanz).<br>
+    3. Die <strong>k nächsten Nachbarn</strong> finden.<br>
+    4. <strong>Mehrheitsentscheidung:</strong> Die häufigste Klasse unter den k Nachbarn gewinnt.
+  </div>
+  <div class="qq">Was beschreibt kNN am besten?</div>
+  <div class="qo" id="q1a">
+    <div class="qopt" onclick="quiz('1a',this,false)"><div class="om">A</div><span>Ein Algorithmus, der Regeln in Baumform ableitet</span></div>
+    <div class="qopt" onclick="quiz('1a',this,true)"><div class="om">B</div><span>Klassifikation per Mehrheit der k nächsten Nachbarn</span></div>
+    <div class="qopt" onclick="quiz('1a',this,false)"><div class="om">C</div><span>Ein unüberwachtes Clusterverfahren ohne Labels</span></div>
+  </div>
+  <div id="f1a"></div>
+  <hr class="sep">
+  <div class="expl pu">
+    <h3>ID3-Entscheidungsbaum</h3>
+    ID3 baut einen <strong>Entscheidungsbaum</strong>. Bei jedem Knoten wird das Merkmal gewählt, das den größten <strong>Informationsgewinn</strong> bringt (Entropie). Die Daten werden aufgeteilt, bis möglichst „reine" Blätter entstehen.
+  </div>
+  <div class="qq">Was nutzt ID3, um das Aufteilungsmerkmal zu wählen?</div>
+  <div class="qo" id="q1b">
+    <div class="qopt" onclick="quiz('1b',this,false)"><div class="om">A</div><span>Die euklidische Distanz</span></div>
+    <div class="qopt" onclick="quiz('1b',this,true)"><div class="om">B</div><span>Den Informationsgewinn (Entropie)</span></div>
+    <div class="qopt" onclick="quiz('1b',this,false)"><div class="om">C</div><span>Die Anzahl der Datenpunkte</span></div>
+  </div>
+  <div id="f1b"></div>
+</div>
+
+<!-- ══ 2: Entscheidung ══ -->
+<div class="panel" id="p2">
+  <div class="panel-header">
+    <h2>Teilaufgabe ab) – Algorithmus wählen <span class="pts">5 Pkt.</span></h2>
+    <p class="sub">Entscheide dich für kNN oder ID3 und begründe mit zwei Argumenten.</p>
+  </div>
+  <div class="expl">
+    <h3>Abwägung</h3>
+    <strong>Für kNN:</strong> Gut mit numerischen Daten (Temp, Drehzahl…), kein Modelltraining nötig.<br><br>
+    <strong>Für ID3:</strong> Ergebnis leicht interpretierbar (Baumstruktur), kann mit kategorischen Daten gut umgehen (Qualität L/M/H).
+  </div>
+  <div class="qq">Schreibe deine Entscheidung und zwei Argumente:</div>
+  <textarea class="ti" id="t2" placeholder="Ich entscheide mich für ..., weil ...&#10;&#10;Argument 1: ...&#10;Argument 2: ..."></textarea>
+  <div class="br">
+    <button class="btn bp" onclick="freetxt(2)">Antwort prüfen</button>
+    <button class="btn bg" onclick="showSa(2)">Musterlösung zeigen</button>
+  </div>
+  <div class="sa" id="sa2">
+    <h4>Musterlösung</h4>
+    <strong>Entscheidung: kNN</strong><br><br>
+    <strong>Argument 1:</strong> Überwiegend numerische Daten (Temperatur, Drehzahl, Drehmoment, Einsatzzeit) – kNN eignet sich dafür besonders gut.<br><br>
+    <strong>Argument 2:</strong> 10.000 Datensätze bieten eine solide Basis für die Nachbarsuche. Kein aufwändiges Modelltraining nötig.
+  </div>
+  <div id="f2"></div>
+</div>
+
+<!-- ══ 3: Grafik ══ -->
+<div class="panel" id="p3">
+  <div class="panel-header">
+    <h2>Teilaufgabe ba) – Grafik interpretieren <span class="pts">1 Pkt.</span></h2>
+    <p class="sub">Beurteile anhand des Streudiagramms, ob die Maschine gewartet werden sollte.</p>
+  </div>
+  <div class="expl">
+    <h3>So liest du die Grafik</h3>
+    X-Achse = Drehgeschwindigkeit (rpm) &nbsp;|&nbsp; Y-Achse = Drehmoment (Nm)<br>
+    <strong>◆ rot</strong> = Ausfall &nbsp;|&nbsp; <strong>□ grau</strong> = kein Ausfall &nbsp;|&nbsp; <strong>▲ orange</strong> = unbekannt (zu klassifizieren)
+  </div>
+
+  <div class="chart-box">
+    <svg viewBox="0 0 700 440" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+      <rect x="70" y="20" width="590" height="350" fill="rgba(255,255,255,0.02)" rx="4"/>
+      <!-- Grid -->
+      <g stroke="rgba(255,255,255,0.06)" stroke-width="1">
+        <line x1="70" y1="90" x2="660" y2="90"/><line x1="70" y1="160" x2="660" y2="160"/>
+        <line x1="70" y1="230" x2="660" y2="230"/><line x1="70" y1="300" x2="660" y2="300"/>
+        <line x1="144" y1="20" x2="144" y2="370"/><line x1="218" y1="20" x2="218" y2="370"/>
+        <line x1="292" y1="20" x2="292" y2="370"/><line x1="366" y1="20" x2="366" y2="370"/>
+        <line x1="440" y1="20" x2="440" y2="370"/><line x1="514" y1="20" x2="514" y2="370"/>
+        <line x1="588" y1="20" x2="588" y2="370"/>
+      </g>
+      <!-- Axes -->
+      <line x1="70" y1="370" x2="660" y2="370" stroke="var(--text-muted)" stroke-width="1"/>
+      <line x1="70" y1="20" x2="70" y2="370" stroke="var(--text-muted)" stroke-width="1"/>
+      <!-- X labels (rpm 1310–1470) -->
+      <text x="70" y="388" fill="var(--text-muted)" font-size="10" text-anchor="middle">1310</text>
+      <text x="144" y="388" fill="var(--text-muted)" font-size="10" text-anchor="middle">1330</text>
+      <text x="218" y="388" fill="var(--text-muted)" font-size="10" text-anchor="middle">1350</text>
+      <text x="292" y="388" fill="var(--text-muted)" font-size="10" text-anchor="middle">1370</text>
+      <text x="366" y="388" fill="var(--text-muted)" font-size="10" text-anchor="middle">1390</text>
+      <text x="440" y="388" fill="var(--text-muted)" font-size="10" text-anchor="middle">1410</text>
+      <text x="514" y="388" fill="var(--text-muted)" font-size="10" text-anchor="middle">1430</text>
+      <text x="588" y="388" fill="var(--text-muted)" font-size="10" text-anchor="middle">1450</text>
+      <text x="660" y="388" fill="var(--text-muted)" font-size="10" text-anchor="middle">1470</text>
+      <!-- Y labels (Nm 47–58) -->
+      <text x="62" y="373" fill="var(--text-muted)" font-size="10" text-anchor="end">47</text>
+      <text x="62" y="310" fill="var(--text-muted)" font-size="10" text-anchor="end">49</text>
+      <text x="62" y="246" fill="var(--text-muted)" font-size="10" text-anchor="end">51</text>
+      <text x="62" y="183" fill="var(--text-muted)" font-size="10" text-anchor="end">53</text>
+      <text x="62" y="120" fill="var(--text-muted)" font-size="10" text-anchor="end">55</text>
+      <text x="62" y="56" fill="var(--text-muted)" font-size="10" text-anchor="end">57</text>
+      <!-- Axis titles -->
+      <text x="365" y="410" fill="var(--text-muted)" font-size="12" text-anchor="middle">Drehgeschwindigkeit in rpm</text>
+      <text x="16" y="195" fill="var(--text-muted)" font-size="12" text-anchor="middle" transform="rotate(-90,16,195)">Drehmoment in Nm</text>
+      <text x="365" y="14" fill="var(--text)" font-size="13" text-anchor="middle" font-weight="600">Stichprobe Versagen von Luftdruckmaschinen</text>
+
+      <!-- Concentric circles k-radii around ≈(1370, 52) mapped to ~(292, 210) -->
+      <circle cx="292" cy="210" r="50" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4,3"/>
+      <circle cx="292" cy="210" r="100" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="4,3"/>
+      <circle cx="292" cy="210" r="155" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- No failure (squares □) — spread across chart, some near the unknown point -->
+      <g fill="none" stroke="var(--text-muted)" stroke-width="1.5">
+        <!-- Far left / bottom region -->
+        <rect x="82" y="298" width="8" height="8"/>
+        <rect x="95" y="340" width="8" height="8"/>
+        <rect x="120" y="276" width="8" height="8"/>
+        <rect x="140" y="310" width="8" height="8"/>
+        <!-- Mid-left -->
+        <rect x="175" y="250" width="8" height="8"/>
+        <rect x="200" y="290" width="8" height="8"/>
+        <rect x="215" y="170" width="8" height="8"/>
+        <!-- NEAR the unknown point — important for ambiguity -->
+        <rect x="260" y="225" width="8" height="8"/>
+        <rect x="278" y="188" width="8" height="8"/>
+        <rect x="308" y="230" width="8" height="8"/>
+        <rect x="270" y="248" width="8" height="8"/>
+        <!-- Mid-right, near unknown -->
+        <rect x="330" y="200" width="8" height="8"/>
+        <rect x="348" y="268" width="8" height="8"/>
+        <rect x="365" y="295" width="8" height="8"/>
+        <!-- Right side -->
+        <rect x="400" y="275" width="8" height="8"/>
+        <rect x="425" y="298" width="8" height="8"/>
+        <rect x="440" y="260" width="8" height="8"/>
+        <rect x="475" y="280" width="8" height="8"/>
+        <rect x="510" y="295" width="8" height="8"/>
+        <rect x="530" y="270" width="8" height="8"/>
+        <rect x="565" y="286" width="8" height="8"/>
+        <rect x="595" y="278" width="8" height="8"/>
+        <rect x="630" y="300" width="8" height="8"/>
+        <rect x="648" y="268" width="8" height="8"/>
+        <rect x="648" y="345" width="8" height="8"/>
+      </g>
+
+      <!-- Failures (diamonds ◆) — clustered center-left but with gaps, some scattered -->
+      <g fill="var(--red)">
+        <!-- Far left outliers -->
+        <polygon points="108,155 114,145 120,155 114,165"/>
+        <polygon points="115,195 121,185 127,195 121,205"/>
+        <!-- Near unknown — majority failures but not overwhelming -->
+        <polygon points="250,175 256,165 262,175 256,185"/>
+        <polygon points="268,200 274,190 280,200 274,210"/>
+        <polygon points="290,170 296,160 302,170 296,180"/>
+        <polygon points="305,195 311,185 317,195 311,205"/>
+        <polygon points="275,225 281,215 287,225 281,235"/>
+        <polygon points="315,220 321,210 327,220 321,230"/>
+        <polygon points="252,215 258,205 264,215 258,225"/>
+        <!-- Spread further out -->
+        <polygon points="340,155 346,145 352,155 346,165"/>
+        <polygon points="365,180 371,170 377,180 371,190"/>
+        <polygon points="395,130 401,120 407,130 401,140"/>
+        <polygon points="220,80 226,70 232,80 226,90"/>
+        <polygon points="420,175 426,165 432,175 426,185"/>
+        <polygon points="458,200 464,190 470,200 464,210"/>
+        <polygon points="540,160 546,150 552,160 546,170"/>
+        <polygon points="485,348 491,338 497,348 491,358"/>
+        <polygon points="605,150 611,140 617,150 611,160"/>
+        <polygon points="640,175 646,165 652,175 646,185"/>
+      </g>
+
+      <!-- Unknown (triangle ▲) -->
+      <polygon points="292,198 304,218 280,218" fill="var(--orange)" stroke="var(--orange)" stroke-width="1.5"/>
+
+      <!-- Legend -->
+      <g transform="translate(185,422)">
+        <polygon points="6,0 12,6 6,12 0,6" fill="var(--red)"/>
+        <text x="17" y="10" fill="var(--text-muted)" font-size="11">Ausfall (failure)</text>
+        <rect x="120" y="2" width="8" height="8" fill="none" stroke="var(--text-muted)" stroke-width="1.5"/>
+        <text x="133" y="10" fill="var(--text-muted)" font-size="11">Kein Ausfall</text>
+        <polygon points="232,2 238,12 226,12" fill="var(--orange)"/>
+        <text x="244" y="10" fill="var(--text-muted)" font-size="11">Unbekannt</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="qq">Sollte die Maschine (▲) gewartet werden?</div>
+  <div class="qo" id="q3">
+    <div class="qopt" onclick="quiz(3,this,true)"><div class="om">A</div><span>Ja – sie liegt im Bereich der Ausfälle, Wartung ist dringend empfohlen</span></div>
+    <div class="qopt" onclick="quiz(3,this,false)"><div class="om">B</div><span>Nein – kein Hinweis auf bevorstehenden Ausfall</span></div>
+  </div>
+  <div id="f3"></div>
+</div>
+
+<!-- ══ 4: Parameter k ══ -->
+<div class="panel" id="p4">
+  <div class="panel-header">
+    <h2>Teilaufgabe bb) & bc) – Parameter k <span class="pts">8 Pkt.</span></h2>
+    <p class="sub">Wie beeinflusst k die Klassifikation? Nenne sinnvolle Kriterien.</p>
+  </div>
+  <div class="expl">
+    <h3>Einfluss von k</h3>
+    Die konzentrischen Kreise zeigen verschiedene k-Werte.<br><br>
+    <strong>Kleines k</strong> (z.B. 3): Nur nächste Nachbarn → empfindlich gegen Ausreißer, aber lokale Muster werden erfasst.<br>
+    <strong>Großes k</strong> (z.B. 15): Viele Nachbarn → stabiler, aber lokale Muster gehen verloren.
+  </div>
+  <div class="qq">Was passiert bei zu kleinem k?</div>
+  <div class="qo" id="q4a">
+    <div class="qopt" onclick="quiz('4a',this,true)"><div class="om">A</div><span>Das Modell wird anfällig für Ausreißer (Overfitting)</span></div>
+    <div class="qopt" onclick="quiz('4a',this,false)"><div class="om">B</div><span>Das Modell wird zu allgemein (Underfitting)</span></div>
+  </div>
+  <div id="f4a"></div>
+  <hr class="sep">
+  <div class="qq">Welche zwei Kriterien sind sinnvoll für die Wahl von k?</div>
+  <div class="cbo" id="cb4">
+    <div class="cb" onclick="tcb(this)"><div class="cbx"></div><span>k ungerade wählen, um Patt zu vermeiden</span></div>
+    <div class="cb" onclick="tcb(this)"><div class="cbx"></div><span>k sollte immer genau 1 sein</span></div>
+    <div class="cb" onclick="tcb(this)"><div class="cbx"></div><span>k nicht zu groß (z.B. ≤ √n), damit lokale Muster erhalten bleiben</span></div>
+    <div class="cb" onclick="tcb(this)"><div class="cbx"></div><span>k muss eine Primzahl sein</span></div>
+  </div>
+  <div class="br"><button class="btn bp" onclick="chkCb()">Auswahl prüfen</button></div>
+  <div id="f4b"></div>
+</div>
+
+<!-- ══ 5: Datenaufbereitung ══ -->
+<div class="panel" id="p5">
+  <div class="panel-header">
+    <h2>Teilaufgabe c) – Datenaufbereitung <span class="pts">4 Pkt.</span></h2>
+    <p class="sub">Wie müssen die Daten transformiert werden, damit kNN funktioniert?</p>
+  </div>
+  <div class="expl">
+    <h3>Problem 1: Kategorische Daten</h3>
+    Das Merkmal „Qualität" enthält die Werte L, M und H – das sind <strong>Textlabels</strong>, keine Zahlen. kNN berechnet aber Abstände zwischen Datenpunkten, und dafür braucht er <strong>ausschließlich numerische Werte</strong>. Mit „L" und „M" lässt sich kein Abstand berechnen.<br><br>
+    <strong>Ordinal-Encoding:</strong> Da L &lt; M &lt; H eine natürliche Reihenfolge hat, kann man die Werte als Zahlen kodieren: L=1, M=2, H=3.<br>
+    <strong>One-Hot-Encoding:</strong> Alternativ drei neue Spalten anlegen (ist_L, ist_M, ist_H), die jeweils 0 oder 1 enthalten. Vorteil: Man unterstellt keine Rangfolge.
+  </div>
+  <div class="expl or">
+    <h3>Problem 2: Unterschiedliche Wertebereiche</h3>
+    Schau dir die Werte in unseren Daten an: Prozesstemperatur liegt bei ca. <strong>308 K</strong>, Einsatzzeit bei ca. <strong>200 min</strong>, aber Drehmoment nur bei ca. <strong>50 Nm</strong>. Wenn man die euklidische Distanz direkt berechnet, dominieren die großen Werte (Temperatur, Einsatzzeit) das Ergebnis – kleine Unterschiede beim Drehmoment fallen kaum ins Gewicht, obwohl sie für die Ausfallvorhersage wichtig sein könnten.<br><br>
+    <strong>Lösung – Normalisierung:</strong> Alle Features auf denselben Wertebereich bringen, z.B. [0, 1] per Min-Max-Skalierung: <em>x_norm = (x − min) / (max − min)</em>. Danach hat jedes Feature den gleichen Einfluss auf die Distanzberechnung.
+  </div>
+  <div class="qq">Warum müssen die Daten normalisiert werden?</div>
+  <div class="qo" id="q5">
+    <div class="qopt" onclick="quiz(5,this,false)"><div class="om">A</div><span>Damit der Entscheidungsbaum besser funktioniert</span></div>
+    <div class="qopt" onclick="quiz(5,this,true)"><div class="om">B</div><span>Damit Features mit großen Wertebereichen die Distanz nicht dominieren</span></div>
+    <div class="qopt" onclick="quiz(5,this,false)"><div class="om">C</div><span>Damit die Daten sortiert werden können</span></div>
+  </div>
+  <div id="f5"></div>
+</div>
+
+<!-- ══ 6: Euklidische Distanz ══ -->
+<div class="panel" id="p6">
+  <div class="panel-header">
+    <h2>Teilaufgabe d) – Euklidische Distanz <span class="pts">4 Pkt.</span></h2>
+    <p class="sub">Berechne die Distanz zwischen zwei Maschinen über alle Features.</p>
+  </div>
+  <div class="expl">
+    <h3>Gegeben</h3>
+    <strong>Bekannte Maschine (p):</strong> Temp = 312,3 K · Drehg. = 1.454 rpm · Drehm. = 54,8 Nm · Einsatzz. = 253 min · Ergebnis = 0<br>
+    <strong>Zu klassifizierende Maschine (q):</strong> Temp = 305 K · Drehg. = 1.380 rpm · Drehm. = 52,5 Nm · Einsatzz. = 242 min
+  </div>
+
+  <div class="formula">d(p, q) = √( Σ (qᵢ − pᵢ)² )</div>
+
+  <div class="expl">
+    <h3>Deine Aufgabe</h3>
+    Berechne Schritt für Schritt die euklidische Distanz. Trage zuerst die vier quadrierten Differenzen ein, dann die Summe und zuletzt die Wurzel (auf 2 Dezimalen gerundet).
+  </div>
+
+  <div class="qq">Schritt 1 – Quadrierte Differenzen:</div>
+  <div class="cr"><span style="min-width:230px">(305 − 312,3)² =</span><input type="number" class="ni" id="c1" step="0.01" placeholder="??"></div>
+  <div class="cr"><span style="min-width:230px">(1380 − 1454)² =</span><input type="number" class="ni" id="c2" step="0.01" placeholder="??"></div>
+  <div class="cr"><span style="min-width:230px">(52,5 − 54,8)² =</span><input type="number" class="ni" id="c3" step="0.01" placeholder="??"></div>
+  <div class="cr"><span style="min-width:230px">(242 − 253)² =</span><input type="number" class="ni" id="c4" step="0.01" placeholder="??"></div>
+
+  <div class="qq" style="margin-top:20px">Schritt 2 – Summe der Quadrate:</div>
+  <div class="cr"><span style="min-width:230px">Σ =</span><input type="number" class="ni" id="c5" step="0.01" placeholder="??"></div>
+
+  <div class="qq" style="margin-top:20px">Schritt 3 – Wurzel (gerundet):</div>
+  <div class="cr"><span style="min-width:230px">d(p, q) ≈</span><input type="number" class="ni" id="c6" step="0.01" placeholder="??"></div>
+
+  <div class="br"><button class="btn bp" onclick="chkCalc()">Prüfen</button></div>
+  <div id="f6"></div>
+</div>
+
+<!-- ══ 7: Ergebnis ══ -->
+<div class="panel" id="p7">
+  <div class="completion">
+    <div class="completion-icon">🎓</div>
+    <h2>Aufgabe 2 abgeschlossen!</h2>
+    <div class="cscore" id="fs">0 / 0</div>
+    <p style="color:var(--text-muted);margin-bottom:22px" id="fm"></p>
+    <button class="btn bp" onclick="location.reload()">Nochmal üben</button>
+  </div>
+</div>
+
+</div></div>
+
+<script>
+let C=0,W=0,T=0,cur=0;
+const UL=new Set([0]),DN=new Set();
+const SQ={
+  0:{n:['q0'],d:new Set()},
+  1:{n:['q1a','q1b'],d:new Set()},
+  2:{n:['t2'],d:new Set()},
+  3:{n:['q3'],d:new Set()},
+  4:{n:['q4a','cb4'],d:new Set()},
+  5:{n:['q5'],d:new Set()},
+  6:{n:['calc'],d:new Set()},
+};
+
+const tabIcons = ['📋','🧠','⚖️','📊','🎯','🔧','📐','🏆'];
+
+function ui(){
+  document.getElementById('sc').textContent=C;
+  document.getElementById('sw').textContent=W;
+  document.getElementById('pf').style.width=Math.round((DN.size/7)*100)+'%';
+
+  document.querySelectorAll('.tab').forEach(t=>{
+    const s=+t.dataset.s;
+    t.classList.remove('active','locked','done');
+    const ic=t.querySelector('.tab-icon');
+    if(DN.has(s)){t.classList.add('done');if(ic)ic.textContent='✓';}
+    else if(s===cur){t.classList.add('active');if(ic)ic.textContent=tabIcons[s];}
+    else if(!UL.has(s)){t.classList.add('locked');if(ic)ic.textContent='🔒';}
+    else{if(ic)ic.textContent=tabIcons[s];}
+  });
+
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('visible'));
+  const pan=document.getElementById('p'+cur);
+  if(pan)pan.classList.add('visible');
+}
+
+function go(s){
+  if(!UL.has(s)&&!DN.has(s))return;
+  cur=s;ui();
+  document.getElementById('ca').scrollTo(0,0);
+}
+
+function unlock(from){
+  const nx=from+1;
+  DN.add(from);
+  if(nx<=7){UL.add(nx);}
+  if(nx===7){document.getElementById('fs').textContent=`${C} / ${T}`;const p=T>0?Math.round(C/T*100):0;let m='';if(p>=90)m='Hervorragend! 🌟';else if(p>=70)m='Gut gemacht! Nur ein paar Lücken.';else if(p>=50)m='Solide Basis – übe weiter.';else m='Nicht aufgeben!';document.getElementById('fm').textContent=m;}
+  ui();
+  // Show "Weiter" button
+  if(nx<=7){
+    const panel=document.getElementById('p'+from);
+    if(panel && !panel.querySelector('.next-btn')){
+      const btn=document.createElement('button');
+      btn.className='btn bp next-btn';
+      btn.style.marginTop='24px';
+      btn.textContent='Weiter →';
+      btn.onclick=()=>{go(nx);const tb=document.querySelector(`.tab[data-s="${nx}"]`);if(tb)tb.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});};
+      panel.querySelector('.content-inner, .panel')?.appendChild(btn) || panel.appendChild(btn);
+    }
+  }
+}
+
+function done(step,qid){if(SQ[step]){SQ[step].d.add(qid);if(SQ[step].n.every(q=>SQ[step].d.has(q)))unlock(step);}}
+
+function quiz(id,el,ok){
+  const c=el.parentElement;if(c.dataset.a)return;c.dataset.a='1';T++;
+  c.querySelectorAll('.qopt').forEach(o=>o.classList.add('dis'));
+  const fb=document.getElementById('f'+id);
+  if(ok){el.classList.add('ok');C++;if(fb)fb.innerHTML='<div class="fb ok">✓ Richtig!</div>';}
+  else{el.classList.add('no');W++;c.querySelectorAll('.qopt').forEach(o=>{if(o.getAttribute('onclick')&&o.getAttribute('onclick').includes('true'))o.classList.add('ok');});if(fb)fb.innerHTML='<div class="fb no">✗ Falsch – richtige Antwort ist grün.</div>';}
+  ui();
+  const mp={0:[0,'q0'],'1a':[1,'q1a'],'1b':[1,'q1b'],3:[3,'q3'],'4a':[4,'q4a'],5:[5,'q5']};
+  if(mp[id])done(mp[id][0],mp[id][1]);
+}
+
+function freetxt(s){
+  const t=document.getElementById('t'+s);
+  if(!t||t.value.trim().length<20){document.getElementById('f'+s).innerHTML='<div class="fb no">✗ Bitte schreibe ausführlicher (mind. 2 Argumente).</div>';return;}
+  T++;C++;ui();
+  document.getElementById('f'+s).innerHTML='<div class="fb inf">📝 Gespeichert – vergleiche mit der Musterlösung!</div>';
+  done(s,'t'+s);
+}
+
+function showSa(s){
+  const el=document.getElementById('sa'+s);if(el)el.classList.add('show');
+  if(!SQ[s].d.has('t'+s)){T++;ui();done(s,'t'+s);}
+}
+
+function tcb(el){el.classList.toggle('on');const b=el.querySelector('.cbx');b.textContent=el.classList.contains('on')?'✓':'';}
+
+function chkCb(){
+  const opts=document.querySelectorAll('#cb4 .cb');const sel=[];
+  opts.forEach((o,i)=>{if(o.classList.contains('on'))sel.push(i);});T++;
+  const ok=sel.length===2&&sel.includes(0)&&sel.includes(2);
+  if(ok){C++;document.getElementById('f4b').innerHTML='<div class="fb ok">✓ Richtig! k ungerade + nicht zu groß.</div>';}
+  else{W++;document.getElementById('f4b').innerHTML='<div class="fb no">✗ Richtig wären: k ungerade (kein Patt) + k ≤ √n.</div>';}
+  opts.forEach(o=>{o.style.pointerEvents='none';o.style.opacity='.6';});
+  ui();done(4,'cb4');
+}
+
+function chkCalc(){
+  const fields = [
+    { id:'c1', correct:53.29,  tol:0.5, label:'(305−312,3)² = (−7,3)²', answer:'53,29' },
+    { id:'c2', correct:5476,   tol:1,   label:'(1380−1454)² = (−74)²', answer:'5.476' },
+    { id:'c3', correct:5.29,   tol:0.2, label:'(52,5−54,8)² = (−2,3)²', answer:'5,29' },
+    { id:'c4', correct:121,    tol:1,   label:'(242−253)² = (−11)²', answer:'121' },
+    { id:'c5', correct:5655.58,tol:2,   label:'Summe = 53,29+5476+5,29+121', answer:'5.655,58' },
+    { id:'c6', correct:75.20,  tol:0.5, label:'d = √5655,58', answer:'75,20' },
+  ];
+  let n=0,c=0,m=[];
+  for(const f of fields){
+    const v=parseFloat(document.getElementById(f.id).value);
+    if(isNaN(v)) continue;
+    n++;
+    if(Math.abs(v-f.correct)<=f.tol){
+      c++; m.push('✓ '+f.label+' = '+f.answer+' — Richtig!');
+    } else {
+      m.push('✗ '+f.label+' = <strong>'+f.answer+'</strong>');
+    }
+  }
+  if(!n){document.getElementById('f6').innerHTML='<div class="fb no">Bitte fülle mindestens ein Feld aus.</div>';return;}
+  T+=n;C+=c;W+=(n-c);ui();
+  const allOk=c===n;
+  document.getElementById('f6').innerHTML=`<div class="fb ${allOk?'ok':'inf'}">${m.join('<br>')}<br><br>${allOk?'🎉 Alle Berechnungen korrekt!':'Korrigierte Werte siehst du oben. Versuche den Rechenweg nachzuvollziehen.'}</div>`;
+  // Disable inputs after check
+  fields.forEach(f=>{const el=document.getElementById(f.id);if(el)el.disabled=true;});
+  done(6,'calc');
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(+t.dataset.s)));
+ui();
+</script>
+</body>
+</html>

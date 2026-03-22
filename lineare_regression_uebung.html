@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Übungsaufgabe: Lineare Regression</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a1a1a;min-height:100vh}
+.page{max-width:860px;margin:0 auto;padding:1.5rem 1rem}
+h1{font-size:20px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+.subtitle{font-size:13px;color:#5f6368;margin-bottom:1.5rem}
+.progress-bar{background:#dde1e7;border-radius:99px;height:6px;margin-bottom:1.5rem;overflow:hidden}
+.progress-fill{height:100%;background:#2563eb;border-radius:99px;transition:width .4s}
+.task-nav{display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap}
+.task-btn{padding:6px 14px;border-radius:8px;border:1px solid #c8cdd5;background:#fff;font-size:13px;cursor:pointer;color:#5f6368;transition:all .15s}
+.task-btn:hover{background:#f5f7fa;border-color:#a0a8b4}
+.task-btn.active{background:#dbeafe;border-color:#2563eb;color:#1d4ed8;font-weight:500}
+.section{background:#fff;border:1px solid #dde1e7;border-radius:12px;padding:1.25rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.section-title{font-size:11px;font-weight:600;color:#5f6368;margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:.06em}
+.scenario{background:#f5f7fa;border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:14px;color:#1a1a1a;line-height:1.6;border:1px solid #dde1e7}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:1rem}
+.data-table th{background:#e8eaf0;padding:7px 12px;text-align:center;color:#3d4354;font-weight:600;border:1px solid #c8cdd5}
+.data-table td{padding:6px 12px;border:1px solid #dde1e7;color:#1a1a1a;text-align:center}
+.data-table tr:nth-child(even) td{background:#f8f9fc}
+.question{margin-bottom:1.25rem}
+.question p{font-size:14px;color:#1a1a1a;margin-bottom:0.5rem;line-height:1.6}
+.points-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:#e8eaf0;color:#5f6368;margin-left:6px;border:1px solid #c8cdd5}
+.answer-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+input[type=number]{width:120px;padding:7px 10px;border:1px solid #c8cdd5;border-radius:6px;font-size:13px;color:#1a1a1a;background:#fff}
+input[type=number]:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+textarea{padding:8px 10px;border:1px solid #c8cdd5;border-radius:8px;font-size:13px;color:#1a1a1a;background:#fff}
+textarea:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.check-btn{padding:7px 16px;border-radius:8px;border:1px solid #c8cdd5;background:#fff;font-size:13px;cursor:pointer;color:#1a1a1a;font-weight:500;transition:all .15s}
+.check-btn:hover{background:#f5f7fa;border-color:#a0a8b4}
+.check-btn.primary{background:#2563eb;color:#fff;border-color:#2563eb}
+.check-btn.primary:hover{background:#1d4ed8}
+.feedback{font-size:13px;padding:10px 14px;border-radius:8px;margin-top:8px;display:none;line-height:1.5}
+.feedback.correct{background:#dcfce7;color:#166534;border:1px solid #86efac}
+.feedback.wrong{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.feedback.partial{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.feedback.visible{display:block}
+.info-box{border-left:3px solid #2563eb;padding:10px 14px;background:#dbeafe;border-radius:0 8px 8px 0;font-size:13px;color:#1e40af;margin-bottom:1rem;line-height:1.5}
+.formula-box{font-family:monospace;background:#f0f2f5;padding:8px 12px;border-radius:8px;font-size:13px;color:#1a1a1a;display:inline-block;margin:4px 0;border:1px solid #dde1e7}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:560px){.two-col{grid-template-columns:1fr}}
+.hidden{display:none}
+.summary-card{background:#f5f7fa;border-radius:12px;padding:1.5rem;text-align:center;margin-top:1rem;border:1px solid #dde1e7}
+.score-big{font-size:48px;font-weight:700;color:#1a1a1a}
+#plotCanvas{display:block;width:100%;cursor:crosshair;touch-action:none;border-radius:8px;border:1px solid #dde1e7}
+.plot-hint{font-size:12px;color:#5f6368;margin-top:6px;line-height:1.5}
+.coord-display{font-size:12px;font-family:monospace;color:#5f6368;margin-top:4px;min-height:18px;background:#f5f7fa;padding:4px 8px;border-radius:6px;border:1px solid #dde1e7}
+.point-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.point-chip{font-size:11px;padding:4px 10px;border-radius:99px;background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;cursor:pointer;font-weight:500}
+.point-chip:hover{background:#bfdbfe}
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.count-display{font-size:13px;color:#5f6368}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Übungsaufgabe: Lineare Regression</h1>
+  <p class="subtitle">Fachinformatiker/in – Daten- und Prozessanalyse · Prüfungsvorbereitung</p>
+
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+  <div class="task-nav">
+    <button class="task-btn active" onclick="showTask(0)">a) Datenpunkte</button>
+    <button class="task-btn" onclick="showTask(1)">b) Regressionsgerade</button>
+    <button class="task-btn" onclick="showTask(2)">c) Grafische Ermittlung</button>
+    <button class="task-btn" onclick="showTask(3)">d) Vergleich &amp; Analyse</button>
+  </div>
+
+  <!-- TASK A -->
+  <div id="task0">
+    <div class="section">
+      <div class="section-title">Szenario</div>
+      <div class="scenario">Die <strong>FitTrack GmbH</strong> möchte den Kalorienverbrauch K (kcal) ihrer Nutzer in Abhängigkeit von der Trainingszeit t (min) vorhersagen. Ein Modul „Lineare Regression" soll auf Eignung geprüft werden.</div>
+      <table class="data-table">
+        <thead><tr><th>Nr</th><th>t [min]</th><th>K [kcal]</th></tr></thead>
+        <tbody id="dataTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">a) Datenpunkte einzeichnen <span class="points-badge">7 Punkte</span></div>
+      <p style="font-size:14px;color:#1a1a1a;margin-bottom:0.75rem;line-height:1.6">
+        <strong>Klicken</strong> Sie ins Diagramm, um einen Punkt zu setzen. <strong>Ziehen</strong> Sie bestehende Punkte, um sie zu verschieben. Punkt 1 (5|20) und Punkt 12 (70|360) sind fixiert (grau).
+      </p>
+      <canvas id="plotCanvas" height="420"></canvas>
+      <div class="coord-display" id="coordDisplay">Bewegen Sie die Maus über das Diagramm …</div>
+      <div class="point-list" id="pointList"></div>
+      <div class="btn-row">
+        <button class="check-btn primary" onclick="checkPlotted()">Punkte prüfen</button>
+        <button class="check-btn" onclick="resetPlotted()">Zurücksetzen</button>
+        <span class="count-display" id="countDisplay">0 / 10 Punkte gesetzt</span>
+        <button class="check-btn" onclick="showTask(1)" style="margin-left:auto">Weiter →</button>
+      </div>
+      <div class="feedback" id="fbA"></div>
+    </div>
+  </div>
+
+  <!-- TASK B -->
+  <div id="task1" class="hidden">
+    <div class="section">
+      <div class="section-title">b) Regressionsgerade <span class="points-badge">3 Punkte</span></div>
+      <div class="info-box">Globales Modell: <strong>β₀ = −20 &nbsp;|&nbsp; β₁ = 6,0</strong> &nbsp;→&nbsp; <code>K̂ = β₀ + β₁ · t</code></div>
+      <div class="two-col">
+        <div class="question">
+          <p>K̂(t = 0) = ?</p>
+          <div class="answer-row"><input type="number" id="bAns0" placeholder="kcal"><button class="check-btn" onclick="checkB(0)">Prüfen</button></div>
+          <div class="feedback" id="fbB0"></div>
+        </div>
+        <div class="question">
+          <p>K̂(t = 75) = ?</p>
+          <div class="answer-row"><input type="number" id="bAns75" placeholder="kcal"><button class="check-btn" onclick="checkB(75)">Prüfen</button></div>
+          <div class="feedback" id="fbB75"></div>
+        </div>
+      </div>
+      <canvas id="plotCanvasB" height="380" style="display:block;width:100%;border-radius:8px;border:1px solid #dde1e7;margin-top:1rem"></canvas>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="check-btn" onclick="showTask(2)">Weiter →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASK C -->
+  <div id="task2" class="hidden">
+    <div class="section">
+      <div class="section-title">c) Grafische Ermittlung <span class="points-badge">5 Punkte</span></div>
+      <div class="info-box">Die lokale Gerade beschreibt den Bereich <strong>15 ≤ t ≤ 50 min</strong> optimal und verläuft durch <strong>(15 | 80)</strong> und <strong>(50 | 330)</strong>.</div>
+      <div class="question">
+        <p>Steigung β₁ = (K₂ − K₁) / (t₂ − t₁) = ?</p>
+        <p class="formula-box">(330 − 80) / (50 − 15) = ?</p>
+        <div class="answer-row"><input type="number" id="cAnsB1" placeholder="β₁" step="0.01"><button class="check-btn" onclick="checkC('b1')">Prüfen</button></div>
+        <div class="feedback" id="fbCb1"></div>
+      </div>
+      <div class="question">
+        <p>y-Achsenabschnitt β₀ = K − β₁ · t = ?</p>
+        <p class="formula-box">80 − β₁ · 15 = ?</p>
+        <div class="answer-row"><input type="number" id="cAnsB0" placeholder="β₀" step="0.1"><button class="check-btn" onclick="checkC('b0')">Prüfen</button></div>
+        <div class="feedback" id="fbCb0"></div>
+      </div>
+      <canvas id="plotCanvasC" height="380" style="display:block;width:100%;border-radius:8px;border:1px solid #dde1e7;margin-top:1rem"></canvas>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="check-btn" onclick="showTask(3)">Weiter →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASK D -->
+  <div id="task3" class="hidden">
+    <div class="section">
+      <div class="section-title">d) Vergleich &amp; Analyse</div>
+      <div class="question">
+        <p><strong>da)</strong> T_regression(35 min) mit globalem Modell (β₀=−20, β₁=6): <span class="points-badge">3 Punkte</span></p>
+        <p class="formula-box">−20 + 6 · 35 = ?</p>
+        <div class="answer-row"><input type="number" id="daAns" placeholder="kcal"><button class="check-btn" onclick="checkD('da')">Prüfen</button></div>
+        <div class="feedback" id="fbDa"></div>
+      </div>
+      <div class="question" style="margin-top:1rem">
+        <p><strong>db)</strong> T_grafisch(35 min) mit lokalem Modell aus c): <span class="points-badge">3 Punkte</span></p>
+        <p class="formula-box">β₀ + β₁ · 35 = ?</p>
+        <div class="answer-row"><input type="number" id="dbAns" placeholder="kcal (gerundet)"><button class="check-btn" onclick="checkD('db')">Prüfen</button></div>
+        <div class="feedback" id="fbDb"></div>
+      </div>
+      <div class="question" style="margin-top:1rem">
+        <p><strong>dc)</strong> Warum weichen die Werte ab? <span class="points-badge">3 Punkte</span></p>
+        <textarea id="dcAns" style="width:100%;height:90px;resize:vertical" placeholder="Ihre Erklärung …"></textarea>
+        <div style="margin-top:6px"><button class="check-btn" onclick="checkD('dc')">Musterlösung zeigen</button></div>
+        <div class="feedback" id="fbDc"></div>
+      </div>
+      <div class="question" style="margin-top:1rem">
+        <p><strong>dd)</strong> Verbesserungsvorschlag für den Bereich 15–50 min: <span class="points-badge">3 Punkte</span></p>
+        <textarea id="ddAns" style="width:100%;height:90px;resize:vertical" placeholder="Ihr Vorschlag …"></textarea>
+        <div style="margin-top:6px"><button class="check-btn" onclick="checkD('dd')">Musterlösung zeigen</button></div>
+        <div class="feedback" id="fbDd"></div>
+      </div>
+      <div style="margin-top:1.25rem">
+        <button class="check-btn primary" onclick="showSummary()" style="width:100%;padding:10px;font-size:14px">Gesamtergebnis anzeigen</button>
+      </div>
+    </div>
+    <div id="summaryCard" class="summary-card hidden">
+      <div class="score-big" id="scoreDisplay">–</div>
+      <div style="font-size:14px;color:#5f6368;margin-top:4px">Punkte von 27 möglichen</div>
+      <p id="scoreMsg" style="font-size:15px;color:#1a1a1a;margin-top:10px;font-weight:500"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA=[{t:5,k:20},{t:10,k:55},{t:15,k:80},{t:20,k:110},{t:25,k:160},{t:30,k:185},{t:35,k:210},{t:40,k:260},{t:50,k:310},{t:55,k:340},{t:60,k:350},{t:70,k:360}];
+const FIXED=[0,11];
+let pts={a:0,b:0,c:0,da:0,db:0,dc:0,dd:0};
+let checkedB={0:false,75:false};
+let checkedC={b1:false,b0:false};
+let showGlobalLine=false,showLocalLine=false;
+let userPts=[];
+let dragging=-1;
+
+const XMIN=0,XMAX=80,YMIN=-100,YMAX=450;
+const PAD={l:56,r:24,t:24,b:52};
+
+function cm(canvas){
+  const W=canvas.width,H=canvas.height;
+  const pw=W-PAD.l-PAD.r,ph=H-PAD.t-PAD.b;
+  return{
+    W,H,pw,ph,
+    tx:x=>(x-XMIN)/XMAX*pw+PAD.l,  // simplified since XMIN=0
+    ty:y=>H-PAD.b-(y-YMIN)/(YMAX-YMIN)*ph,
+    fx:px=>(px-PAD.l)/pw*XMAX,
+    fy:py=>(H-PAD.b-py)/(ph)*(YMAX-YMIN)+YMIN
+  };
+}
+
+function drawPlot(canvas,opts={}){
+  const ctx=canvas.getContext('2d');
+  const{W,H,pw,ph,tx,ty}=cm(canvas);
+  ctx.clearRect(0,0,W,H);
+
+  /* background */
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+
+  /* plot area bg */
+  ctx.fillStyle='#f8f9fc';
+  ctx.fillRect(PAD.l,PAD.t,pw,ph);
+
+  /* grid */
+  ctx.strokeStyle='#dde1e7';ctx.lineWidth=1;
+  for(let x=0;x<=80;x+=10){
+    ctx.beginPath();ctx.moveTo(tx(x),PAD.t);ctx.lineTo(tx(x),H-PAD.b);ctx.stroke();
+  }
+  for(let y=YMIN;y<=YMAX;y+=100){
+    ctx.beginPath();ctx.moveTo(PAD.l,ty(y));ctx.lineTo(W-PAD.r,ty(y));ctx.stroke();
+  }
+
+  /* zero line highlight */
+  ctx.strokeStyle='#a0a8b4';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,ty(0));ctx.lineTo(W-PAD.r,ty(0));ctx.stroke();
+
+  /* axes */
+  ctx.strokeStyle='#3d4354';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+
+  /* tick labels */
+  ctx.fillStyle='#3d4354';ctx.font='11px system-ui,sans-serif';ctx.textAlign='center';
+  for(let x=0;x<=80;x+=10)ctx.fillText(x,tx(x),H-PAD.b+16);
+  ctx.textAlign='right';
+  for(let y=YMIN;y<=YMAX;y+=100)ctx.fillText(y,PAD.l-8,ty(y)+4);
+
+  /* axis labels */
+  ctx.fillStyle='#5f6368';ctx.font='12px system-ui,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Trainingszeit t [min]',(PAD.l+W-PAD.r)/2,H-6);
+  ctx.save();ctx.translate(14,(PAD.t+H-PAD.b)/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText('K [kcal]',0,0);ctx.restore();
+
+  /* optional: global regression line */
+  if(opts.globalLine){
+    ctx.save();ctx.strokeStyle='#ef4444';ctx.lineWidth=2;ctx.setLineDash([7,4]);
+    ctx.beginPath();ctx.moveTo(tx(0),ty(-20));ctx.lineTo(tx(75),ty(430));ctx.stroke();
+    ctx.setLineDash([]);ctx.restore();
+    ctx.fillStyle='#ef4444';ctx.font='11px system-ui,sans-serif';ctx.textAlign='left';
+    ctx.fillText('global: K̂ = −20 + 6t',tx(2),ty(-20+6*2)-8);
+  }
+
+  /* optional: local regression line */
+  if(opts.localLine){
+    const b1=250/35,b0=80-b1*15;
+    ctx.save();ctx.strokeStyle='#16a34a';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.moveTo(tx(15),ty(b0+b1*15));ctx.lineTo(tx(50),ty(b0+b1*50));ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle='#16a34a';ctx.font='11px system-ui,sans-serif';ctx.textAlign='left';
+    ctx.fillText('lokal (15–50 min)',tx(34),ty(b0+b1*34)-10);
+  }
+
+  /* target hints */
+  if(opts.showTargets){
+    const needed=DATA.filter((_,i)=>!FIXED.includes(i));
+    needed.forEach(d=>{
+      if(!userPts.find(p=>Math.abs(p.t-d.t)<=4&&Math.abs(p.k-d.k)<=25)){
+        ctx.save();ctx.strokeStyle='rgba(22,163,74,0.5)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+        ctx.beginPath();ctx.arc(tx(d.t),ty(d.k),14,0,Math.PI*2);ctx.stroke();
+        ctx.setLineDash([]);ctx.restore();
+      }
+    });
+  }
+
+  /* data points from opts.data */
+  if(opts.data){
+    opts.data.forEach(d=>{
+      ctx.fillStyle='#2563eb';ctx.strokeStyle='#1d4ed8';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(tx(d.t),ty(d.k),5,0,Math.PI*2);ctx.fill();ctx.stroke();
+    });
+  }
+
+  /* fixed points */
+  FIXED.forEach(i=>{
+    const d=DATA[i];
+    ctx.fillStyle='#9ca3af';ctx.strokeStyle='#6b7280';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(tx(d.t),ty(d.k),7,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#374151';ctx.font='bold 10px system-ui,sans-serif';ctx.textAlign='center';
+    ctx.fillText(i+1,tx(d.t),ty(d.k)-11);
+  });
+
+  /* user placed points */
+  userPts.forEach((p,i)=>{
+    const isDrag=(i===dragging);
+    ctx.fillStyle=isDrag?'#dc2626':'#2563eb';
+    ctx.strokeStyle=isDrag?'#991b1b':'#1d4ed8';
+    ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(tx(p.t),ty(p.k),isDrag?9:7,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1e3a8a';ctx.font='bold 10px system-ui,sans-serif';ctx.textAlign='center';
+    ctx.fillText(p.nr,tx(p.t),ty(p.k)-11);
+  });
+}
+
+function updatePointList(){
+  const list=document.getElementById('pointList');
+  if(!list)return;
+  list.innerHTML='';
+  userPts.forEach((p,i)=>{
+    const chip=document.createElement('span');
+    chip.className='point-chip';
+    chip.textContent=`Nr ${p.nr}: (${Math.round(p.t)} | ${Math.round(p.k)})`;
+    chip.title='Klicken zum Entfernen';
+    chip.onclick=()=>{userPts.splice(i,1);updatePointList();updateCount();redrawA()};
+    list.appendChild(chip);
+  });
+}
+
+function updateCount(){
+  const el=document.getElementById('countDisplay');
+  if(el)el.textContent=`${userPts.length} / 10 Punkte gesetzt`;
+}
+
+function redrawA(opts={}){
+  const c=document.getElementById('plotCanvas');
+  if(c)drawPlot(c,opts);
+}
+
+function initPlotCanvas(){
+  const canvas=document.getElementById('plotCanvas');
+  if(!canvas)return;
+  canvas.width=canvas.offsetWidth||700;
+  drawPlot(canvas);
+
+  function getPos(e){
+    const r=canvas.getBoundingClientRect();
+    const sx=canvas.width/r.width,sy=canvas.height/r.height;
+    const src=e.touches?e.touches[0]:e;
+    return{px:(src.clientX-r.left)*sx,py:(src.clientY-r.top)*sy};
+  }
+
+  function hitTest(px,py){
+    const m=cm(canvas);
+    for(let i=userPts.length-1;i>=0;i--){
+      if(Math.hypot(px-m.tx(userPts[i].t),py-m.ty(userPts[i].k))<14)return i;
+    }
+    return -1;
+  }
+
+  canvas.addEventListener('mousedown',e=>{
+    const{px,py}=getPos(e);
+    const hit=hitTest(px,py);
+    if(hit>=0){dragging=hit;canvas.style.cursor='grabbing';}
+    else{
+      const m=cm(canvas);
+      const t=Math.round(m.fx(px)),k=Math.round(m.fy(py));
+      if(t<XMIN||t>XMAX||k<YMIN||k>YMAX||userPts.length>=10)return;
+      const placed=new Set(userPts.map(p=>p.nr));
+      FIXED.forEach(i=>placed.add(i+1));
+      let nr=null;for(let i=1;i<=12;i++){if(!placed.has(i)){nr=i;break}}
+      if(!nr)return;
+      userPts.push({t,k,nr});
+      updatePointList();updateCount();dragging=userPts.length-1;
+    }
+    drawPlot(canvas);
+  });
+
+  canvas.addEventListener('mousemove',e=>{
+    const{px,py}=getPos(e);
+    const m=cm(canvas);
+    const t=Math.round(Math.max(XMIN,Math.min(XMAX,m.fx(px))));
+    const k=Math.round(Math.max(YMIN,Math.min(YMAX,m.fy(py))));
+    const cd=document.getElementById('coordDisplay');
+    if(cd)cd.textContent=`Mausposition: t = ${t} min,  K = ${k} kcal`;
+    if(dragging>=0){
+      userPts[dragging]={...userPts[dragging],t,k};
+      canvas.style.cursor='grabbing';drawPlot(canvas);updatePointList();
+    } else {
+      canvas.style.cursor=hitTest(px,py)>=0?'grab':'crosshair';
+    }
+  });
+
+  const onUp=()=>{if(dragging>=0){dragging=-1;canvas.style.cursor='crosshair';drawPlot(canvas);updatePointList();}};
+  canvas.addEventListener('mouseup',onUp);
+  canvas.addEventListener('mouseleave',onUp);
+
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();
+    const{px,py}=getPos(e);
+    const hit=hitTest(px,py);
+    if(hit>=0){dragging=hit;}
+    else{
+      const m=cm(canvas);
+      const t=Math.round(m.fx(px)),k=Math.round(m.fy(py));
+      if(t<XMIN||t>XMAX||k<YMIN||k>YMAX||userPts.length>=10)return;
+      const placed=new Set(userPts.map(p=>p.nr));
+      FIXED.forEach(i=>placed.add(i+1));
+      let nr=null;for(let i=1;i<=12;i++){if(!placed.has(i)){nr=i;break}}
+      if(!nr)return;
+      userPts.push({t,k,nr});updatePointList();updateCount();dragging=userPts.length-1;
+    }
+    drawPlot(canvas);
+  },{passive:false});
+
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();
+    const{px,py}=getPos(e);
+    const m=cm(canvas);
+    const t=Math.round(Math.max(XMIN,Math.min(XMAX,m.fx(px))));
+    const k=Math.round(Math.max(YMIN,Math.min(YMAX,m.fy(py))));
+    if(dragging>=0){userPts[dragging]={...userPts[dragging],t,k};drawPlot(canvas);updatePointList();}
+  },{passive:false});
+
+  canvas.addEventListener('touchend',()=>{dragging=-1;drawPlot(canvas);updatePointList();});
+}
+
+function checkPlotted(){
+  const needed=DATA.filter((_,i)=>!FIXED.includes(i));
+  let correct=0;
+  needed.forEach(d=>{if(userPts.find(p=>Math.abs(p.t-d.t)<=4&&Math.abs(p.k-d.k)<=25))correct++;});
+  const fb=document.getElementById('fbA');
+  fb.className='feedback visible';
+  if(correct===10){fb.classList.add('correct');fb.textContent='Alle 10 Punkte korrekt positioniert! (7/7 Punkte)';pts.a=7;redrawA();}
+  else if(correct>=6){fb.classList.add('partial');fb.textContent=`${correct}/10 korrekt (Toleranz ±4 min, ±25 kcal). Verschieben Sie die verbleibenden Punkte. Grüne Kreise zeigen Zielpositionen.`;pts.a=Math.round(correct*0.7);redrawA({showTargets:true});}
+  else{fb.classList.add('wrong');fb.textContent=`Nur ${correct}/10 korrekt. Lesen Sie die Tabelle genau ab und passen Sie die Punkte an.`;pts.a=0;redrawA({showTargets:true});}
+  updateProgress();
+}
+
+function resetPlotted(){
+  userPts=[];dragging=-1;
+  document.getElementById('fbA').className='feedback';
+  updatePointList();updateCount();redrawA();
+}
+
+function initStaticCanvas(id,opts){
+  const c=document.getElementById(id);
+  if(!c)return;
+  c.width=c.offsetWidth||700;
+  const savedUserPts=userPts;
+  userPts=[];
+  drawPlot(c,opts);
+  userPts=savedUserPts;
+  if(opts.data){
+    const ctx=c.getContext('2d');
+    const m=cm(c);
+    opts.data.forEach(d=>{
+      ctx.fillStyle='#2563eb';ctx.strokeStyle='#1d4ed8';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(m.tx(d.t),m.ty(d.k),5,0,Math.PI*2);ctx.fill();ctx.stroke();
+    });
+  }
+}
+
+function checkB(t){
+  const val=parseFloat(document.getElementById(t===0?'bAns0':'bAns75').value);
+  const correct=t===0?-20:-20+6*75;
+  const fb=document.getElementById(t===0?'fbB0':'fbB75');
+  fb.className='feedback visible';
+  if(Math.abs(val-correct)<=1){
+    fb.classList.add('correct');fb.textContent=`Richtig! K̂(${t}) = ${correct} kcal ✓`;
+    checkedB[t]=true;
+    if(checkedB[0]&&checkedB[75]){pts.b=3;showGlobalLine=true;initStaticCanvas('plotCanvasB',{globalLine:true,data:DATA});}
+  } else {
+    fb.classList.add('wrong');fb.textContent=`Nicht korrekt. Tipp: K̂ = −20 + 6 · ${t}`;
+  }
+  updateProgress();
+}
+
+function checkC(which){
+  if(which==='b1'){
+    const val=parseFloat(document.getElementById('cAnsB1').value);
+    const correct=250/35;
+    const fb=document.getElementById('fbCb1');
+    fb.className='feedback visible';
+    if(Math.abs(val-correct)<0.15){fb.classList.add('correct');fb.textContent=`Richtig! β₁ = 250/35 ≈ 7,14 ✓`;checkedC.b1=true;pts.c=Math.max(pts.c,2.5);}
+    else{fb.classList.add('wrong');fb.textContent=`Nicht korrekt. β₁ = (330−80)/(50−15) = 250/35 ≈ 7,14`;}
+  } else {
+    const val=parseFloat(document.getElementById('cAnsB0').value);
+    const b1=250/35,correct=80-b1*15;
+    const fb=document.getElementById('fbCb0');
+    fb.className='feedback visible';
+    if(Math.abs(val-correct)<2){
+      fb.classList.add('correct');fb.textContent=`Richtig! β₀ ≈ ${correct.toFixed(1)} ✓`;
+      checkedC.b0=true;pts.c=5;showLocalLine=true;
+      initStaticCanvas('plotCanvasC',{globalLine:true,localLine:true,data:DATA});
+    } else {
+      fb.classList.add('wrong');fb.textContent=`Nicht korrekt. β₀ = 80 − 7,14·15 ≈ ${correct.toFixed(1)}`;
+    }
+  }
+  updateProgress();
+}
+
+function checkD(which){
+  if(which==='da'){
+    const val=parseFloat(document.getElementById('daAns').value);
+    const correct=-20+6*35;
+    const fb=document.getElementById('fbDa');
+    fb.className='feedback visible';
+    if(Math.abs(val-correct)<=1){fb.classList.add('correct');fb.textContent=`Richtig! ${correct} kcal ✓`;pts.da=3;}
+    else{fb.classList.add('wrong');fb.textContent=`Nicht korrekt. −20 + 6·35 = ${correct}`;}
+  } else if(which==='db'){
+    const val=parseFloat(document.getElementById('dbAns').value);
+    const b1=250/35,b0=80-b1*15,correct=Math.round(b0+b1*35);
+    const fb=document.getElementById('fbDb');
+    fb.className='feedback visible';
+    if(Math.abs(val-correct)<=2){fb.classList.add('correct');fb.textContent=`Richtig! ≈ ${correct} kcal ✓`;pts.db=3;}
+    else{fb.classList.add('wrong');fb.textContent=`Nicht korrekt. Ergebnis ≈ ${correct} kcal`;}
+  } else if(which==='dc'){
+    const fb=document.getElementById('fbDc');
+    fb.className='feedback partial visible';
+    fb.textContent='Musterlösung: Die globale Gerade wird über alle 12 Datenpunkte (t=5–70 min) optimiert. Datenpunkte außerhalb des relevanten Bereichs verzerren β₀ und β₁. Das lokale Modell minimiert den Fehler nur im Bereich 15–50 min und passt sich dort besser an die Daten an → unterschiedliche Konstanten → unterschiedliche Prognosen.';
+    pts.dc=3;
+  } else if(which==='dd'){
+    const fb=document.getElementById('fbDd');
+    fb.className='feedback partial visible';
+    fb.textContent='Musterlösung (mögliche Antworten): 1) Das Modell nur mit Daten aus dem relevanten Bereich (15–50 min) trainieren, damit Ausreißer außerhalb diesen Bereich die Regressionsgerade nicht verzerren. 2) Mehr Datenpunkte aus dem Bereich 15–50 min erfassen, um die Gerade präziser anzupassen. 3) Den Korrelationskoeffizienten r überprüfen – liegt er nahe bei 1 oder −1, besteht ein starker linearer Zusammenhang; andernfalls sollte ein anderes Modell gewählt werden.';
+    pts.dd=3;
+  }
+  updateProgress();
+}
+
+function showSummary(){
+  const total=Object.values(pts).reduce((a,b)=>a+b,0);
+  document.getElementById('summaryCard').classList.remove('hidden');
+  document.getElementById('scoreDisplay').textContent=total+'/27';
+  const msgs=['Bitte die Grundlagen nochmals wiederholen.','Befriedigend – üben Sie weiter!','Gut! Noch kleine Lücken schließen.','Sehr gut – fast prüfungsreif!','Ausgezeichnet! Sie sind prüfungsreif.'];
+  document.getElementById('scoreMsg').textContent=msgs[Math.min(4,Math.floor(total/6))];
+  document.getElementById('summaryCard').scrollIntoView({behavior:'smooth'});
+}
+
+function updateProgress(){
+  const total=Object.values(pts).reduce((a,b)=>a+b,0);
+  document.getElementById('progressFill').style.width=Math.round(total/27*100)+'%';
+}
+
+function showTask(idx){
+  for(let i=0;i<4;i++)document.getElementById('task'+i).classList.add('hidden');
+  document.getElementById('task'+idx).classList.remove('hidden');
+  document.querySelectorAll('.task-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  if(idx===0)setTimeout(initPlotCanvas,60);
+  if(idx===1)setTimeout(()=>initStaticCanvas('plotCanvasB',{globalLine:showGlobalLine,data:DATA}),60);
+  if(idx===2)setTimeout(()=>initStaticCanvas('plotCanvasC',{globalLine:true,localLine:showLocalLine,data:DATA}),60);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* build table */
+(function(){
+  const tb=document.getElementById('dataTableBody');
+  DATA.forEach((d,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${d.t}</td><td>${d.k}</td>`;
+    tb.appendChild(tr);
+  });
+})();
+
+setTimeout(initPlotCanvas,80);
+window.addEventListener('resize',()=>{
+  if(!document.getElementById('task0').classList.contains('hidden')){
+    const c=document.getElementById('plotCanvas');
+    if(c){c.width=c.offsetWidth||700;drawPlot(c);}
+  }
+});
+</script>
+</body>
+</html>

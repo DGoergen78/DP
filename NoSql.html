@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoSQL – IHK Prüfungsvorbereitung</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13; --surface: #1a1a22; --surface2: #23232e; --surface3: #2d2d3a;
+    --border: rgba(255,255,255,0.08); --border-hover: rgba(255,255,255,0.16);
+    --text: #e8e8f0; --text-muted: #8888a0; --text-dim: #555568;
+    --accent: #7c6af7; --accent-light: #a99ffa; --accent-glow: rgba(124,106,247,0.15);
+    --teal: #2dd4a0; --teal-bg: rgba(45,212,160,0.08);
+    --amber: #f5a623; --amber-bg: rgba(245,166,35,0.08);
+    --coral: #f06060; --coral-bg: rgba(240,96,96,0.08);
+    --green: #5ec46a; --green-bg: rgba(94,196,106,0.08);
+    --mono: 'Space Mono', monospace; --sans: 'DM Sans', sans-serif;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px; }
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(15,15,19,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem; display: flex; align-items: center; height: 56px;
+  }
+  .nav-logo { font-family: var(--mono); font-size: 13px; color: var(--accent-light); margin-right: 2rem; letter-spacing: 0.05em; }
+  nav a {
+    color: var(--text-muted); text-decoration: none; font-size: 13px;
+    padding: 0 14px; height: 56px; display: flex; align-items: center;
+    border-bottom: 2px solid transparent; transition: all 0.2s; cursor: pointer;
+  }
+  nav a:hover, nav a.active { color: var(--text); border-bottom-color: var(--accent); }
+  .section { display: none; max-width: 900px; margin: 0 auto; padding: 3rem 2rem; }
+  .section.visible { display: block; }
+  h1 { font-size: 2.2rem; font-weight: 600; line-height: 1.2; margin-bottom: 1rem; }
+  h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.75rem; margin-top: 2.5rem; }
+  h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+  p { color: var(--text-muted); margin-bottom: 0.85rem; }
+  p strong { color: var(--text); font-weight: 500; }
+  .hero-badge {
+    display: inline-block; background: var(--accent-glow);
+    border: 1px solid rgba(124,106,247,0.3); color: var(--accent-light);
+    font-family: var(--mono); font-size: 11px; padding: 4px 12px;
+    border-radius: 20px; margin-bottom: 1.5rem; letter-spacing: 0.08em;
+  }
+  .hero-subtitle { font-size: 1.05rem; color: var(--text-muted); max-width: 560px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+  .card:hover { border-color: var(--border-hover); }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  @media (max-width: 600px) { .card-grid { grid-template-columns: 1fr; } }
+  .explain-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 0.75rem 1rem;
+    font-size: 12.5px; color: var(--text-dim); margin-top: 0.75rem;
+    border-left: 2px solid var(--accent);
+  }
+  .explain-box strong { color: var(--text-muted); }
+  .tag {
+    display: inline-block; font-size: 11px; font-family: var(--mono);
+    padding: 3px 8px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; letter-spacing: 0.04em;
+  }
+  .tag-teal { background: var(--teal-bg); color: var(--teal); border: 1px solid rgba(45,212,160,0.2); }
+  .tag-amber { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,166,35,0.2); }
+  .tag-coral { background: var(--coral-bg); color: var(--coral); border: 1px solid rgba(240,96,96,0.2); }
+  .tag-purple { background: var(--accent-glow); color: var(--accent-light); border: 1px solid rgba(124,106,247,0.2); }
+  .tag-green { background: var(--green-bg); color: var(--green); border: 1px solid rgba(94,196,106,0.2); }
+  .compare-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 14px; }
+  .compare-table th {
+    padding: 10px 14px; text-align: left; font-weight: 500; font-size: 12px;
+    letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border);
+  }
+  .compare-table th:first-child { color: var(--text-dim); }
+  .compare-table th:nth-child(2) { color: var(--teal); }
+  .compare-table th:nth-child(3) { color: var(--accent-light); }
+  .compare-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-muted); vertical-align: top; }
+  .compare-table td:first-child { color: var(--text-dim); font-size: 12px; font-family: var(--mono); }
+  .compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .td-explain { font-size: 11px; color: var(--text-dim); font-style: italic; margin-top: 3px; }
+  .code-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  @media (max-width: 640px) { .code-split { grid-template-columns: 1fr; } }
+  .code-block { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .code-header { padding: 8px 14px; font-size: 11px; font-family: var(--mono); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .code-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .code-header .label { color: var(--text-dim); }
+  pre { padding: 1rem; font-family: var(--mono); font-size: 12px; line-height: 1.7; color: var(--text-muted); overflow-x: auto; white-space: pre; }
+  .kw { color: var(--accent-light); } .str { color: var(--teal); }
+  .num { color: var(--amber); } .cm { color: var(--text-dim); } .key { color: #c9b1ff; }
+  .example-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 1rem 0; }
+  .example-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 6px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+  .dtype-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 1rem 0; }
+  @media (max-width: 580px) { .dtype-grid { grid-template-columns: 1fr 1fr; } }
+  .dtype-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .dtype-name { font-family: var(--mono); font-size: 12px; margin-bottom: 3px; }
+  .dtype-example { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+  .dtype-desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .quiz-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 2rem; }
+  .progress-bar { flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s; }
+  .progress-text { font-size: 12px; font-family: var(--mono); color: var(--text-dim); }
+  .quiz-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; min-height: 400px; display: flex; flex-direction: column; }
+  .quiz-meta { font-size: 11px; font-family: var(--mono); color: var(--text-dim); margin-bottom: 0.75rem; display: flex; gap: 12px; align-items: center; }
+  .quiz-year { background: var(--surface3); padding: 2px 8px; border-radius: 4px; color: var(--accent-light); }
+  .quiz-question { font-size: 1.05rem; font-weight: 500; color: var(--text); margin-bottom: 1.25rem; line-height: 1.6; }
+  .quiz-context { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; font-size: 13px; color: var(--text-muted); margin-bottom: 1.25rem; font-style: italic; }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .option-btn {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 12px 16px; text-align: left; cursor: pointer; color: var(--text-muted); font-size: 14px;
+    font-family: var(--sans); transition: all 0.15s; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--text); background: var(--surface3); }
+  .option-btn.selected { border-color: var(--accent); background: var(--accent-glow); color: var(--text); }
+  .option-btn.correct { border-color: var(--teal); background: var(--teal-bg); color: var(--teal); }
+  .option-btn.wrong { border-color: var(--coral); background: var(--coral-bg); color: var(--coral); }
+  .option-key { font-family: var(--mono); font-size: 11px; padding: 2px 7px; background: var(--surface3); border-radius: 4px; color: var(--text-dim); flex-shrink: 0; margin-top: 1px; }
+  .match-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .match-col-label { font-size: 11px; font-family: var(--mono); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .match-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; cursor: grab; font-family: var(--mono); transition: all 0.15s; user-select: none; }
+  .match-item:hover { border-color: var(--border-hover); color: var(--text); }
+  .match-item.dragging { opacity: 0.5; cursor: grabbing; }
+  .match-drop-zone { background: var(--surface3); border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; min-height: 42px; display: flex; align-items: center; transition: all 0.15s; }
+  .match-drop-zone.over { border-color: var(--accent); background: var(--accent-glow); }
+  .match-target-label { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+  .json-builder { font-family: var(--mono); font-size: 13px; }
+  .json-field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .json-field input { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; color: var(--text); font-family: var(--mono); font-size: 12px; outline: none; }
+  .json-field input:focus { border-color: var(--accent); }
+  .json-field input.key-input { width: 140px; color: #c9b1ff; }
+  .json-field input.val-input { flex: 1; color: var(--teal); }
+  .json-field .colon { color: var(--text-dim); }
+  .feedback-box { display: none; margin-top: 1.5rem; background: var(--surface2); border-radius: var(--radius-sm); padding: 1rem 1.25rem; border-left: 3px solid var(--teal); font-size: 14px; color: var(--text-muted); }
+  .feedback-box.show { display: block; }
+  .feedback-box.wrong-feedback { border-left-color: var(--coral); }
+  .feedback-title { font-weight: 600; color: var(--text); margin-bottom: 0.4rem; font-size: 14px; }
+  .quiz-actions { margin-top: auto; padding-top: 1.5rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .btn { padding: 10px 20px; border-radius: var(--radius-sm); font-size: 14px; font-family: var(--sans); cursor: pointer; border: none; transition: all 0.15s; font-weight: 500; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #9080fa; }
+  .btn-secondary { background: var(--surface3); color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-secondary:hover { color: var(--text); border-color: var(--border-hover); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .score-display { margin-left: auto; font-family: var(--mono); font-size: 13px; color: var(--text-dim); }
+  .score-num { color: var(--accent-light); font-size: 15px; }
+  .result-summary { text-align: center; padding: 3rem 2rem; }
+  .result-big { font-size: 4rem; font-family: var(--mono); color: var(--accent); }
+  .result-label { font-size: 14px; color: var(--text-dim); margin-bottom: 1.5rem; }
+  .result-stars { font-size: 2rem; margin-bottom: 1rem; }
+  .divider { height: 1px; background: var(--border); margin: 2rem 0; }
+  .type-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .type-card .type-sub { font-size: 12px; color: var(--text-dim); font-family: var(--mono); margin-bottom: 0.75rem; }
+  .type-card p { font-size: 13px; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">NoSQL_</div>
+  <a data-section="intro" class="active" id="nav-intro">Einführung</a>
+  <a data-section="compare" id="nav-compare">SQL vs NoSQL</a>
+  <a data-section="types" id="nav-types">Typen &amp; Beispiele</a>
+  <a data-section="quiz" id="nav-quiz">Übungsaufgaben</a>
+</nav>
+
+<!-- INTRO -->
+<div id="intro" class="section visible">
+  <div class="hero-badge">IHK PRÜFUNGSVORBEREITUNG</div>
+  <h1>Was ist NoSQL?</h1>
+  <p class="hero-subtitle">NoSQL steht für <strong>„Not only SQL"</strong> – Datenbanksysteme, die über das klassische relationale Modell hinausgehen und flexiblere Datenstrukturen ermöglichen.</p>
+
+  <div class="divider"></div>
+  <h2>Das Problem mit klassischen Datenbanken</h2>
+  <p>Relationale Datenbanken (SQL) speichern Daten in <strong>starren Tabellen mit festen Spalten</strong>. Das funktioniert gut – bis die Anforderungen wachsen:</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <span class="tag tag-coral">Problem</span>
+      <h3>Skalierung</h3>
+      <p style="font-size:13px">SQL-Datenbanken skalieren primär <strong>vertikal</strong>: mehr RAM, stärkere CPU. Das ist teuer und hat physikalische Grenzen – irgendwann gibt es keinen leistungsstärkeren Server mehr zu kaufen.</p>
+      <div class="explain-box">
+        <strong>Warum können NoSQL-DBs einfach horizontal skalieren?</strong><br>
+        Weil ein NoSQL-Dokument alle nötigen Daten in sich trägt – es hat keine Fremdschlüsselbeziehungen zu anderen Dokumenten auf anderen Servern. Man kann ein Dokument daher auf einem beliebigen Server speichern. Bei SQL hingegen müsste ein JOIN Daten von mehreren Servern zusammenführen – das erfordert aufwändige Netzwerkkommunikation. NoSQL verteilt einfach ganze Dokumente auf viele Server und skaliert damit quasi beliebig.
+      </div>
+    </div>
+    <div class="card">
+      <span class="tag tag-coral">Problem</span>
+      <h3>Starre Struktur</h3>
+      <p style="font-size:13px">Jede Zeile muss dieselben Spalten haben. Unterschiedliche Produkte (Bücher, Schuhe, Elektronik) haben aber völlig andere Eigenschaften – in SQL entstehen viele leere NULL-Felder.</p>
+      <div class="explain-box">
+        <strong>Beispiel:</strong> Ein Buch hat ISBN und Seitenzahl, ein T-Shirt hat Größe und Farbe. In einer gemeinsamen SQL-Tabelle hätte ein Buch die Felder „Größe" und „Farbe" leer (NULL), ein T-Shirt hätte „ISBN" und „Seitenzahl" leer. In NoSQL hat jedes Dokument <em>genau</em> die Felder, die es braucht – keine anderen.
+      </div>
+    </div>
+    <div class="card">
+      <span class="tag tag-coral">Problem</span>
+      <h3>Verschachtelte Daten &amp; JOINs</h3>
+      <p style="font-size:13px">Ein Nutzer mit mehreren Adressen braucht in SQL zwei separate Tabellen und einen JOIN. Je komplexer die Daten, desto mehr JOINs – und JOINs werden bei großen Tabellen sehr langsam.</p>
+      <div class="explain-box">
+        <strong>Warum braucht man überhaupt JOINs?</strong><br>
+        SQL speichert zusammengehörige Daten bewusst in getrennten Tabellen (Normalisierung), um Redundanz zu vermeiden. Möchte man die Daten zusammen abfragen, muss die DB jede Zeile aus Tabelle A mit jeder passenden Zeile aus Tabelle B abgleichen – das ist der JOIN. Bei Millionen Einträgen dauert das lang und belastet den Server stark. NoSQL speichert alles in einem Dokument – ein einziger Lesezugriff genügt.
+      </div>
+    </div>
+    <div class="card">
+      <span class="tag tag-coral">Problem</span>
+      <h3>Schema-Änderungen</h3>
+      <p style="font-size:13px">Eine neue Spalte hinzufügen erfordert ein <code style="font-family:var(--mono);font-size:11px;color:var(--accent-light)">ALTER TABLE</code> – bei großen Tabellen aufwendig und riskant.</p>
+      <div class="explain-box">
+        <strong>Warum ist ALTER TABLE riskant?</strong><br>
+        Die Datenbank muss dabei jede einzelne Zeile der Tabelle anfassen und das neue Feld ergänzen. Bei 100 Millionen Zeilen dauert das Stunden – in dieser Zeit ist die Tabelle oft gesperrt und für Anwendungen nicht nutzbar. Schlägt die Operation fehl, muss alles zurückgerollt werden. In NoSQL fügt man neue Felder einfach in einzelne Dokumente ein, ohne die restlichen Dokumente zu berühren.
+      </div>
+    </div>
+  </div>
+
+  <h2>NoSQL als Lösung</h2>
+  <p>Die populärsten NoSQL-Datenbanken sind <strong>dokumentenorientiert</strong> (z.B. MongoDB). Daten werden als JSON-ähnliche Dokumente gespeichert – flexibel, verschachtelbar und ohne festes Schema.</p>
+
+  <div class="code-split">
+    <div class="code-block">
+      <div class="code-header"><div class="dot" style="background:#5ec46a"></div><span class="label">NoSQL — alles in einem Dokument</span></div>
+      <pre>{
+  <span class="key">"_id"</span>: <span class="str">"nutzer_001"</span>,
+  <span class="key">"name"</span>: <span class="str">"Anna Müller"</span>,
+  <span class="key">"email"</span>: <span class="str">"<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="97f6f9f9f6d7faf6fefbb9f3f2">[email&#160;protected]</a>"</span>,
+  <span class="key">"adressen"</span>: [
+    { <span class="key">"typ"</span>: <span class="str">"privat"</span>, <span class="key">"stadt"</span>: <span class="str">"Berlin"</span> },
+    { <span class="key">"typ"</span>: <span class="str">"arbeit"</span>,  <span class="key">"stadt"</span>: <span class="str">"Hamburg"</span> }
+  ],
+  <span class="key">"bestellungen"</span>: <span class="num">42</span>
+}</pre>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><div class="dot" style="background:#7c6af7"></div><span class="label">SQL — 2 Tabellen, JOIN nötig</span></div>
+      <pre><span class="cm">-- Tabelle 1</span>
+<span class="kw">CREATE TABLE</span> nutzer (
+  id    <span class="kw">INT PRIMARY KEY</span>,
+  name  <span class="kw">VARCHAR</span>(<span class="num">100</span>),
+  email <span class="kw">VARCHAR</span>(<span class="num">200</span>)
+);
+<span class="cm">-- Tabelle 2</span>
+<span class="kw">CREATE TABLE</span> adressen (
+  id        <span class="kw">INT PRIMARY KEY</span>,
+  nutzer_id <span class="kw">INT REFERENCES</span> nutzer,
+  typ       <span class="kw">VARCHAR</span>(<span class="num">50</span>),
+  stadt     <span class="kw">VARCHAR</span>(<span class="num">100</span>)
+);
+<span class="cm">-- Abfrage braucht JOIN:</span>
+<span class="kw">SELECT</span> n.name, a.stadt
+<span class="kw">FROM</span> nutzer n
+<span class="kw">JOIN</span> adressen a <span class="kw">ON</span> a.nutzer_id = n.id;</pre>
+    </div>
+  </div>
+  <p>Im NoSQL-Beispiel sind alle Daten einer Person <strong>in einem einzigen Dokument</strong> gespeichert – kein JOIN nötig. In SQL müssen beide Tabellen explizit per JOIN zusammengeführt werden.</p>
+
+  <div class="divider"></div>
+  <h2>Wann setzt man NoSQL ein?</h2>
+  <div class="card-grid">
+    <div class="card"><span class="tag tag-teal">Einsatzgebiet</span><h3>Big Data &amp; hohe Last</h3><p style="font-size:13px">Social Media, IoT-Sensordaten, Logs – Millionen Schreibvorgänge pro Sekunde, horizontal auf vielen Servern verteilt.</p></div>
+    <div class="card"><span class="tag tag-teal">Einsatzgebiet</span><h3>Flexible Schemas</h3><p style="font-size:13px">Produkte mit sehr unterschiedlichen Attributen in einer Collection – ohne NULL-Felder und ohne ALTER TABLE.</p></div>
+    <div class="card"><span class="tag tag-teal">Einsatzgebiet</span><h3>Verschachtelte Strukturen</h3><p style="font-size:13px">Blog-Posts, Nutzerprofile, Konfigurationen – Daten, die natürlicherweise als verschachteltes JSON vorliegen.</p></div>
+    <div class="card"><span class="tag tag-teal">Einsatzgebiet</span><h3>Schnelle Entwicklung</h3><p style="font-size:13px">Kein Schema-Design vorab nötig. Felder können jederzeit ergänzt werden. Ideal für agile Projekte und Prototypen.</p></div>
+  </div>
+
+  <div style="margin-top:2rem; text-align:right;">
+    <button class="btn btn-primary" onclick="showSection('compare')">Weiter: SQL vs NoSQL →</button>
+  </div>
+</div>
+
+<!-- COMPARE -->
+<div id="compare" class="section">
+  <h1>SQL vs NoSQL</h1>
+  <p>Die folgende Tabelle zeigt die wichtigsten Unterschiede – <strong>exakt das Wissen, das in IHK-Prüfungen abgefragt wird</strong>. Die kursiven Zeilen erklären das Warum.</p>
+
+  <table class="compare-table">
+    <thead>
+      <tr><th>Kriterium</th><th>SQL (relational)</th><th>NoSQL (dokumentenorientiert)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Datenmodell</td><td>Tabellen mit Zeilen &amp; Spalten</td><td>Dokumente (JSON/BSON) in Collections</td></tr>
+      <tr>
+        <td>Schema</td>
+        <td>Fest vordefiniert (starr)<div class="td-explain">Alle Zeilen müssen dieselben Spalten haben – vor dem Befüllen festgelegt.</div></td>
+        <td>Flexibel / schemalos<div class="td-explain">Jedes Dokument kann eigene Felder haben. Änderungen ohne ALTER TABLE.</div></td>
+      </tr>
+      <tr>
+        <td>Skalierung</td>
+        <td>Vertikal (Scale-up)<div class="td-explain">Stärkeren Server kaufen – teuer und physikalisch begrenzt.</div></td>
+        <td>Horizontal (Scale-out)<div class="td-explain">Mehr Server hinzufügen. Möglich, weil Dokumente in sich vollständig sind.</div></td>
+      </tr>
+      <tr>
+        <td>Konsistenz</td>
+        <td>ACID (stark konsistent)<div class="td-explain">Daten sind immer in einem gültigen Zustand. Jede Transaktion wird vollständig oder gar nicht ausgeführt.</div></td>
+        <td>BASE (eventually consistent)<div class="td-explain">Daten werden irgendwann konsistent. Kurze Verzögerungen sind akzeptabel – dafür ist das System hoch verfügbar.</div></td>
+      </tr>
+      <tr>
+        <td>Beziehungen</td>
+        <td>Fremdschlüssel &amp; JOINs<div class="td-explain">Daten auf mehrere Tabellen verteilt, per JOIN zusammengeführt.</div></td>
+        <td>Eingebettete Dokumente<div class="td-explain">Verwandte Daten im gleichen Dokument – kein JOIN nötig.</div></td>
+      </tr>
+      <tr><td>Abfragesprache</td><td>SQL (standardisiert)</td><td>Proprietär (z.B. MongoDB Query Language)</td></tr>
+      <tr><td>Transaktion</td><td>Vollständig unterstützt</td><td>Begrenzt / eingeschränkt</td></tr>
+      <tr><td>Verwendung</td><td>ERP, Finanzsysteme, Stammdaten</td><td>Big Data, Web-Apps, IoT, Echtzeit</td></tr>
+      <tr><td>Beispiele</td><td>MySQL, PostgreSQL, Oracle, MSSQL</td><td>MongoDB, CouchDB, Firestore</td></tr>
+    </tbody>
+  </table>
+
+  <div class="divider"></div>
+  <h2>Begriffe im Vergleich</h2>
+  <p>In der IHK-Prüfung Winter 2024/25 mussten diese Fachbegriffe korrekt einander zugeordnet werden – <strong>prüfungsrelevant</strong>:</p>
+  <table class="compare-table">
+    <thead><tr><th>Konzept</th><th>SQL-Begriff</th><th>NoSQL-Begriff (MongoDB)</th></tr></thead>
+    <tbody>
+      <tr><td>Gruppe gleichartiger Datensätze</td><td>Table (Tabelle)</td><td>Collection</td></tr>
+      <tr><td>Einzelner Datensatz</td><td>Record / Row (Zeile)</td><td>Document</td></tr>
+      <tr><td>Einzelnes Datenelement</td><td>Column (Spalte)</td><td>Field</td></tr>
+      <tr><td>Eindeutiger Bezeichner</td><td>Primary Key</td><td>_id</td></tr>
+      <tr><td>Datenbank</td><td>Database / Schema</td><td>Database</td></tr>
+      <tr><td>Verbindung von Daten</td><td>JOIN</td><td>$lookup / Einbettung</td></tr>
+    </tbody>
+  </table>
+
+  <div class="divider"></div>
+  <h2>ACID vs BASE</h2>
+  <div class="card-grid">
+    <div class="card">
+      <span class="tag tag-purple">SQL</span>
+      <h3>ACID</h3>
+      <p style="font-size:13px"><strong>Atomicity</strong> – Alles oder nichts: eine Transaktion wird vollständig oder gar nicht ausgeführt.<br>
+      <strong>Consistency</strong> – Die DB ist immer in einem gültigen Zustand.<br>
+      <strong>Isolation</strong> – Parallele Transaktionen stören sich gegenseitig nicht.<br>
+      <strong>Durability</strong> – Einmal gespeichert bleibt gespeichert, auch bei Absturz.</p>
+      <p style="font-size:13px">Ideal für Banktransaktionen, wo jeder Cent stimmen muss.</p>
+    </div>
+    <div class="card">
+      <span class="tag tag-teal">NoSQL</span>
+      <h3>BASE</h3>
+      <p style="font-size:13px"><strong>Basically Available</strong> – Das System antwortet immer, auch wenn nicht alle Daten aktuell sind.<br>
+      <strong>Soft state</strong> – Der Zustand der Daten darf sich noch ändern.<br>
+      <strong>Eventually consistent</strong> – Alle Knoten werden irgendwann denselben Stand haben.</p>
+      <p style="font-size:13px">Ideal für Social Media: Ein Like darf kurz verzögert erscheinen – aber das System soll nie komplett ausfallen.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:2rem; text-align:right;">
+    <button class="btn btn-primary" onclick="showSection('types')">Weiter: Typen &amp; Beispiele →</button>
+  </div>
+</div>
+
+<!-- TYPES -->
+<div id="types" class="section">
+  <h1>NoSQL-Typen</h1>
+  <p>Es gibt vier Hauptkategorien. Für die IHK-Prüfung ist der <strong>dokumentenorientierte Typ</strong> am relevantesten.</p>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0;">
+    <div class="type-card">
+      <span class="tag tag-teal">Dokumentenorientiert</span>
+      <h3 style="margin-top:0.5rem">Document Store</h3>
+      <div class="type-sub">★ Prüfungsrelevant</div>
+      <p style="font-size:13px">Daten als JSON/BSON-Dokumente. Jedes Dokument kann eigene Felder haben. Ideal für Nutzerprofile, Produktkataloge, Blogs.</p>
+      <div class="example-pills"><span class="example-pill">🍃 MongoDB</span><span class="example-pill">🔥 Firestore</span><span class="example-pill">🛋️ CouchDB</span></div>
+    </div>
+    <div class="type-card">
+      <span class="tag tag-purple">Schlüssel-Wert</span>
+      <h3 style="margin-top:0.5rem">Key-Value Store</h3>
+      <div class="type-sub">Einfachste Form</div>
+      <p style="font-size:13px">Ein Schlüssel zeigt auf einen Wert – wie ein riesiges Dictionary. Extrem schnell. Ideal für Sessions und Caching.</p>
+      <div class="example-pills"><span class="example-pill">⚡ Redis</span><span class="example-pill">📦 DynamoDB</span></div>
+    </div>
+    <div class="type-card">
+      <span class="tag tag-amber">Spaltenorientiert</span>
+      <h3 style="margin-top:0.5rem">Column Store</h3>
+      <div class="type-sub">Big Data</div>
+      <p style="font-size:13px">Daten in Spalten statt Zeilen organisiert. Effizient für analytische Abfragen auf riesige Datenmengen.</p>
+      <div class="example-pills"><span class="example-pill">📊 Cassandra</span><span class="example-pill">☁️ BigTable</span></div>
+    </div>
+    <div class="type-card">
+      <span class="tag tag-coral">Graph</span>
+      <h3 style="margin-top:0.5rem">Graph-Datenbank</h3>
+      <div class="type-sub">Beziehungen im Fokus</div>
+      <p style="font-size:13px">Daten als Knoten und Kanten. Optimal für soziale Netzwerke, Empfehlungssysteme, Betrugserkennung.</p>
+      <div class="example-pills"><span class="example-pill">🕸️ Neo4j</span><span class="example-pill">🔗 ArangoDB</span></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <h2>JSON als Datenformat</h2>
+  <p>Dokumentenorientierte Datenbanken speichern Daten im <strong>JSON-Format (JavaScript Object Notation)</strong>. JSON besteht aus <strong>Schlüssel-Wert-Paaren</strong> in geschweiften Klammern. Der Typ eines Wertes bestimmt, wie er geschrieben wird – das ist besonders beim Umwandeln von Tabellendaten in JSON-Dokumente prüfungsrelevant:</p>
+
+  <div class="dtype-grid">
+    <div class="dtype-item">
+      <div class="dtype-name" style="color:var(--teal)">String (Text)</div>
+      <div class="dtype-example">"Berlin"</div>
+      <div class="dtype-desc">Text – immer in doppelten Anführungszeichen</div>
+    </div>
+    <div class="dtype-item">
+      <div class="dtype-name" style="color:var(--amber)">Number (Zahl)</div>
+      <div class="dtype-example">42 &nbsp;/&nbsp; 3.14</div>
+      <div class="dtype-desc">Zahl – ohne Anführungszeichen</div>
+    </div>
+    <div class="dtype-item">
+      <div class="dtype-name" style="color:var(--accent-light)">Boolean</div>
+      <div class="dtype-example">true &nbsp;/&nbsp; false</div>
+      <div class="dtype-desc">Wahrheitswert – klein geschrieben, ohne Anführungszeichen</div>
+    </div>
+    <div class="dtype-item">
+      <div class="dtype-name" style="color:var(--coral)">null</div>
+      <div class="dtype-example">null</div>
+      <div class="dtype-desc">Kein Wert / unbekannt</div>
+    </div>
+    <div class="dtype-item">
+      <div class="dtype-name" style="color:var(--green)">Array (Liste)</div>
+      <div class="dtype-example">["Berlin", "Hamburg"]</div>
+      <div class="dtype-desc">Mehrere Werte – in eckigen Klammern</div>
+    </div>
+    <div class="dtype-item">
+      <div class="dtype-name" style="color:#c9b1ff">Object (Objekt)</div>
+      <div class="dtype-example">{"stadt": "Berlin"}</div>
+      <div class="dtype-desc">Verschachteltes Dokument in geschweiften Klammern</div>
+    </div>
+  </div>
+
+  <p style="margin-top:1rem">Das folgende Beispiel zeigt <em>alle sechs Datentypen</em> in einem echten Dokument. Die Farben der Werte entsprechen der Tabelle oben:</p>
+
+  <div class="code-block" style="margin:1rem 0">
+    <div class="code-header"><div class="dot" style="background:#2dd4a0"></div><span class="label">Pflanzendatenbank – alle JSON-Datentypen im Überblick</span></div>
+    <pre>{
+  <span class="key">"_id"</span>:                <span class="str">"pflanze_042"</span>,       <span class="cm">← String (Text)</span>
+  <span class="key">"name"</span>:               <span class="str">"Monstera deliciosa"</span>, <span class="cm">← String (Text)</span>
+  <span class="key">"giessung_pro_woche"</span>: <span class="num">2</span>,                   <span class="cm">← Number (Zahl)</span>
+  <span class="key">"giftig"</span>:             <span class="kw">true</span>,                <span class="cm">← Boolean</span>
+  <span class="key">"letzte_duengung"</span>:    <span class="kw">null</span>,                <span class="cm">← null (kein Wert)</span>
+  <span class="key">"standort"</span>:           [<span class="str">"Halbschatten"</span>, <span class="str">"Innen"</span>], <span class="cm">← Array (Liste)</span>
+  <span class="key">"eigenschaften"</span>: {                          <span class="cm">← Object (Objekt)</span>
+    <span class="key">"blattgroesse"</span>: <span class="str">"groß"</span>,
+    <span class="key">"wachstum"</span>:     <span class="str">"schnell"</span>
+  }
+}</pre>
+  </div>
+
+  <div style="margin-top:2rem; text-align:right;">
+    <button class="btn btn-primary" onclick="showSection('quiz')">Zu den Übungsaufgaben →</button>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="section">
+  <h1>Übungsaufgaben</h1>
+  <p>Alle Aufgaben basieren auf echten IHK-Prüfungsaufgaben. Wähle jeweils die <strong>eine richtige Antwort</strong> aus – genau wie in der Prüfung.</p>
+
+  <div class="quiz-progress">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <span class="progress-text" id="progress-text">0 / 8</span>
+  </div>
+
+  <div class="quiz-card" id="quiz-card"></div>
+
+  <div id="results" style="display:none; margin-top:1rem;">
+    <div class="result-summary card">
+      <div id="result-stars" class="result-stars"></div>
+      <div class="result-big" id="result-score"></div>
+      <div class="result-label" id="result-label"></div>
+      <button class="btn btn-primary" onclick="resetQuiz()" style="margin-top:1rem">Nochmal üben</button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+const questions = [
+  {
+    year: "Sommer 2022", type: "single",
+    question: "Warum profitiert eine Pflanzendatenbank besonders vom flexiblen Schema einer NoSQL-Datenbank?",
+    context: "Ein Gartencenter speichert sehr unterschiedliche Pflanzen: Zimmerpflanzen, Bäume, Kakteen, Wasserpflanzen.",
+    options: [
+      { text: "Jede Pflanzenart kann eigene Felder haben – ein Kaktus braucht 'dornenlänge', ein Baum nicht.", correct: true },
+      { text: "NoSQL-Datenbanken haben grundsätzlich mehr Speicherplatz als relationale Systeme.", correct: false },
+      { text: "Das Schema verhindert, dass falsche Daten eingetragen werden.", correct: false },
+      { text: "Flexible Schemas beschleunigen automatisch alle Leseabfragen.", correct: false }
+    ],
+    feedback: "Das flexible Schema bedeutet: verschiedene Dokumente in derselben Collection können verschiedene Felder haben. Eine Monstera hat andere Attribute als eine Kiefer – in SQL müsste man entweder viele NULL-Felder akzeptieren oder separate Tabellen anlegen."
+  },
+  {
+    year: "Sommer 2022", type: "single",
+    question: "Welcher Vorteil spricht für SQL zur Verwaltung von Pflanzen, Lieferanten und Bestellungen?",
+    context: "Alle Entitäten sollen miteinander verknüpft und konsistent abfragbar sein.",
+    options: [
+      { text: "SQL skaliert horizontal und verteilt die Last automatisch auf viele Server.", correct: false },
+      { text: "Fremdschlüssel und JOINs bilden Beziehungen zwischen Pflanze, Lieferant und Bestellung zuverlässig ab.", correct: true },
+      { text: "SQL benötigt kein vordefiniertes Schema und ist daher flexibler als NoSQL.", correct: false },
+      { text: "ACID-Transaktionen machen Backups in SQL überflüssig.", correct: false }
+    ],
+    feedback: "Wenn Daten strukturiert miteinander in Beziehung stehen, ist SQL ideal. Fremdschlüssel erzwingen referenzielle Integrität – es kann z.B. keine Bestellung für einen nicht existierenden Lieferanten geben."
+  },
+  {
+    year: "Winter 2022/23", type: "single",
+    question: "Worin unterscheiden sich SQL und NoSQL beim grundlegenden Datenmodell am stärksten?",
+    options: [
+      { text: "SQL speichert nur Zahlen, NoSQL auch Text.", correct: false },
+      { text: "SQL nutzt Tabellen mit festen Spalten; NoSQL nutzt flexible Dokumente ohne fixes Schema.", correct: true },
+      { text: "NoSQL hat keine Abfragesprache, SQL schon.", correct: false },
+      { text: "SQL läuft nur lokal, NoSQL nur in der Cloud.", correct: false }
+    ],
+    feedback: "Das ist der Kern: SQL = starre Tabellenstruktur (alle Zeilen gleich), NoSQL = flexible Dokumente (jedes kann anders aussehen). Statt 'Table' → 'Collection', statt 'Row' → 'Document'."
+  },
+  {
+    year: "Winter 2022/23", type: "match",
+    question: "Ordnen Sie die SQL-Begriffe den entsprechenden NoSQL-Begriffen zu.",
+    pairs: [
+      { sql: "Table (Tabelle)", nosql: "Collection" },
+      { sql: "Record / Row (Zeile)", nosql: "Document" },
+      { sql: "Column (Spalte)", nosql: "Field" },
+      { sql: "Primary Key", nosql: "_id" }
+    ],
+    feedback: "Table → Collection, Row → Document, Column → Field, Primary Key → _id."
+  },
+  {
+    year: "Sommer 2023", type: "single",
+    question: "Welcher NoSQL-Vorteil passt am besten zur Speicherung von Fitnessdaten verschiedener Geräte?",
+    context: "Smartwatch liefert Puls und Schritte. Waage liefert Gewicht und Körperfett. Täglich Millionen neue Einträge.",
+    options: [
+      { text: "Starke ACID-Transaktionen sichern jeden Messwert lückenlos.", correct: false },
+      { text: "Flexibles Schema: jedes Gerät speichert nur seine eigenen Felder.", correct: true },
+      { text: "Python kann nur auf NoSQL-Datenbanken zugreifen, nicht auf SQL.", correct: false },
+      { text: "NoSQL unterstützt JOINs über mehrere Collections effizienter als SQL.", correct: false }
+    ],
+    feedback: "Smartwatch und Waage liefern komplett unterschiedliche Felder. In SQL bräuchte man eine Tabelle mit vielen NULLs oder mehrere Tabellen mit JOINs. In NoSQL hat jedes Dokument exakt die Felder seines Geräts."
+  },
+  {
+    year: "Sommer 2023", type: "single",
+    question: "Was ermöglicht NoSQL die einfache horizontale Skalierung, die SQL so schwer fällt?",
+    options: [
+      { text: "NoSQL-Datenbanken speichern weniger Daten und brauchen daher weniger Server.", correct: false },
+      { text: "NoSQL läuft immer auf genau einem zentralen Hochleistungsserver.", correct: false },
+      { text: "Dokumente sind in sich vollständig – kein Server muss für einen Lesezugriff mit anderen kommunizieren.", correct: true },
+      { text: "NoSQL verschlüsselt Daten automatisch, was die Verteilung vereinfacht.", correct: false }
+    ],
+    feedback: "Ein NoSQL-Dokument trägt alles in sich – keine Fremdschlüssel zu anderen Servern. Daher kann man Dokumente einfach auf Server 1, 2 oder 100 legen. Bei SQL erfordert ein JOIN Daten von verschiedenen Orten – über Servergrenzen hinweg extrem aufwendig."
+  },
+  {
+    year: "Winter 2024/25", type: "match",
+    question: "Ein System wird von relational auf dokumentenorientiert umgestellt. Ordnen Sie die Fachbegriffe korrekt zu.",
+    pairs: [
+      { sql: "Datenbank / Schema", nosql: "Database" },
+      { sql: "Table (Tabelle)", nosql: "Collection" },
+      { sql: "Row / Record (Zeile)", nosql: "Document" },
+      { sql: "Column (Spalte)", nosql: "Field" }
+    ],
+    feedback: "Diese exakte Zuordnung stand in der IHK Winter 2024/25. Collection = Sammlung von Dokumenten, Document = einzelner Datensatz, Field = einzelnes Datenfeld."
+  },
+  {
+    year: "Winter 2024/25", type: "jsonfree",
+    question: "Wandeln Sie folgende Kundendaten aus einer relationalen Datenbank in ein gültiges JSON-Dokument für MongoDB um.",
+    context: "Tabelle: <strong>kunde</strong><br><br><table style=\"font-size:13px;border-collapse:collapse;width:100%\"><tr style=\"border-bottom:1px solid var(--border)\"><td style=\"padding:4px 12px 4px 0;color:var(--text-dim);font-family:var(--mono);font-size:11px\">id</td><td style=\"padding:4px 12px 4px 0;color:var(--text-dim);font-family:var(--mono);font-size:11px\">vorname</td><td style=\"padding:4px 12px 4px 0;color:var(--text-dim);font-family:var(--mono);font-size:11px\">nachname</td><td style=\"padding:4px 12px 4px 0;color:var(--text-dim);font-family:var(--mono);font-size:11px\">alter</td><td style=\"padding:4px 12px 4px 0;color:var(--text-dim);font-family:var(--mono);font-size:11px\">aktiv</td></tr><tr><td style=\"padding:4px 12px 4px 0;color:var(--text-muted)\">3</td><td style=\"padding:4px 12px 4px 0;color:var(--text-muted)\">Lisa</td><td style=\"padding:4px 12px 4px 0;color:var(--text-muted)\">Schmidt</td><td style=\"padding:4px 12px 4px 0;color:var(--text-muted)\">29</td><td style=\"padding:4px 12px 4px 0;color:var(--text-muted)\">true</td></tr></table><br>Tabelle: <strong>telefon</strong> (verknüpft über kunde_id = 3)<br><br><table style=\"font-size:13px;border-collapse:collapse\"><tr style=\"border-bottom:1px solid var(--border)\"><td style=\"padding:4px 12px 4px 0;color:var(--text-dim);font-family:var(--mono);font-size:11px\">nummer</td></tr><tr><td style=\"padding:4px 4px 2px 0;color:var(--text-muted)\">0711-123456</td></tr><tr><td style=\"padding:2px 4px 4px 0;color:var(--text-muted)\">0176-987654</td></tr></table><br><em>In MongoDB sollen die Telefonnummern eingebettet werden – nicht als separate Collection.</em>",
+    hint: "Tipps:<br>• id → _id (Primärschlüssel in MongoDB)<br>• Strings in doppelte Anführungszeichen, Zahlen und Booleans ohne<br>• Die zwei Telefonnummern kommen als Array: <code style=\"font-family:var(--mono);font-size:11px;color:var(--teal)\">[\"...\", \"...\"]</code><br>• Der Schlüssel für das Array heißt <code style=\"font-family:var(--mono);font-size:11px;color:#c9b1ff\">\"telefon\"</code>",
+    solution: { "_id": 3, "vorname": "Lisa", "nachname": "Schmidt", "alter": 29, "aktiv": true, "telefon": ["0711-123456", "0176-987654"] },
+    checks: [
+      { desc: "Gültiges JSON (parsierbar)", fn: function(o) { return true; } },
+      { desc: "_id ist die Zahl 3 (kein String)", fn: function(o) { return o._id === 3; } },
+      { desc: "vorname: \"Lisa\" (String)", fn: function(o) { return o.vorname === "Lisa"; } },
+      { desc: "nachname: \"Schmidt\" (String)", fn: function(o) { return o.nachname === "Schmidt"; } },
+      { desc: "alter: 29 (Zahl, kein String)", fn: function(o) { return o.alter === 29; } },
+      { desc: "aktiv: true (Boolean, kein String)", fn: function(o) { return o.aktiv === true; } },
+      { desc: "telefon ist ein Array mit 2 Einträgen", fn: function(o) { return Array.isArray(o.telefon) && o.telefon.length === 2; } },
+      { desc: "Beide Telefonnummern korrekt im Array", fn: function(o) { return Array.isArray(o.telefon) && o.telefon.indexOf("0711-123456") >= 0 && o.telefon.indexOf("0176-987654") >= 0; } }
+    ],
+    feedback: "Wichtig: (1) id → _id, (2) alter als Zahl ohne Anführungszeichen, (3) aktiv als Boolean true – nicht \"true\", (4) Telefonnummern aus der separaten SQL-Tabelle werden in MongoDB als eingebettetes Array gespeichert – kein JOIN nötig."
+  }
+];
+
+var currentQ = 0, score = 0;
+var answered = [];
+for (var i = 0; i < questions.length; i++) answered.push(false);
+var selectedOption = -1;
+var dropMap = {};
+
+function showSection(name) {
+  var secs = document.querySelectorAll('.section');
+  for (var i = 0; i < secs.length; i++) secs[i].classList.remove('visible');
+  document.getElementById(name).classList.add('visible');
+  var links = document.querySelectorAll('nav a');
+  for (var i = 0; i < links.length; i++) links[i].classList.remove('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'quiz') renderQuiz();
+}
+
+function updateProgress() {
+  var done = 0;
+  for (var i = 0; i < answered.length; i++) if (answered[i]) done++;
+  document.getElementById('progress-fill').style.width = (done / questions.length * 100) + '%';
+  document.getElementById('progress-text').textContent = done + ' / ' + questions.length;
+}
+
+function renderQuiz() {
+  updateProgress();
+  if (currentQ >= questions.length) { showResults(); return; }
+  var q = questions[currentQ];
+  var card = document.getElementById('quiz-card');
+  card.style.display = 'flex';
+  if (q.type === 'single') renderSingle(q, card);
+  else if (q.type === 'match') renderMatch(q, card);
+  else if (q.type === 'jsonfree') renderJsonFree(q, card);
+}
+
+// ===== SINGLE CHOICE =====
+function renderSingle(q, card) {
+  selectedOption = -1;
+  var opts = q.options.map(function(o, i) {
+    return '<button class="option-btn" id="opt-' + i + '" onclick="selectOption(' + i + ')">' +
+      '<span class="option-key">' + String.fromCharCode(65 + i) + '</span>' +
+      '<span>' + o.text + '</span></button>';
+  }).join('');
+  card.innerHTML =
+    '<div class="quiz-meta"><span class="quiz-year">' + q.year + '</span><span>Aufgabe ' + (currentQ+1) + ' von ' + questions.length + '</span></div>' +
+    '<div class="quiz-question">' + q.question + '</div>' +
+    (q.context ? '<div class="quiz-context">' + q.context + '</div>' : '') +
+    '<div class="options">' + opts + '</div>' +
+    '<div class="feedback-box" id="feedback"></div>' +
+    '<div class="quiz-actions">' +
+    '<button class="btn btn-primary" id="submit-btn" onclick="submitSingle()" disabled>Prüfen</button>' +
+    '<button class="btn btn-secondary" id="solution-btn" style="display:none" onclick="showSolutionSingle()">Musterlösung</button>' +
+    '<button class="btn btn-secondary" id="next-btn" style="display:none" onclick="nextQuestion()">Weiter →</button>' +
+    '<div class="score-display">Punkte: <span class="score-num">' + score + '</span></div>' +
+    '</div>';
+}
+
+function selectOption(i) {
+  if (answered[currentQ]) return;
+  var btns = document.querySelectorAll('.option-btn');
+  for (var j = 0; j < btns.length; j++) btns[j].classList.remove('selected');
+  document.getElementById('opt-' + i).classList.add('selected');
+  selectedOption = i;
+  document.getElementById('submit-btn').disabled = false;
+}
+
+function submitSingle() {
+  var q = questions[currentQ];
+  var correct = q.options[selectedOption].correct;
+  for (var i = 0; i < q.options.length; i++) {
+    var btn = document.getElementById('opt-' + i);
+    btn.disabled = true;
+    btn.classList.remove('selected');
+    if (q.options[i].correct) btn.classList.add('correct');
+    else if (i === selectedOption) btn.classList.add('wrong');
+  }
+  if (!answered[currentQ]) {
+    if (correct) score++;
+    answered[currentQ] = true;
+    updateProgress();
+  }
+  var fb = document.getElementById('feedback');
+  fb.innerHTML = '<div class="feedback-title">' + (correct ? '✓ Richtig!' : '✗ Leider falsch.') + '</div>' + q.feedback;
+  fb.className = 'feedback-box show' + (correct ? '' : ' wrong-feedback');
+  document.getElementById('submit-btn').style.display = 'none';
+  document.getElementById('solution-btn').style.display = 'inline-flex';
+  document.getElementById('next-btn').style.display = 'inline-flex';
+}
+
+function showSolutionSingle() {
+  var q = questions[currentQ];
+  var ci = 0;
+  for (var i = 0; i < q.options.length; i++) if (q.options[i].correct) ci = i;
+  var fb = document.getElementById('feedback');
+  fb.innerHTML = '<div class="feedback-title">Musterlösung</div>Richtige Antwort: <strong>' + String.fromCharCode(65+ci) + '</strong> – ' + q.options[ci].text + '<br><br>' + q.feedback;
+  fb.className = 'feedback-box show';
+  document.getElementById('solution-btn').style.display = 'none';
+}
+
+// ===== DRAG & DROP MATCH =====
+function renderMatch(q, card) {
+  dropMap = {};
+  var shuffled = q.pairs.slice().sort(function() { return Math.random() - 0.5; });
+  var drops = q.pairs.map(function(p, i) {
+    return '<div class="match-drop-zone" id="drop-' + i + '" ondragover="dragOver(event)" ondrop="drop(event,' + i + ')">' +
+      '<span class="match-target-label">' + p.sql + '</span></div>';
+  }).join('');
+  var drags = shuffled.map(function(p) {
+    return '<div class="match-item" draggable="true" ondragstart="dragStart(event,\'' + p.nosql + '\')" ondragend="dragEnd(event)">' + p.nosql + '</div>';
+  }).join('');
+  card.innerHTML =
+    '<div class="quiz-meta"><span class="quiz-year">' + q.year + '</span><span>Aufgabe ' + (currentQ+1) + ' von ' + questions.length + '</span></div>' +
+    '<div class="quiz-question">' + q.question + '</div>' +
+    '<div class="match-container">' +
+    '<div><div class="match-col-label">SQL-Begriffe</div>' + drops + '</div>' +
+    '<div><div class="match-col-label">NoSQL-Begriffe (ziehen)</div>' + drags + '</div>' +
+    '</div>' +
+    '<div class="feedback-box" id="feedback"></div>' +
+    '<div class="quiz-actions">' +
+    '<button class="btn btn-primary" id="submit-btn" onclick="submitMatch()">Prüfen</button>' +
+    '<button class="btn btn-secondary" id="solution-btn" style="display:none" onclick="showSolutionMatch()">Musterlösung</button>' +
+    '<button class="btn btn-secondary" id="next-btn" style="display:none" onclick="nextQuestion()">Weiter →</button>' +
+    '<div class="score-display">Punkte: <span class="score-num">' + score + '</span></div>' +
+    '</div>';
+}
+
+function dragStart(e, val) { e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain', val); }
+function dragEnd(e) { e.target.classList.remove('dragging'); }
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('over'); }
+
+function drop(e, idx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('over');
+  var val = e.dataTransfer.getData('text/plain');
+  var zone = document.getElementById('drop-' + idx);
+  for (var k in dropMap) {
+    if (dropMap[k] === val) {
+      delete dropMap[k];
+      var old = document.getElementById('drop-' + k);
+      if (old) { var t = old.querySelector('.dropped-tag'); if (t) t.remove(); }
+    }
+  }
+  var existing = zone.querySelector('.dropped-tag');
+  if (existing) existing.remove();
+  dropMap[idx] = val;
+  var tag = document.createElement('span');
+  tag.className = 'dropped-tag';
+  tag.style.cssText = 'margin-left:10px;color:var(--accent-light);font-family:var(--mono);font-size:12px;background:var(--accent-glow);padding:2px 8px;border-radius:4px;';
+  tag.textContent = val;
+  zone.appendChild(tag);
+}
+
+function submitMatch() {
+  var q = questions[currentQ];
+  var correct = 0;
+  for (var i = 0; i < q.pairs.length; i++) {
+    var zone = document.getElementById('drop-' + i);
+    var placed = dropMap[i];
+    if (placed === q.pairs[i].nosql) {
+      zone.style.borderColor = 'var(--teal)';
+      zone.style.background = 'var(--teal-bg)';
+      correct++;
+    } else {
+      zone.style.borderColor = 'var(--coral)';
+      zone.style.background = 'var(--coral-bg)';
+      var tag = zone.querySelector('.dropped-tag');
+      if (tag) tag.style.color = 'var(--coral)';
+      var hint = document.createElement('span');
+      hint.style.cssText = 'font-family:var(--mono);font-size:11px;color:var(--teal);margin-left:6px';
+      hint.textContent = '✓ ' + q.pairs[i].nosql;
+      zone.appendChild(hint);
+    }
+  }
+  var allRight = correct === q.pairs.length;
+  if (!answered[currentQ]) {
+    if (allRight) score++;
+    answered[currentQ] = true;
+    updateProgress();
+  }
+  var fb = document.getElementById('feedback');
+  fb.innerHTML = '<div class="feedback-title">' + (allRight ? '✓ Perfekt!' : correct + '/' + q.pairs.length + ' richtig.') + '</div>' + q.feedback;
+  fb.className = 'feedback-box show' + (allRight ? '' : ' wrong-feedback');
+  document.getElementById('submit-btn').style.display = 'none';
+  document.getElementById('solution-btn').style.display = 'inline-flex';
+  document.getElementById('next-btn').style.display = 'inline-flex';
+}
+
+function showSolutionMatch() {
+  var q = questions[currentQ];
+  var list = q.pairs.map(function(p) {
+    return '<div style="font-family:var(--mono);font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);">' +
+      '<span style="color:var(--text-dim)">' + p.sql + '</span> → <span style="color:var(--teal)">' + p.nosql + '</span></div>';
+  }).join('');
+  var fb = document.getElementById('feedback');
+  fb.innerHTML = '<div class="feedback-title">Musterlösung</div>' + list + '<br>' + q.feedback;
+  fb.className = 'feedback-box show';
+  document.getElementById('solution-btn').style.display = 'none';
+}
+
+// ===== JSON FREE =====
+function renderJsonFree(q, card) {
+  card.innerHTML =
+    '<div class="quiz-meta"><span class="quiz-year">' + q.year + '</span><span>Aufgabe ' + (currentQ+1) + ' von ' + questions.length + '</span></div>' +
+    '<div class="quiz-question">' + q.question + '</div>' +
+    '<div class="quiz-context" style="font-style:normal;line-height:1.8">' + q.context + '</div>' +
+    '<p style="font-size:13px;color:var(--text-dim);margin-bottom:6px">Schreibe das komplette JSON-Dokument:</p>' +
+    '<textarea id="json-input" spellcheck="false" style="width:100%;min-height:180px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--teal);font-family:var(--mono);font-size:13px;padding:12px;outline:none;resize:vertical;line-height:1.7;" placeholder="{\n  &quot;_id&quot;: ...\n}"></textarea>' +
+    '<div id="check-results" style="display:none;margin-top:1rem;">' +
+    '<div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.05em">Prüfung der Kriterien</div>' +
+    '<div id="checks-list"></div></div>' +
+    '<div class="feedback-box" id="feedback"></div>' +
+    '<div class="quiz-actions">' +
+    '<button class="btn btn-secondary" onclick="showJsonFreeHint()" style="font-size:13px">Tipp anzeigen</button>' +
+    '<button class="btn btn-primary" id="submit-btn" onclick="submitJsonFree()">Prüfen</button>' +
+    '<button class="btn btn-secondary" id="solution-btn" style="display:none" onclick="showSolutionJsonFree()">Musterlösung</button>' +
+    '<button class="btn btn-secondary" id="next-btn" style="display:none" onclick="nextQuestion()">Weiter →</button>' +
+    '<div class="score-display">Punkte: <span class="score-num">' + score + '</span></div>' +
+    '</div>';
+}
+
+function showJsonFreeHint() {
+  var q = questions[currentQ];
+  var fb = document.getElementById('feedback');
+  fb.innerHTML = '<div class="feedback-title">Tipp</div>' + q.hint;
+  fb.className = 'feedback-box show';
+}
+
+function submitJsonFree() {
+  var q = questions[currentQ];
+  var raw = document.getElementById('json-input').value.trim();
+  var parsed = null;
+  try { parsed = JSON.parse(raw); } catch(e) {
+    var fb = document.getElementById('feedback');
+    fb.innerHTML = '<div class="feedback-title">✗ Kein gültiges JSON</div>Fehler: <code style="font-family:var(--mono);font-size:12px;color:var(--coral)">' + e.message + '</code><br><br>Häufige Fehler: fehlende Anführungszeichen bei Strings, fehlendes Komma, <code style="font-family:var(--mono);font-size:12px">"true"</code> statt <code style="font-family:var(--mono);font-size:12px">true</code>.';
+    fb.className = 'feedback-box show wrong-feedback';
+    document.getElementById('submit-btn').style.display = 'none';
+    document.getElementById('solution-btn').style.display = 'inline-flex';
+    document.getElementById('next-btn').style.display = 'inline-flex';
+    return;
+  }
+  var results = q.checks.map(function(c) { return { desc: c.desc, ok: c.fn(parsed) }; });
+  var passed = 0;
+  for (var i = 0; i < results.length; i++) if (results[i].ok) passed++;
+  document.getElementById('check-results').style.display = 'block';
+  document.getElementById('checks-list').innerHTML = results.map(function(r) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">' +
+      '<span style="flex-shrink:0">' + (r.ok ? '✓' : '✗') + '</span>' +
+      '<span style="color:' + (r.ok ? 'var(--teal)' : 'var(--coral)') + '">' + r.desc + '</span></div>';
+  }).join('');
+  if (!answered[currentQ]) {
+    if (passed >= q.checks.length - 1) score++;
+    answered[currentQ] = true;
+    updateProgress();
+  }
+  var allRight = passed === q.checks.length;
+  var fb = document.getElementById('feedback');
+  fb.innerHTML = '<div class="feedback-title">' + (allRight ? '✓ Perfekt!' : passed + '/' + q.checks.length + ' Kriterien erfüllt.') + '</div>' + q.feedback;
+  fb.className = 'feedback-box show' + (allRight ? '' : ' wrong-feedback');
+  document.getElementById('submit-btn').style.display = 'none';
+  document.getElementById('solution-btn').style.display = 'inline-flex';
+  document.getElementById('next-btn').style.display = 'inline-flex';
+}
+
+function showSolutionJsonFree() {
+  var q = questions[currentQ];
+  var sol = JSON.stringify(q.solution, null, 2)
+    .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
+    .replace(/: "([^"]+)"/g, ': <span class="str">"$1"</span>')
+    .replace(/: (true|false)/g, ': <span class="kw">$1</span>')
+    .replace(/: (\d+)/g, ': <span class="num">$1</span>');
+  var fb = document.getElementById('feedback');
+  fb.innerHTML = '<div class="feedback-title">Musterlösung</div>' + q.feedback +
+    '<br><br><pre style="margin-top:6px;font-size:12px;padding:8px;background:var(--surface3);border-radius:6px">' + sol + '</pre>';
+  fb.className = 'feedback-box show';
+  document.getElementById('solution-btn').style.display = 'none';
+}
+
+// ===== NAVIGATION =====
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= questions.length) { showResults(); return; }
+  renderQuiz();
+}
+
+function showResults() {
+  document.getElementById('quiz-card').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+  var pct = score / questions.length;
+  document.getElementById('result-stars').textContent = pct >= 0.75 ? '★★★' : pct >= 0.5 ? '★★☆' : '★☆☆';
+  document.getElementById('result-score').textContent = score + ' / ' + questions.length;
+  document.getElementById('result-label').textContent = pct >= 0.75 ? 'Ausgezeichnet – prüfungsbereit!' : pct >= 0.5 ? 'Gut – noch ein bisschen üben!' : 'Nochmal die Theorie wiederholen!';
+}
+
+function resetQuiz() {
+  currentQ = 0; score = 0; selectedOption = -1; dropMap = {};
+  answered = [];
+  for (var i = 0; i < questions.length; i++) answered.push(false);
+  document.getElementById('quiz-card').style.display = 'flex';
+  document.getElementById('results').style.display = 'none';
+  renderQuiz();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('nav a[data-section]').forEach(function(link) {
+    link.addEventListener('click', function() {
+      showSection(this.getAttribute('data-section'));
+    });
+  });
+  updateProgress();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aufgabe 1 – Klassifizierung & ID3-Algorithmus</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Source+Sans+3:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--sf:#181b24;--sf2:#1f2330;--sf3:#272b38;--bd:#2d3244;--bdl:#3a3f54;--tx:#e8eaf0;--txm:#8b90a5;--txd:#5c6178;--ac:#5b8def;--acg:#5b8def33;--ac2:#44d7b6;--ok:#44d7b6;--okbg:#44d7b615;--okbd:#44d7b644;--no:#ef6b6b;--nobg:#ef6b6b15;--nobd:#ef6b6b44;--warn:#f0b852;--r:12px;--rs:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--tx);line-height:1.65;min-height:100vh}
+.ctr{max-width:980px;margin:0 auto;padding:2rem 1.5rem 4rem}
+.hdr{text-align:center;padding:3rem 0 2.5rem;position:relative}
+.hdr::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:80px;height:3px;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:2px}
+.hdr h1{font-family:'DM Serif Display',serif;font-size:2.2rem;font-weight:400;margin-bottom:.5rem;background:linear-gradient(135deg,var(--tx),var(--txm));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr .sub{color:var(--txm);font-size:1rem;font-weight:300}
+.badge{display:inline-block;padding:.25rem .75rem;background:var(--acg);border:1px solid var(--ac);border-radius:20px;font-size:.78rem;font-weight:600;color:var(--ac);margin-bottom:1rem;letter-spacing:.05em;text-transform:uppercase}
+.tabs{display:flex;gap:4px;margin:2.5rem 0 0;border-bottom:2px solid var(--bd);overflow-x:auto}
+.tab{padding:.75rem 1.25rem;background:0 0;border:none;color:var(--txm);font-family:'Source Sans 3',sans-serif;font-size:.9rem;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.25s;white-space:nowrap}
+.tab:hover{color:var(--tx);background:var(--sf);border-radius:var(--rs) var(--rs) 0 0}
+.tab.active{color:var(--ac);border-bottom-color:var(--ac);background:var(--sf);border-radius:var(--rs) var(--rs) 0 0}
+.tab .ts{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:8px;background:var(--txd);vertical-align:middle}
+.tab .ts.done{background:var(--ok)}.tab .ts.part{background:var(--warn)}
+.tc{display:none;animation:fi .35s ease}.tc.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.sec{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:2rem;margin:1.5rem 0}
+.sec h2{font-family:'DM Serif Display',serif;font-size:1.4rem;font-weight:400;margin-bottom:.5rem}
+.sec h3{font-size:1.05rem;font-weight:600;margin:1.5rem 0 .75rem;color:var(--ac)}
+.sec p{color:var(--txm);margin-bottom:1rem;font-size:.95rem}
+.sec p strong{color:var(--tx)}
+.ib{background:var(--sf2);border-left:3px solid var(--ac);padding:1.25rem 1.5rem;border-radius:0 var(--rs) var(--rs) 0;margin:1.25rem 0}
+.ib.w{border-left-color:var(--warn);background:#f0b85210}
+.ib h4{font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ac);margin-bottom:.4rem}
+.ib.w h4{color:var(--warn)}
+.ib p{color:var(--tx);margin-bottom:0;font-size:.92rem}.ib p+p{margin-top:.6rem}
+.dtw{overflow-x:auto;margin:1rem 0}
+table.dt{width:100%;border-collapse:collapse;font-size:.9rem}
+table.dt th{background:var(--sf3);color:var(--tx);font-weight:600;text-align:left;padding:.7rem 1rem;border-bottom:2px solid var(--bdl);font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
+table.dt td{padding:.6rem 1rem;border-bottom:1px solid var(--bd);color:var(--txm)}
+table.dt tr:hover td{background:var(--sf2)}
+.hy{color:var(--ok);font-weight:600}.hn{color:var(--no);font-weight:600}
+.qq{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:1.5rem;margin:1.25rem 0;transition:.3s}
+.qq.ok{border-color:var(--okbd);background:var(--okbg)}.qq.no{border-color:var(--nobd);background:var(--nobg)}
+.qq .ql{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ac);margin-bottom:.6rem}
+.qq .qt{font-size:1rem;font-weight:500;color:var(--tx);margin-bottom:1rem}
+.opts{display:flex;flex-direction:column;gap:.5rem}
+.ol{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);cursor:pointer;transition:.2s;font-size:.92rem;color:var(--txm)}
+.ol:hover{border-color:var(--ac);color:var(--tx);background:var(--sf3)}
+.ol input{display:none}
+.ol .rd{width:18px;height:18px;border:2px solid var(--bdl);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s}
+.ol input:checked~.rd{border-color:var(--ac)}.ol input:checked~.rd::after{content:'';width:8px;height:8px;background:var(--ac);border-radius:50%}
+.ol input:checked~.ot{color:var(--tx);font-weight:500}
+.ti{width:100%;padding:.7rem 1rem;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:'Source Sans 3',sans-serif;font-size:.95rem;outline:none;transition:.2s}
+.ti:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acg)}
+textarea.ti{min-height:80px;resize:vertical}
+.ti.mono{font-family:'JetBrains Mono',monospace}
+.btn{padding:.65rem 1.5rem;border:none;border-radius:var(--rs);font-family:'Source Sans 3',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:.2s}
+.bp{background:var(--ac);color:#fff}.bp:hover{background:#4a7ddf;transform:translateY(-1px);box-shadow:0 4px 16px var(--acg)}
+.bs{background:var(--sf3);color:var(--txm);border:1px solid var(--bd)}.bs:hover{color:var(--tx);border-color:var(--bdl)}
+.bsm{padding:.5rem 1.1rem;font-size:.84rem}
+.bg{display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap}
+.fb{margin-top:1rem;padding:1rem 1.25rem;border-radius:var(--rs);font-size:.92rem;display:none;line-height:1.6}
+.fb.show{display:block;animation:fi .3s ease}
+.fb.ok{background:var(--okbg);border:1px solid var(--okbd);color:var(--ok)}
+.fb.no{background:var(--nobg);border:1px solid var(--nobd);color:var(--no)}
+.fm{background:var(--sf3);border:1px solid var(--bd);border-radius:var(--rs);padding:1.25rem;margin:1rem 0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.95rem;color:var(--warn)}
+.sb{display:flex;align-items:center;gap:1rem;padding:1rem 1.5rem;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);margin-top:1.5rem}
+.sb .sl{font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--txm)}
+.sb .sv{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:600;color:var(--ac)}
+.st{flex:1;height:6px;background:var(--sf3);border-radius:3px;overflow:hidden}
+.sf{height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:3px;transition:width .6s ease}
+.er{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+.eb{background:var(--sf3);border:1px solid var(--bd);border-radius:var(--r);padding:1.25rem;text-align:center}
+.eb .et{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem}
+.eb .et.g{color:var(--ok)}.eb .et.r{color:var(--no)}
+.eb .dots{display:flex;justify-content:center;gap:6px;margin-bottom:.75rem;flex-wrap:wrap}
+.dot{width:22px;height:22px;border-radius:50%}.dot.y{background:var(--ok)}.dot.n{background:var(--no)}
+.eb .ev{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:600}
+.eb .ev.g{color:var(--ok)}.eb .ev.w{color:var(--warn)}
+.eb .ed{color:var(--txm);font-size:.82rem;margin-top:.3rem}
+.sc{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:1.75rem;margin:1.5rem 0;position:relative;transition:.4s}
+.sc .sn{position:absolute;top:-12px;left:20px;background:var(--ac);color:#fff;font-size:.75rem;font-weight:700;padding:.2rem .7rem;border-radius:12px;letter-spacing:.05em}
+.sc h3{margin-top:.5rem}
+.sc.locked{opacity:.35;pointer-events:none;filter:blur(1px)}.sc.unlocked{opacity:1;pointer-events:auto;filter:none}
+.sc.done{border-color:var(--okbd)}.sc.done .sn{background:var(--ok)}
+
+/* ===== TREE DIAGRAM STYLES ===== */
+.tree-wrap{overflow-x:auto;margin:1.5rem 0;padding:1rem 0}
+.tree-diagram{position:relative;min-height:320px}
+.tree-row{display:flex;justify-content:center;align-items:flex-start;gap:0;position:relative;margin-bottom:0}
+.tree-node{display:flex;flex-direction:column;align-items:center;position:relative}
+.node-circle{width:90px;height:90px;border-radius:50%;border:2px solid var(--bdl);background:var(--sf3);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--warn);font-weight:600;position:relative;z-index:2}
+.node-circle.root{width:100px;height:100px;border-color:var(--ac);font-size:.9rem}
+.node-label{font-size:.75rem;font-weight:600;color:var(--txm);margin-top:.3rem;text-transform:uppercase;letter-spacing:.04em}
+.node-box{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:.6rem .8rem;margin-top:.4rem;min-width:150px;text-align:center;font-size:.85rem}
+.node-box label{display:block;font-size:.72rem;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem}
+.node-input{width:100%;padding:.35rem .5rem;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:.85rem;text-align:center;outline:none;transition:.2s}
+.node-input:focus{border-color:var(--ac);box-shadow:0 0 0 2px var(--acg)}
+.node-input.correct{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+.node-input.wrong{border-color:var(--no);background:var(--nobg);color:var(--no)}
+.node-given{font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--ac2);font-weight:500}
+.edge-label{font-size:.78rem;color:var(--txm);font-weight:500;padding:.1rem .4rem;background:var(--sf);border-radius:4px;position:relative;z-index:2}
+/* Lines via SVG overlay */
+.tree-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.tree-svg line{stroke:var(--bdl);stroke-width:2}
+
+/* Entropy calculator */
+.ec{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+.ec .ci{display:flex;flex-direction:column;gap:.4rem}
+.ec label{font-size:.82rem;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.04em}
+.ec input[type="number"]{width:100%;padding:.6rem .8rem;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:.95rem;outline:none}
+.ec input:focus{border-color:var(--ac)}
+.ecr{font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:var(--ac2);padding:.75rem;background:var(--sf3);border-radius:var(--rs);text-align:center;margin-top:.5rem}
+
+@media(max-width:700px){.ctr{padding:1rem}.hdr h1{font-size:1.6rem}.sec{padding:1.25rem}.ec,.er{grid-template-columns:1fr}.tabs{gap:2px}.tab{padding:.6rem .7rem;font-size:.8rem}.tree-wrap{font-size:.8rem}}
+</style>
+</head>
+<body>
+<div class="ctr">
+  <div class="hdr">
+    <div class="badge">IHK Abschlussprüfung Winter 2022/23</div>
+    <h1>Aufgabe 1 — Klassifizierung &amp; ID3</h1>
+    <div class="sub">Fachinformatiker Daten- und Prozessanalyse · 25 Punkte</div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="intro" onclick="go('intro')">Überblick</button>
+    <button class="tab" data-tab="a" onclick="go('a')">a) Verfahren<span class="ts" id="s-a"></span></button>
+    <button class="tab" data-tab="b" onclick="go('b')">b) Qualität<span class="ts" id="s-b"></span></button>
+    <button class="tab" data-tab="c" onclick="go('c')">c) Gruppierung<span class="ts" id="s-c"></span></button>
+    <button class="tab" data-tab="d" onclick="go('d')">d) Kriterium<span class="ts" id="s-d"></span></button>
+    <button class="tab" data-tab="e" onclick="go('e')">e) Entropie<span class="ts" id="s-e"></span></button>
+  </div>
+
+  <!-- INTRO -->
+  <div class="tc active" id="tab-intro"><div class="sec">
+    <h2>Ausgangssituation</h2>
+    <p>Das Reiseportal „Travelite" hat neue Angebote für Kunden entwickelt, die bei ihren Reisen Wert auf <strong>Nachhaltigkeit und Umweltschutz</strong> legen. Die Marketingabteilung möchte gezielt die richtigen Kunden auswählen, an die Werbematerial für nachhaltige Reisen geschickt wird.</p>
+
+    <div class="ib"><h4>Was soll herausgefunden werden?</h4>
+      <p>Aus den bisherigen Buchungsdaten ist bekannt, welche Kunden ein nachhaltiges Reiseangebot gebucht haben (<strong>Ja</strong>) und welche nicht (<strong>Nein</strong>). Jetzt soll ein Modell erstellt werden, das für <strong>neue, unbekannte Kunden</strong> vorhersagen kann, ob sie Interesse an nachhaltigen Reisen haben — basierend auf ihren Merkmalen (Alter, Anreise, Sportaktivität).</p>
+      <p>Dafür wird der <strong>ID3-Algorithmus</strong> verwendet, der aus den Trainingsdaten einen <strong>Entscheidungsbaum</strong> aufbaut.</p></div>
+
+    <h3>Trainingsdaten</h3>
+    <div class="dtw"><table class="dt"><thead><tr><th>ID</th><th>Alter</th><th>Gruppe</th><th>Anreise</th><th>Sport</th><th>Nachhaltig?</th></tr></thead><tbody>
+      <tr><td>1</td><td>20</td><td>G1</td><td>Bus u. Bahn</td><td>Nein</td><td class="hy">Ja</td></tr>
+      <tr><td>2</td><td>21</td><td>G2</td><td>Bus u. Bahn</td><td>Ja</td><td class="hy">Ja</td></tr>
+      <tr><td>3</td><td>30</td><td>G2</td><td>Sonstiges</td><td>Ja</td><td class="hy">Ja</td></tr>
+      <tr><td>4</td><td>50</td><td>G3</td><td>Bus u. Bahn</td><td>Ja</td><td class="hn">Nein</td></tr>
+      <tr><td>5</td><td>20</td><td>G1</td><td>Bus u. Bahn</td><td>Nein</td><td class="hy">Ja</td></tr>
+      <tr><td>6</td><td>40</td><td>G2</td><td>Sonstiges</td><td>Nein</td><td class="hn">Nein</td></tr>
+    </tbody></table></div>
+
+    <h3>Was bedeuten die Spalten?</h3>
+    <div class="ib"><h4>Alter &amp; Altersgruppe</h4>
+      <p>Das tatsächliche Alter des Kunden. Da der ID3-Algorithmus nur mit Kategorien arbeiten kann, wurde das Alter zusätzlich in <strong>Gruppen</strong> eingeteilt: <strong>G1</strong> (jung, ~20), <strong>G2</strong> (mittel, 21–40), <strong>G3</strong> (älter, 50+).</p></div>
+    <div class="ib"><h4>Anreise per</h4>
+      <p>Wie reist der Kunde an? Entweder mit <strong>Bus und Bahn</strong> (öffentliche Verkehrsmittel) oder <strong>Sonstiges</strong> (z. B. Auto, Flugzeug). Dieses Merkmal könnte ein Hinweis sein, wie umweltbewusst der Kunde ist.</p></div>
+    <div class="ib"><h4>Sportaktivität mitgebucht?</h4>
+      <p>Hat der Kunde eine Sportaktivität zur Reise dazugebucht? <strong>Ja</strong> oder <strong>Nein</strong>. Vielleicht bevorzugen sportliche Kunden andere Reisearten.</p></div>
+    <div class="ib" style="border-left-color:var(--ok)"><h4>Nachhaltiges Reiseangebot? (Zielwert)</h4>
+      <p>Das ist die <strong>Zielvariable</strong> — das, was wir vorhersagen wollen. <strong style="color:var(--ok)">Ja</strong> = der Kunde hat ein nachhaltiges Angebot gebucht. <strong style="color:var(--no)">Nein</strong> = hat er nicht. Der ID3-Algorithmus soll lernen, anhand der anderen Merkmale vorherzusagen, ob ein neuer Kunde „Ja" oder „Nein" ist.</p></div>
+
+    <div class="ib w"><h4>Zusammenfassung</h4>
+      <p>Von 6 Kunden haben <strong>4 Ja</strong> und <strong>2 Nein</strong> gebucht. Der Algorithmus sucht jetzt das Merkmal, das am besten zwischen Ja und Nein unterscheidet — und baut daraus Schritt für Schritt einen Entscheidungsbaum.</p></div>
+
+    <div class="ib"><h4>Los geht's!</h4><p>Arbeite die Tabs von links nach rechts durch. In jedem Tab lernst du einen Aspekt und wirst anschließend geprüft.</p></div>
+  </div></div>
+
+  <!-- TAB A -->
+  <div class="tc" id="tab-a"><div class="sec">
+    <h2>a) Klassifizierungsverfahren erläutern</h2>
+    <p><strong>4 Punkte</strong></p>
+    <div class="ib"><h4>Lerninhalt</h4>
+      <p>Bei der <strong>Klassifizierung</strong> wird ein Modell aus Trainingsdaten erstellt, das neue Datensätze einer Klasse zuordnet.</p>
+      <p><strong>1.</strong> Trainingsdaten mit bekannten Ergebnissen → <strong>2.</strong> Algorithmus erkennt Muster → <strong>3.</strong> Modell entsteht (z.B. Entscheidungsbaum) → <strong>4.</strong> Neue Daten werden klassifiziert.</p></div>
+    <h3>Prüfe dein Wissen</h3>
+    <div class="qq" id="qa1"><div class="ql">Frage 1</div><div class="qt">Was ist das Ziel der Klassifizierung?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qa1" value="a"><span class="rd"></span><span class="ot">Daten löschen</span></label>
+      <label class="ol"><input type="radio" name="qa1" value="b"><span class="rd"></span><span class="ot">Neue Datensätze einer Klasse zuordnen</span></label>
+      <label class="ol"><input type="radio" name="qa1" value="c"><span class="rd"></span><span class="ot">Daten zufällig gruppieren</span></label>
+    </div><div class="fb" id="fb-qa1"></div></div>
+    <div class="qq" id="qa2"><div class="ql">Frage 2</div><div class="qt">Was wird zwingend benötigt?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qa2" value="a"><span class="rd"></span><span class="ot">GPU-Cluster</span></label>
+      <label class="ol"><input type="radio" name="qa2" value="b"><span class="rd"></span><span class="ot">Trainingsdaten mit Labels</span></label>
+      <label class="ol"><input type="radio" name="qa2" value="c"><span class="rd"></span><span class="ot">Mind. 1 Mio. Datensätze</span></label>
+    </div><div class="fb" id="fb-qa2"></div></div>
+    <div class="qq" id="qa3"><div class="ql">Frage 3</div><div class="qt">Welches Modell entsteht bei ID3?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qa3" value="a"><span class="rd"></span><span class="ot">Lineare Regression</span></label>
+      <label class="ol"><input type="radio" name="qa3" value="b"><span class="rd"></span><span class="ot">Entscheidungsbaum</span></label>
+      <label class="ol"><input type="radio" name="qa3" value="c"><span class="rd"></span><span class="ot">Clustering-Diagramm</span></label>
+    </div><div class="fb" id="fb-qa3"></div></div>
+    <div class="bg"><button class="btn bp" onclick="chkA()">Prüfen</button><button class="btn bs" onclick="rst('a')">Reset</button></div>
+    <div class="sb" id="sc-a" style="display:none"><span class="sl">Ergebnis</span><div class="st"><div class="sf" id="fl-a"></div></div><span class="sv" id="vl-a">0/3</span></div>
+  </div></div>
+
+  <!-- TAB B -->
+  <div class="tc" id="tab-b"><div class="sec">
+    <h2>b) Qualitätskriterien</h2><p><strong>3 Punkte</strong></p>
+    <div class="ib"><h4>Genauigkeit</h4><p>Wie oft trifft das Modell die richtige Entscheidung?</p></div>
+    <div class="ib"><h4>Kompaktheit</h4><p>Wie einfach ist das Modell? Wenige Ebenen = besser verständlich, weniger Overfitting.</p></div>
+    <div class="ib"><h4>Interpretierbarkeit</h4><p>Kann man nachvollziehen, warum das Modell so entscheidet? Entscheidungsbaum > Neuronales Netz.</p></div>
+    <div class="ib"><h4>Effizienz</h4><p>Wie schnell trainiert das Modell und wie schnell liefert es Vorhersagen?</p></div>
+    <div class="ib"><h4>Skalierbarkeit</h4><p>Funktioniert es auch bei stark wachsender Datenmenge?</p></div>
+    <div class="ib"><h4>Robustheit</h4><p>Liefert es auch bei fehlerhaften oder verrauschten Daten gute Ergebnisse?</p></div>
+    <h3>Prüfe dein Wissen</h3>
+    <div class="qq" id="qb1"><div class="ql">Frage 1</div><div class="qt">Baum mit 20 Ebenen, kaum lesbar — welches Kriterium verletzt?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qb1" value="a"><span class="rd"></span><span class="ot">Genauigkeit</span></label>
+      <label class="ol"><input type="radio" name="qb1" value="b"><span class="rd"></span><span class="ot">Kompaktheit</span></label>
+      <label class="ol"><input type="radio" name="qb1" value="c"><span class="rd"></span><span class="ot">Skalierbarkeit</span></label>
+    </div><div class="fb" id="fb-qb1"></div></div>
+    <div class="qq" id="qb2"><div class="ql">Frage 2</div><div class="qt">Gute Ergebnisse, aber nicht erklärbar — was fehlt?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qb2" value="a"><span class="rd"></span><span class="ot">Effizienz</span></label>
+      <label class="ol"><input type="radio" name="qb2" value="b"><span class="rd"></span><span class="ot">Robustheit</span></label>
+      <label class="ol"><input type="radio" name="qb2" value="c"><span class="rd"></span><span class="ot">Interpretierbarkeit</span></label>
+    </div><div class="fb" id="fb-qb2"></div></div>
+    <div class="qq" id="qb3"><div class="ql">Frage 3</div><div class="qt">Nenne drei Kriterien (Freitext):</div>
+      <textarea class="ti" id="qb3-i" rows="3" placeholder="z.B. Genauigkeit, Kompaktheit, ..."></textarea>
+    <div class="fb" id="fb-qb3"></div></div>
+    <div class="bg"><button class="btn bp" onclick="chkB()">Prüfen</button><button class="btn bs" onclick="rst('b')">Reset</button></div>
+    <div class="sb" id="sc-b" style="display:none"><span class="sl">Ergebnis</span><div class="st"><div class="sf" id="fl-b"></div></div><span class="sv" id="vl-b">0/3</span></div>
+  </div></div>
+
+  <!-- TAB C -->
+  <div class="tc" id="tab-c"><div class="sec">
+    <h2>c) Gruppeneinteilung</h2><p><strong>3 Punkte</strong></p>
+    <div class="ib"><h4>Lerninhalt</h4><p>ID3 braucht <strong>kategoriale Merkmale</strong>. Alter (numerisch) muss in Gruppen eingeteilt werden = <strong>Diskretisierung</strong>.</p></div>
+    <h3>Prüfe dein Wissen</h3>
+    <div class="qq" id="qc1"><div class="ql">Frage 1</div><div class="qt">Warum muss Alter gruppiert werden?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qc1" value="a"><span class="rd"></span><span class="ot">ID3 braucht kategoriale Merkmale</span></label>
+      <label class="ol"><input type="radio" name="qc1" value="b"><span class="rd"></span><span class="ot">Spart Speicher</span></label>
+      <label class="ol"><input type="radio" name="qc1" value="c"><span class="rd"></span><span class="ot">Prüfungsvorgabe</span></label>
+    </div><div class="fb" id="fb-qc1"></div></div>
+    <div class="qq" id="qc2"><div class="ql">Frage 2</div><div class="qt">Fachbegriff für „numerisch → Kategorien"?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qc2" value="a"><span class="rd"></span><span class="ot">Normalisierung</span></label>
+      <label class="ol"><input type="radio" name="qc2" value="b"><span class="rd"></span><span class="ot">Diskretisierung</span></label>
+      <label class="ol"><input type="radio" name="qc2" value="c"><span class="rd"></span><span class="ot">Standardisierung</span></label>
+    </div><div class="fb" id="fb-qc2"></div></div>
+    <div class="bg"><button class="btn bp" onclick="chkC()">Prüfen</button><button class="btn bs" onclick="rst('c')">Reset</button></div>
+    <div class="sb" id="sc-c" style="display:none"><span class="sl">Ergebnis</span><div class="st"><div class="sf" id="fl-c"></div></div><span class="sv" id="vl-c">0/2</span></div>
+  </div></div>
+
+  <!-- TAB D -->
+  <div class="tc" id="tab-d"><div class="sec">
+    <h2>d) Kriterium des ID3</h2><p><strong>3 Punkte</strong></p>
+    <div class="ib"><h4>Lerninhalt</h4><p>ID3 wählt das Merkmal mit dem <strong>höchsten Informationsgewinn (Information Gain)</strong>. Dieser basiert auf der <strong>Entropie</strong>.</p></div>
+    <h3>Was bedeutet Entropie?</h3>
+    <p>Stell dir eine Kiste mit <strong style="color:var(--ok)">grünen</strong> (Ja) und <strong style="color:var(--no)">roten</strong> (Nein) Bällen vor:</p>
+    <div class="er">
+      <div class="eb"><div class="et g">Entropie = 0</div><div class="dots"><div class="dot y"></div><div class="dot y"></div><div class="dot y"></div><div class="dot y"></div><div class="dot y"></div></div><div class="ev g">0</div><div class="ed">Alle grün → <strong>keine Unsicherheit</strong></div></div>
+      <div class="eb"><div class="et r">Entropie = 1</div><div class="dots"><div class="dot y"></div><div class="dot n"></div><div class="dot y"></div><div class="dot n"></div></div><div class="ev w">1.0</div><div class="ed">50/50 → <strong>maximale Unsicherheit</strong></div></div>
+    </div>
+    <div class="ib w"><h4>Merke</h4><p><strong>0</strong> = rein, keine Unsicherheit · <strong>1</strong> = 50/50, maximale Unsicherheit · <strong>Ziel:</strong> Entropie möglichst stark senken!</p></div>
+    <div class="fm">Entropy(T) = − Σ pᵢ · log₂(pᵢ)</div>
+    <h3>Prüfe dein Wissen</h3>
+    <div class="qq" id="qd1"><div class="ql">Frage 1</div><div class="qt">Kriterium des ID3?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qd1" value="a"><span class="rd"></span><span class="ot">Alphabetische Reihenfolge</span></label>
+      <label class="ol"><input type="radio" name="qd1" value="b"><span class="rd"></span><span class="ot">Höchster Information Gain</span></label>
+      <label class="ol"><input type="radio" name="qd1" value="c"><span class="rd"></span><span class="ot">Wenigste Ausprägungen</span></label>
+    </div><div class="fb" id="fb-qd1"></div></div>
+    <div class="qq" id="qd2"><div class="ql">Frage 2</div><div class="qt">8 Bälle, alle grün — Entropie?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qd2" value="a"><span class="rd"></span><span class="ot">1.0</span></label>
+      <label class="ol"><input type="radio" name="qd2" value="b"><span class="rd"></span><span class="ot">0.5</span></label>
+      <label class="ol"><input type="radio" name="qd2" value="c"><span class="rd"></span><span class="ot">0</span></label>
+    </div><div class="fb" id="fb-qd2"></div></div>
+    <div class="qq" id="qd3"><div class="ql">Frage 3</div><div class="qt">5 Bälle: 3 grün, 2 rot — Entropie?</div><div class="opts">
+      <label class="ol"><input type="radio" name="qd3" value="a"><span class="rd"></span><span class="ot">Genau 0</span></label>
+      <label class="ol"><input type="radio" name="qd3" value="b"><span class="rd"></span><span class="ot">Zwischen 0 und 1</span></label>
+      <label class="ol"><input type="radio" name="qd3" value="c"><span class="rd"></span><span class="ot">Genau 1</span></label>
+    </div><div class="fb" id="fb-qd3"></div></div>
+    <div class="bg"><button class="btn bp" onclick="chkD()">Prüfen</button><button class="btn bs" onclick="rst('d')">Reset</button></div>
+    <div class="sb" id="sc-d" style="display:none"><span class="sl">Ergebnis</span><div class="st"><div class="sf" id="fl-d"></div></div><span class="sv" id="vl-d">0/3</span></div>
+  </div></div>
+
+  <!-- TAB E — EXAM-STYLE TREE DIAGRAMS -->
+  <div class="tc" id="tab-e"><div class="sec">
+    <h2>e) Entropie berechnen — Prüfungsstil</h2>
+    <p><strong>12 Punkte</strong> — Fülle die Lücken in den Entscheidungsbäumen aus, genau wie in der Prüfung!</p>
+
+    <div class="ib"><h4>Formel</h4><p>Entropy(T) = −(p₊)·log₂(p₊) − (p₋)·log₂(p₋) &nbsp;&nbsp;mit p₊ = Ja/Gesamt, p₋ = Nein/Gesamt</p></div>
+    <div class="ib"><h4>Trainingsdaten</h4>
+      <p>T = [4 Ja, 2 Nein] → insgesamt <strong>6 Datensätze</strong></p></div>
+
+    <div class="ib w"><h4>Hilfswerttabelle</h4>
+      <p>Diese log₂-Werte brauchst du zum Einsetzen in die Formel:</p>
+      <div class="dtw"><table class="dt" style="margin-top:.5rem">
+        <thead><tr><th>Wert</th><th>log₂</th><th>Brauchst du für</th></tr></thead>
+        <tbody>
+          <tr><td>4/6 ≈ 0.6667</td><td style="color:var(--warn);font-family:'JetBrains Mono',monospace">−0.585</td><td style="color:var(--txm)">T=[4,2] und T=[2,1]</td></tr>
+          <tr><td>2/6 ≈ 0.3333</td><td style="color:var(--warn);font-family:'JetBrains Mono',monospace">−1.585</td><td style="color:var(--txm)">T=[4,2] und T=[2,1]</td></tr>
+          <tr><td>3/4 = 0.75</td><td style="color:var(--warn);font-family:'JetBrains Mono',monospace">−0.415</td><td style="color:var(--txm)">T=[3,1] (Bus u. Bahn)</td></tr>
+          <tr><td>1/4 = 0.25</td><td style="color:var(--warn);font-family:'JetBrains Mono',monospace">−2.000</td><td style="color:var(--txm)">T=[3,1] (Bus u. Bahn)</td></tr>
+          <tr><td>1/2 = 0.5</td><td style="color:var(--warn);font-family:'JetBrains Mono',monospace">−1.000</td><td style="color:var(--txm)">T=[1,1] (Sonstiges, 50/50)</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- STEP 1: Gesamt-Entropie -->
+    <div class="sc unlocked" id="step1">
+      <div class="sn">SCHRITT 1</div>
+      <h3>Gesamt-Entropie T = [4, 2]</h3>
+      <p>Setze die gegebenen Werte in die Formel ein:</p>
+      <div class="fm" style="text-align:left;font-size:.85rem;line-height:2">
+        T = [ <input class="node-input" id="e1-ja" style="width:40px" placeholder="?"> , <input class="node-input" id="e1-nein" style="width:40px" placeholder="?"> ]<br>
+        Entropy(T) = −(<input class="node-input" id="e1-p1" style="width:50px" placeholder="?/?"> ) · log₂(<input class="node-input" id="e1-p1b" style="width:50px" placeholder="?/?"> ) − (<input class="node-input" id="e1-p2" style="width:50px" placeholder="?/?"> ) · log₂(<input class="node-input" id="e1-p2b" style="width:50px" placeholder="?/?"> )<br>
+        Entropy(T) = <input class="node-input" id="e1-res" style="width:80px" placeholder="0.____">
+      </div>
+      <div class="bg"><button class="btn bp bsm" onclick="chkS(1)">Schritt 1 prüfen</button></div>
+      <div class="fb" id="fb-s1"></div>
+    </div>
+
+    <!-- STEP 2: Tree for Altersgruppe -->
+    <div class="sc locked" id="step2">
+      <div class="sn">SCHRITT 2</div>
+      <h3>Entscheidungsbaum: Merkmal „Altersgruppe"</h3>
+      <p>Trage die T-Werte [Ja, Nein] in den Baum ein. Die Entropie berechnen wir für dich!</p>
+
+      <div class="dtw"><table class="dt" style="font-size:.82rem">
+        <thead><tr><th>ID</th><th>Gruppe</th><th>Nachhaltig?</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>G1</td><td class="hy">Ja</td></tr>
+          <tr><td>2</td><td>G2</td><td class="hy">Ja</td></tr>
+          <tr><td>3</td><td>G2</td><td class="hy">Ja</td></tr>
+          <tr><td>4</td><td>G3</td><td class="hn">Nein</td></tr>
+          <tr><td>5</td><td>G1</td><td class="hy">Ja</td></tr>
+          <tr><td>6</td><td>G2</td><td class="hn">Nein</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="tree-wrap">
+        <div style="text-align:center;margin-bottom:1.5rem;">
+          <div style="display:inline-block;background:var(--sf3);border:2px solid var(--ac);border-radius:var(--r);padding:.8rem 1.5rem">
+            <div style="font-size:.72rem;color:var(--txm);font-weight:600;text-transform:uppercase;margin-bottom:.3rem">Wurzel</div>
+            <div style="font-family:'JetBrains Mono',monospace;color:var(--warn);font-size:.9rem">T = [4, 2]</div>
+            <div style="font-family:'JetBrains Mono',monospace;color:var(--ac2);font-size:.9rem">Entropy(T) = 0.9183</div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-bottom:.5rem">
+          <div style="display:inline-block;background:var(--ac);color:#fff;padding:.4rem 1.2rem;border-radius:20px;font-weight:600;font-size:.9rem">Alter</div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:.5rem;margin-bottom:.3rem;flex-wrap:wrap">
+          <span class="edge-label">G1</span><span style="width:120px"></span><span class="edge-label">G2</span><span style="width:120px"></span><span class="edge-label">G3</span>
+        </div>
+        <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap">
+          <div class="node-box">
+            <label>T₁ (G1)</label>
+            <div style="margin:.3rem 0">T₁ = [ <input class="node-input" id="e2-g1j" style="width:30px" placeholder="?"> , <input class="node-input" id="e2-g1n" style="width:30px" placeholder="?"> ]</div>
+            <div style="color:var(--txd);font-size:.82rem">Entropy = <span id="e2-g1e" style="font-family:'JetBrains Mono',monospace">—</span></div>
+          </div>
+          <div class="node-box">
+            <label>T₂ (G2)</label>
+            <div style="margin:.3rem 0">T₂ = [ <input class="node-input" id="e2-g2j" style="width:30px" placeholder="?"> , <input class="node-input" id="e2-g2n" style="width:30px" placeholder="?"> ]</div>
+            <div style="color:var(--txd);font-size:.82rem">Entropy = <span id="e2-g2e" style="font-family:'JetBrains Mono',monospace">—</span></div>
+          </div>
+          <div class="node-box">
+            <label>T₃ (G3)</label>
+            <div style="margin:.3rem 0">T₃ = [ <input class="node-input" id="e2-g3j" style="width:30px" placeholder="?"> , <input class="node-input" id="e2-g3n" style="width:30px" placeholder="?"> ]</div>
+            <div style="color:var(--txd);font-size:.82rem">Entropy = <span id="e2-g3e" style="font-family:'JetBrains Mono',monospace">—</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="bg"><button class="btn bp bsm" onclick="chkS(2)">Schritt 2 prüfen</button></div>
+      <div class="fb" id="fb-s2"></div>
+    </div>
+
+    <!-- STEP 3: Tree for Anreise -->
+    <div class="sc locked" id="step3">
+      <div class="sn">SCHRITT 3</div>
+      <h3>Entscheidungsbaum: Merkmal „Anreise per"</h3>
+
+      <div class="dtw"><table class="dt" style="font-size:.82rem">
+        <thead><tr><th>ID</th><th>Anreise</th><th>Nachhaltig?</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Bus u. Bahn</td><td class="hy">Ja</td></tr>
+          <tr><td>2</td><td>Bus u. Bahn</td><td class="hy">Ja</td></tr>
+          <tr><td>3</td><td>Sonstiges</td><td class="hy">Ja</td></tr>
+          <tr><td>4</td><td>Bus u. Bahn</td><td class="hn">Nein</td></tr>
+          <tr><td>5</td><td>Bus u. Bahn</td><td class="hy">Ja</td></tr>
+          <tr><td>6</td><td>Sonstiges</td><td class="hn">Nein</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="tree-wrap">
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div style="display:inline-block;background:var(--sf3);border:2px solid var(--ac);border-radius:var(--r);padding:.8rem 1.5rem">
+            <div style="font-size:.72rem;color:var(--txm);font-weight:600;text-transform:uppercase;margin-bottom:.3rem">Wurzel</div>
+            <div style="font-family:'JetBrains Mono',monospace;color:var(--warn);font-size:.9rem">T = [4, 2]</div>
+            <div style="font-family:'JetBrains Mono',monospace;color:var(--ac2);font-size:.9rem">Entropy(T) = 0.9183</div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-bottom:.5rem"><div style="display:inline-block;background:var(--ac);color:#fff;padding:.4rem 1.2rem;border-radius:20px;font-weight:600;font-size:.9rem">Anreise</div></div>
+        <div style="display:flex;justify-content:center;gap:.5rem;margin-bottom:.3rem"><span class="edge-label">Bus u. Bahn</span><span style="width:160px"></span><span class="edge-label">Sonstiges</span></div>
+        <div style="display:flex;justify-content:center;gap:3rem;flex-wrap:wrap">
+          <div class="node-box">
+            <label>T₁ (Bus u. Bahn)</label>
+            <div style="margin:.3rem 0">T₁ = [ <input class="node-input" id="e3-b1j" style="width:30px" placeholder="?"> , <input class="node-input" id="e3-b1n" style="width:30px" placeholder="?"> ]</div>
+            <div style="color:var(--txd);font-size:.82rem">Entropy = <span id="e3-b1e" style="font-family:'JetBrains Mono',monospace">—</span></div>
+          </div>
+          <div class="node-box">
+            <label>T₂ (Sonstiges)</label>
+            <div style="margin:.3rem 0">T₂ = [ <input class="node-input" id="e3-b2j" style="width:30px" placeholder="?"> , <input class="node-input" id="e3-b2n" style="width:30px" placeholder="?"> ]</div>
+            <div style="color:var(--txd);font-size:.82rem">Entropy = <span id="e3-b2e" style="font-family:'JetBrains Mono',monospace">—</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="bg"><button class="btn bp bsm" onclick="chkS(3)">Schritt 3 prüfen</button></div>
+      <div class="fb" id="fb-s3"></div>
+    </div>
+
+    <!-- STEP 4: Tree for Sportaktivität -->
+    <div class="sc locked" id="step4">
+      <div class="sn">SCHRITT 4</div>
+      <h3>Entscheidungsbaum: Merkmal „Sportaktivität"</h3>
+
+      <div class="dtw"><table class="dt" style="font-size:.82rem">
+        <thead><tr><th>ID</th><th>Sport</th><th>Nachhaltig?</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Nein</td><td class="hy">Ja</td></tr>
+          <tr><td>2</td><td>Ja</td><td class="hy">Ja</td></tr>
+          <tr><td>3</td><td>Ja</td><td class="hy">Ja</td></tr>
+          <tr><td>4</td><td>Ja</td><td class="hn">Nein</td></tr>
+          <tr><td>5</td><td>Nein</td><td class="hy">Ja</td></tr>
+          <tr><td>6</td><td>Nein</td><td class="hn">Nein</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="tree-wrap">
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div style="display:inline-block;background:var(--sf3);border:2px solid var(--ac);border-radius:var(--r);padding:.8rem 1.5rem">
+            <div style="font-size:.72rem;color:var(--txm);font-weight:600;text-transform:uppercase;margin-bottom:.3rem">Wurzel</div>
+            <div style="font-family:'JetBrains Mono',monospace;color:var(--warn);font-size:.9rem">T = [4, 2]</div>
+            <div style="font-family:'JetBrains Mono',monospace;color:var(--ac2);font-size:.9rem">Entropy(T) = 0.9183</div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-bottom:.5rem"><div style="display:inline-block;background:var(--ac);color:#fff;padding:.4rem 1.2rem;border-radius:20px;font-weight:600;font-size:.9rem">Sport</div></div>
+        <div style="display:flex;justify-content:center;gap:.5rem;margin-bottom:.3rem"><span class="edge-label">Ja</span><span style="width:160px"></span><span class="edge-label">Nein</span></div>
+        <div style="display:flex;justify-content:center;gap:3rem;flex-wrap:wrap">
+          <div class="node-box">
+            <label>T₁ (Sport=Ja)</label>
+            <div style="margin:.3rem 0">T₁ = [ <input class="node-input" id="e4-s1j" style="width:30px" placeholder="?"> , <input class="node-input" id="e4-s1n" style="width:30px" placeholder="?"> ]</div>
+            <div style="color:var(--txd);font-size:.82rem">Entropy = <span id="e4-s1e" style="font-family:'JetBrains Mono',monospace">—</span></div>
+          </div>
+          <div class="node-box">
+            <label>T₂ (Sport=Nein)</label>
+            <div style="margin:.3rem 0">T₂ = [ <input class="node-input" id="e4-s2j" style="width:30px" placeholder="?"> , <input class="node-input" id="e4-s2n" style="width:30px" placeholder="?"> ]</div>
+            <div style="color:var(--txd);font-size:.82rem">Entropy = <span id="e4-s2e" style="font-family:'JetBrains Mono',monospace">—</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="bg"><button class="btn bp bsm" onclick="chkS(4)">Schritt 4 prüfen</button></div>
+      <div class="fb" id="fb-s4"></div>
+    </div>
+
+    <!-- STEP 5: Decision -->
+    <div class="sc locked" id="step5">
+      <div class="sn">SCHRITT 5</div>
+      <h3>Information Gain berechnen &amp; Entscheidung</h3>
+      <p>Jetzt berechnen wir für jedes Merkmal den <strong>Information Gain</strong> — also wie stark die Unsicherheit (Entropie) sinkt, wenn wir nach diesem Merkmal aufteilen.</p>
+
+      <div class="fm" style="text-align:left;font-size:.88rem;line-height:1.8">
+        Gain(Merkmal) = Entropy(T) − Σ (Anzahl in Teilmenge / Gesamt) · Entropy(Teilmenge)
+      </div>
+
+      <h3>Beispiel: Gain für „Altersgruppe" Schritt für Schritt</h3>
+      <p>Aus Schritt 2 kennst du die Ergebnisse:</p>
+
+      <div class="dtw"><table class="dt" style="font-size:.82rem">
+        <thead><tr><th>Teilmenge</th><th>T-Werte</th><th>Anzahl</th><th>Entropy</th></tr></thead>
+        <tbody>
+          <tr><td>G1</td><td>[2, 0]</td><td>2 von 6</td><td style="color:var(--ok);font-family:'JetBrains Mono',monospace">0</td></tr>
+          <tr><td>G2</td><td>[2, 1]</td><td>3 von 6</td><td style="color:var(--warn);font-family:'JetBrains Mono',monospace">0.9183</td></tr>
+          <tr><td>G3</td><td>[0, 1]</td><td>1 von 6</td><td style="color:var(--ok);font-family:'JetBrains Mono',monospace">0</td></tr>
+        </tbody>
+      </table></div>
+
+      <p>Jetzt setzen wir in die Gain-Formel ein:</p>
+      <div class="fm" style="text-align:left;font-size:.85rem;line-height:2.2">
+        Gain(Alter) = Entropy(T) − gewichtete Entropie der Teilmengen<br><br>
+        <span style="color:var(--txm)">① Gewicht G1:</span> (2/6) · 0 = <strong>0</strong><br>
+        <span style="color:var(--txm)">② Gewicht G2:</span> (3/6) · 0.9183 = <strong>0.4591</strong><br>
+        <span style="color:var(--txm)">③ Gewicht G3:</span> (1/6) · 0 = <strong>0</strong><br><br>
+        <span style="color:var(--txm)">Summe:</span> 0 + 0.4591 + 0 = <strong>0.4591</strong><br><br>
+        Gain(Alter) = 0.9183 − 0.4591 = <strong style="color:var(--ok)">0.4591</strong>
+      </div>
+
+      <div class="ib" style="border-left-color:var(--ok)"><h4>Warum ist der Gain so hoch?</h4>
+        <p>G1 und G3 sind <strong>reine Teilmengen</strong> (Entropy = 0) — dort ist die Vorhersage sofort klar. Nur G2 hat noch Mischung. Deshalb sinkt die Entropie um fast die Hälfte!</p></div>
+
+      <h3>Vergleich: Gain aller drei Merkmale</h3>
+
+      <div class="dtw"><table class="dt" style="font-size:.85rem">
+        <thead><tr><th>Merkmal</th><th>Berechnung</th><th>Gain</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Altersgruppe</strong></td><td>0.9183 − (2/6)·0 − (3/6)·0.9183 − (1/6)·0</td><td style="color:var(--ok);font-family:'JetBrains Mono',monospace;font-weight:700">0.4591</td></tr>
+          <tr><td>Anreise</td><td>0.9183 − (4/6)·0.8113 − (2/6)·1.0</td><td style="color:var(--warn);font-family:'JetBrains Mono',monospace">0.0441</td></tr>
+          <tr><td>Sport</td><td>0.9183 − (3/6)·0.9183 − (3/6)·0.9183</td><td style="color:var(--no);font-family:'JetBrains Mono',monospace">0.0000</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="ib w"><h4>Beobachtung</h4>
+        <p><strong>Altersgruppe</strong> hat den mit Abstand höchsten Gain → wird erster Knoten.<br>
+        <strong>Anreise</strong> bringt ein kleines bisschen Ordnung.<br>
+        <strong>Sport</strong> bringt gar nichts — beide Teilmengen haben exakt die gleiche Entropie wie vorher (0.9183). Null Informationsgewinn!</p></div>
+
+      <h3>Prüfe dein Wissen</h3>
+      <div class="qq" id="qe5"><div class="ql">Entscheidung</div><div class="qt">Welches Merkmal wird als erster Knoten im Entscheidungsbaum gewählt?</div><div class="opts">
+        <label class="ol"><input type="radio" name="qe5" value="a"><span class="rd"></span><span class="ot">Altersgruppe (Gain = 0.4591)</span></label>
+        <label class="ol"><input type="radio" name="qe5" value="b"><span class="rd"></span><span class="ot">Anreise (Gain = 0.0441)</span></label>
+        <label class="ol"><input type="radio" name="qe5" value="c"><span class="rd"></span><span class="ot">Sport (Gain = 0.0)</span></label>
+      </div><div class="fb" id="fb-qe5"></div></div>
+      <div class="qq" id="qe6"><div class="ql">Begründung</div><div class="qt">Warum hat Altersgruppe den höchsten Gain?</div><div class="opts">
+        <label class="ol"><input type="radio" name="qe6" value="a"><span class="rd"></span><span class="ot">Weil sie die meisten Ausprägungen hat (3 Gruppen)</span></label>
+        <label class="ol"><input type="radio" name="qe6" value="b"><span class="rd"></span><span class="ot">Weil G1 und G3 reine Teilmengen sind (Entropy=0) → die Unsicherheit sinkt am stärksten</span></label>
+        <label class="ol"><input type="radio" name="qe6" value="c"><span class="rd"></span><span class="ot">Weil sie zufällig zuerst in der Tabelle steht</span></label>
+      </div><div class="fb" id="fb-qe6"></div></div>
+      <div class="bg"><button class="btn bp bsm" onclick="chkS(5)">Schritt 5 prüfen</button></div>
+      <div class="fb" id="fb-s5"></div>
+    </div>
+
+    <!-- Calculator -->
+    <div class="sec" style="margin-top:2rem">
+      <h3 style="margin-top:0">Entropie-Rechner</h3>
+      <p>Probiere beliebige Werte:</p>
+      <div class="ec"><div class="ci"><label>Ja</label><input type="number" id="cy" min="0" value="4" oninput="ce()"></div><div class="ci"><label>Nein</label><input type="number" id="cn" min="0" value="2" oninput="ce()"></div></div>
+      <div class="ecr" id="cr">Entropy = 0.9183</div>
+    </div>
+  </div></div>
+</div>
+
+<script>
+function go(id){document.querySelectorAll('.tc').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');document.querySelector(`[data-tab="${id}"]`).classList.add('active')}
+function gr(n){const e=document.querySelector(`input[name="${n}"]:checked`);return e?e.value:null}
+function gv(id){return(document.getElementById(id).value||'').replace(',','.').trim()}
+function fb(id,ok,y,n){const f=document.getElementById(id);const q=f.closest('.qq');f.className='fb show '+(ok?'ok':'no');f.innerHTML=(ok?'✓ ':'✗ ')+(ok?y:n);if(q)q.className='qq '+(ok?'ok':'no');return ok?1:0}
+function sc(t,s,m){const b=document.getElementById('sc-'+t);if(!b)return;b.style.display='flex';document.getElementById('fl-'+t).style.width=(s/m*100)+'%';document.getElementById('vl-'+t).textContent=s+'/'+m;const st=document.getElementById('s-'+t);if(st){st.className='ts '+(s===m?'done':s>0?'part':'')}}
+function rst(t){const c=document.getElementById('tab-'+t);c.querySelectorAll('input[type="radio"]').forEach(r=>r.checked=false);c.querySelectorAll('input[type="text"],textarea').forEach(i=>i.value='');c.querySelectorAll('.fb').forEach(f=>{f.className='fb';f.innerHTML=''});c.querySelectorAll('.qq').forEach(q=>q.className='qq');const b=document.getElementById('sc-'+t);if(b)b.style.display='none';const st=document.getElementById('s-'+t);if(st)st.className='ts'}
+function ul(n){const s=document.getElementById('step'+n);if(s){s.classList.remove('locked');s.classList.add('unlocked')}}
+function dn(n){const s=document.getElementById('step'+n);if(s)s.classList.add('done')}
+function mi(id,ok){const i=document.getElementById(id);i.classList.remove('correct','wrong');i.classList.add(ok?'correct':'wrong')}
+function cn(v,t,tol){return Math.abs(v-t)<(tol||0.005)}
+function ent(j,n){const t=j+n;if(t===0)return'—';const pj=j/t,pn=n/t;let e=0;if(pj>0)e-=pj*Math.log2(pj);if(pn>0)e-=pn*Math.log2(pn);return e.toFixed(4)}
+
+function chkA(){let s=0;s+=fb('fb-qa1',gr('qa1')==='b','Richtig!','Falsch — Ziel: neue Daten einer Klasse zuordnen.');s+=fb('fb-qa2',gr('qa2')==='b','Richtig!','Falsch — Trainingsdaten mit Labels nötig.');s+=fb('fb-qa3',gr('qa3')==='b','Richtig!','Falsch — ID3 erstellt einen Entscheidungsbaum.');sc('a',s,3)}
+function chkB(){let s=0;s+=fb('fb-qb1',gr('qb1')==='b','Richtig! Kompaktheit.','Falsch — 20 Ebenen = nicht kompakt.');s+=fb('fb-qb2',gr('qb2')==='c','Richtig! Interpretierbarkeit.','Falsch — fehlende Nachvollziehbarkeit = fehlende Interpretierbarkeit.');const t=document.getElementById('qb3-i').value.toLowerCase();const k=[['genauigkeit','accuracy'],['kompaktheit','kompakt'],['interpretierbar'],['effizienz','trainingszeit','vorhersage'],['skalierbar'],['robustheit','robust']];let f=0;k.forEach(g=>{if(g.some(w=>t.includes(w)))f++});s+=fb('fb-qb3',f>=3,'Sehr gut! ≥3 Kriterien erkannt.','Mind. 3 nötig: Genauigkeit, Kompaktheit, Interpretierbarkeit, Effizienz, Skalierbarkeit, Robustheit. Erkannt: '+f);sc('b',s,3)}
+function chkC(){let s=0;s+=fb('fb-qc1',gr('qc1')==='a','Richtig!','Falsch — ID3 braucht kategoriale Merkmale.');s+=fb('fb-qc2',gr('qc2')==='b','Richtig! Diskretisierung.','Falsch — Diskretisierung.');sc('c',s,2)}
+function chkD(){let s=0;s+=fb('fb-qd1',gr('qd1')==='b','Richtig! Information Gain.','Falsch — höchster Information Gain.');s+=fb('fb-qd2',gr('qd2')==='c','Richtig! Alle gleich → 0.','Falsch — Entropie = 0.');s+=fb('fb-qd3',gr('qd3')==='b','Richtig! Zwischen 0 und 1.','Falsch — weder rein noch 50/50.');sc('d',s,3)}
+
+function chkS(n){
+  if(n===1){
+    let s=0,t=7;
+    const ja=parseFloat(gv('e1-ja')),ne=parseFloat(gv('e1-nein'));
+    mi('e1-ja',ja===4);mi('e1-nein',ne===2);if(ja===4)s++;if(ne===2)s++;
+    const p1=gv('e1-p1'),p2=gv('e1-p2');
+    const p1ok=p1==='4/6'||p1==='2/3';mi('e1-p1',p1ok);if(p1ok)s++;
+    const p1b=gv('e1-p1b');mi('e1-p1b',p1b===p1&&p1ok);if(p1b===p1&&p1ok)s++;
+    const p2ok=p2==='2/6'||p2==='1/3';mi('e1-p2',p2ok);if(p2ok)s++;
+    const p2b=gv('e1-p2b');mi('e1-p2b',p2b===p2&&p2ok);if(p2b===p2&&p2ok)s++;
+    const res=parseFloat(gv('e1-res'));const rok=cn(res,0.9183);mi('e1-res',rok);if(rok)s++;
+    const f=document.getElementById('fb-s1');f.className='fb show '+(s>=5?'ok':'no');
+    f.innerHTML=s>=5?'✓ Sehr gut! Entropy(T) = 0.9183. Weiter zum Baum!':'✗ '+s+'/7 richtig. T=[4,2], p₊=4/6, p₋=2/6, Ergebnis ≈ 0.9183';
+    if(s>=5){dn(1);ul(2)}
+    updE();
+  }
+  if(n===2){
+    let s=0;
+    const pairs=[['e2-g1j',2],['e2-g1n',0],['e2-g2j',2],['e2-g2n',1],['e2-g3j',0],['e2-g3n',1]];
+    pairs.forEach(([id,v])=>{const iv=parseFloat(gv(id));const ok=cn(iv,v,0.5);mi(id,ok);if(ok)s++});
+    // auto-fill entropy spans
+    const g1j=parseFloat(gv('e2-g1j'))||0,g1n=parseFloat(gv('e2-g1n'))||0;
+    const g2j=parseFloat(gv('e2-g2j'))||0,g2n=parseFloat(gv('e2-g2n'))||0;
+    const g3j=parseFloat(gv('e2-g3j'))||0,g3n=parseFloat(gv('e2-g3n'))||0;
+    document.getElementById('e2-g1e').textContent=ent(g1j,g1n);
+    document.getElementById('e2-g2e').textContent=ent(g2j,g2n);
+    document.getElementById('e2-g3e').textContent=ent(g3j,g3n);
+    // color the spans
+    ['e2-g1e','e2-g2e','e2-g3e'].forEach(id=>{const sp=document.getElementById(id);sp.style.color=s===6?'var(--ac2)':'var(--warn)'});
+    const f=document.getElementById('fb-s2');const allOk=s===6;
+    f.className='fb show '+(allOk?'ok':'no');
+    if(allOk){
+      f.innerHTML='✓ Richtig! Die Entropien wurden berechnet:<br><br>'
+        +'<strong>G1 = [2, 0]:</strong> Alle Ja → Entropy = 0 (reine Menge)<br>'
+        +'<strong>G2 = [2, 1]:</strong> Entropy = −(2/3)·log₂(2/3) − (1/3)·log₂(1/3) = −(0.667)·(−0.585) − (0.333)·(−1.585) = 0.390 + 0.528 = <strong>0.9183</strong><br>'
+        +'<strong>G3 = [0, 1]:</strong> Alle Nein → Entropy = 0 (reine Menge)';
+      dn(2);ul(3);
+    } else {
+      f.innerHTML='✗ '+s+'/6 T-Werte richtig. Schau in der Tabelle nach:<br>G1: IDs 1, 5 → beide Ja → [2, 0]<br>G2: IDs 2, 3, 6 → Ja, Ja, Nein → [2, 1]<br>G3: ID 4 → Nein → [0, 1]';
+    }
+    updE();
+  }
+  if(n===3){
+    let s=0;
+    const pairs=[['e3-b1j',3],['e3-b1n',1],['e3-b2j',1],['e3-b2n',1]];
+    pairs.forEach(([id,v])=>{const iv=parseFloat(gv(id));const ok=cn(iv,v,0.5);mi(id,ok);if(ok)s++});
+    const b1j=parseFloat(gv('e3-b1j'))||0,b1n=parseFloat(gv('e3-b1n'))||0;
+    const b2j=parseFloat(gv('e3-b2j'))||0,b2n=parseFloat(gv('e3-b2n'))||0;
+    document.getElementById('e3-b1e').textContent=ent(b1j,b1n);
+    document.getElementById('e3-b2e').textContent=ent(b2j,b2n);
+    ['e3-b1e','e3-b2e'].forEach(id=>{document.getElementById(id).style.color=s===4?'var(--ac2)':'var(--warn)'});
+    const f=document.getElementById('fb-s3');const allOk=s===4;
+    f.className='fb show '+(allOk?'ok':'no');
+    if(allOk){
+      f.innerHTML='✓ Richtig! Die Entropien wurden berechnet:<br><br>'
+        +'<strong>Bus u. Bahn = [3, 1]:</strong> Entropy = −(3/4)·log₂(3/4) − (1/4)·log₂(1/4) = −(0.75)·(−0.415) − (0.25)·(−2.0) = 0.311 + 0.500 = <strong>0.8113</strong><br>'
+        +'<strong>Sonstiges = [1, 1]:</strong> 50/50 → Entropy = −(0.5)·(−1.0) − (0.5)·(−1.0) = 0.5 + 0.5 = <strong>1.0</strong>';
+      dn(3);ul(4);
+    } else {
+      f.innerHTML='✗ '+s+'/4 T-Werte richtig. Schau in der Tabelle nach:<br>Bus u. Bahn: IDs 1, 2, 4, 5 → Ja, Ja, Nein, Ja → [3, 1]<br>Sonstiges: IDs 3, 6 → Ja, Nein → [1, 1]';
+    }
+    updE();
+  }
+  if(n===4){
+    let s=0;
+    const pairs=[['e4-s1j',2],['e4-s1n',1],['e4-s2j',2],['e4-s2n',1]];
+    pairs.forEach(([id,v])=>{const iv=parseFloat(gv(id));const ok=cn(iv,v,0.5);mi(id,ok);if(ok)s++});
+    const s1j=parseFloat(gv('e4-s1j'))||0,s1n=parseFloat(gv('e4-s1n'))||0;
+    const s2j=parseFloat(gv('e4-s2j'))||0,s2n=parseFloat(gv('e4-s2n'))||0;
+    document.getElementById('e4-s1e').textContent=ent(s1j,s1n);
+    document.getElementById('e4-s2e').textContent=ent(s2j,s2n);
+    ['e4-s1e','e4-s2e'].forEach(id=>{document.getElementById(id).style.color=s===4?'var(--ac2)':'var(--warn)'});
+    const f=document.getElementById('fb-s4');const allOk=s===4;
+    f.className='fb show '+(allOk?'ok':'no');
+    if(allOk){
+      f.innerHTML='✓ Richtig! Die Entropien wurden berechnet:<br><br>'
+        +'<strong>Sport=Ja = [2, 1]:</strong> Entropy = −(2/3)·(−0.585) − (1/3)·(−1.585) = 0.390 + 0.528 = <strong>0.9183</strong><br>'
+        +'<strong>Sport=Nein = [2, 1]:</strong> Gleiche Verteilung → Entropy = <strong>0.9183</strong><br><br>'
+        +'Beide Teilmengen haben die gleiche Entropie wie T selbst → <strong>Information Gain = 0!</strong> Sport bringt also gar nichts.';
+      dn(4);ul(5);
+    } else {
+      f.innerHTML='✗ '+s+'/4 T-Werte richtig. Schau in der Tabelle nach:<br>Sport=Ja: IDs 2, 3, 4 → Ja, Ja, Nein → [2, 1]<br>Sport=Nein: IDs 1, 5, 6 → Ja, Ja, Nein → [2, 1]';
+    }
+    updE();
+  }
+  if(n===5){
+    let s=0;
+    s+=fb('fb-qe5',gr('qe5')==='a','Richtig! Altersgruppe hat den höchsten Gain.','Falsch — Altersgruppe: Gain = 0.4591.');
+    s+=fb('fb-qe6',gr('qe6')==='b','Richtig! G1 und G3 sind rein → Entropy=0 → maximaler Gain.','Falsch — G1 und G3 haben Entropy=0, das senkt die gewichtete Entropie am stärksten.');
+    const f=document.getElementById('fb-s5');f.className='fb show '+(s===2?'ok':'no');
+    f.innerHTML=s===2?'✓ Exzellent! Du hast die erste Entscheidungsebene des ID3 komplett gelöst!':'✗ '+s+'/2 richtig.';
+    if(s===2)dn(5);
+    updE();
+  }
+}
+
+function updE(){
+  const ok=document.querySelectorAll('#tab-e .sc.done').length;
+  const st=document.getElementById('s-e');
+  if(ok===5)st.className='ts done';else if(ok>0)st.className='ts part';else st.className='ts';
+}
+
+function ce(){
+  const y=parseInt(document.getElementById('cy').value)||0;
+  const n=parseInt(document.getElementById('cn').value)||0;
+  const t=y+n;if(!t){document.getElementById('cr').textContent='Entropy = 0';return}
+  const py=y/t,pn=n/t;let e=0;if(py>0)e-=py*Math.log2(py);if(pn>0)e-=pn*Math.log2(pn);
+  document.getElementById('cr').textContent='Entropy = '+e.toFixed(4);
+}
+</script>
+</body>
+</html>

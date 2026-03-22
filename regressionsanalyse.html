@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eiswagen – Regressionsanalyse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --bg2: #f5f4f0;
+      --text: #1a1a18;
+      --text2: #73726c;
+      --border: rgba(0,0,0,0.18);
+      --border2: rgba(0,0,0,0.08);
+      --active-row: rgba(224,123,57,0.07);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a18;
+        --bg2: #242422;
+        --text: #e8e6de;
+        --text2: #8a8880;
+        --border: rgba(255,255,255,0.18);
+        --border2: rgba(255,255,255,0.07);
+        --active-row: rgba(224,123,57,0.10);
+      }
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+    }
+
+    .page-title { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
+    .page-sub { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; }
+
+    h2 {
+      font-size: 10px; font-weight: 500; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text2); margin-bottom: 0.75rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 560px);
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .left-panel { display: flex; flex-direction: column; gap: 1rem; }
+
+    /* ---- Akkordeon ---- */
+    .accordion {
+      border: 0.5px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .accordion-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--bg2);
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px; font-weight: 500; color: var(--text);
+      border: none; width: 100%; text-align: left;
+    }
+    .accordion-header:hover { background: var(--border2); }
+    .accordion-arrow {
+      width: 16px; height: 16px; flex-shrink: 0;
+      transition: transform 0.2s;
+      color: var(--text2);
+    }
+    .accordion-header.open .accordion-arrow { transform: rotate(180deg); }
+    .accordion-body {
+      display: none;
+      padding: 1rem;
+      border-top: 0.5px solid var(--border2);
+      font-size: 13px; line-height: 1.7; color: var(--text2);
+    }
+    .accordion-body.open { display: block; }
+    .accordion-body p { margin-bottom: 0.75rem; }
+    .accordion-body p:last-child { margin-bottom: 0; }
+    .accordion-body strong { color: var(--text); font-weight: 500; }
+    .accordion-body .formula {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      background: var(--bg2);
+      border: 0.5px solid var(--border2);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      margin: 0.5rem 0 0.75rem;
+      color: var(--text);
+      display: block;
+    }
+    .step-list { list-style: none; padding: 0; margin: 0.5rem 0 0.75rem; }
+    .step-list li {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 5px 0; border-bottom: 0.5px solid var(--border2);
+      font-size: 12px;
+    }
+    .step-list li:last-child { border-bottom: none; }
+    .step-num {
+      flex-shrink: 0; width: 20px; height: 20px;
+      border-radius: 50%; background: #e07b39;
+      color: white; font-size: 10px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+
+    /* ---- Controls ---- */
+    .range-box {
+      border: 0.5px solid var(--border);
+      border-radius: 10px; padding: 0.875rem 1rem;
+      background: var(--bg2);
+    }
+    .range-box label {
+      font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text2); display: block; margin-bottom: 0.5rem;
+    }
+    .range-row { display: flex; align-items: center; gap: 8px; font-family: 'DM Mono', monospace; font-size: 13px; }
+    .range-row span { color: var(--text2); width: 24px; text-align: right; }
+    .range-row input[type=number] {
+      width: 46px; border: 0.5px solid var(--border); border-radius: 6px;
+      padding: 4px 6px; font-family: 'DM Mono', monospace; font-size: 13px;
+      background: var(--bg); color: var(--text); text-align: center;
+    }
+    .range-row input[type=number]:focus { outline: none; border-color: #e07b39; }
+
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+    .toggle-label { font-size: 12px; color: var(--text2); }
+    .toggle { position: relative; width: 32px; height: 18px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 9px; cursor: pointer; transition: background 0.2s; }
+    .toggle input:checked + .toggle-track { background: #e07b39; }
+    .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: white; border-radius: 50%; transition: transform 0.2s; pointer-events: none; }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(14px); }
+
+    /* ---- Stats ---- */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stats-col { border: 0.5px solid var(--border); border-radius: 10px; padding: 0.75rem; min-width: 0; }
+    .stats-col-header { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; overflow: hidden; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 0.5px solid var(--border2); }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-size: 11px; color: var(--text2); }
+    .stat-val { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+
+    /* ---- Table ---- */
+    .table-wrap { border: 0.5px solid var(--border); border-radius: 10px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      background: var(--bg2); font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text2); padding: 7px 8px;
+      text-align: center; font-weight: 500; border-bottom: 0.5px solid var(--border);
+    }
+    tbody tr { border-bottom: 0.5px solid var(--border2); transition: background 0.12s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr.active-row { background: var(--active-row); }
+    tbody tr.inactive-row td.nr, tbody tr.inactive-row td input { opacity: 0.35; }
+    tbody td { padding: 4px 5px; text-align: center; font-family: 'DM Mono', monospace; }
+    td.nr { color: var(--text2); font-size: 11px; }
+    td input {
+      width: 58px; border: 0.5px solid transparent; border-radius: 5px;
+      padding: 3px 4px; font-family: 'DM Mono', monospace; font-size: 13px;
+      background: transparent; color: var(--text); text-align: center;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    td input:hover { border-color: var(--border); background: var(--bg2); }
+    td input:focus { outline: none; border-color: #e07b39; background: var(--bg2); }
+
+    /* ---- Chart ---- */
+    .chart-area { display: flex; flex-direction: column; gap: 0.75rem; }
+    canvas#plot { width: 100%; border: 0.5px solid var(--border); border-radius: 10px; display: block; }
+
+    .legend {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;
+      padding: 0.75rem 1rem; border: 0.5px solid var(--border);
+      border-radius: 8px; background: var(--bg2);
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
+    .legend-line { width: 20px; height: 2px; border-radius: 2px; flex-shrink: 0; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+    @media (max-width: 680px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.25rem;">
+  <p class="page-title" style="margin-bottom:0">Eiswagen – Regressionsanalyse</p>
+  <a href="algorithmus.html" style="font-size:13px; color:#e07b39; text-decoration:none; border:0.5px solid rgba(224,123,57,0.4); border-radius:20px; padding:5px 14px; white-space:nowrap; font-family:'DM Sans',sans-serif;">Algorithmus verstehen →</a>
+</div>
+<p class="page-sub">Werte bearbeiten oder Bereich einschränken – die Geraden passen sich live an.</p>
+
+<div class="layout">
+  <div class="left-panel">
+
+    <h2>Bereich einschränken</h2>
+    <div class="range-box">
+      <label>Eingeschränkte Gerade (orange)</label>
+      <div class="range-row">
+        <span>von</span>
+        <input type="number" id="rangeFrom" min="1" max="12" value="1">
+        <span>bis</span>
+        <input type="number" id="rangeTo" min="1" max="12" value="12">
+      </div>
+    </div>
+
+    <h2>Anzeige</h2>
+    <div class="range-box">
+      <div class="toggle-row">
+        <span class="toggle-label">Residuen einblenden</span>
+        <label class="toggle">
+          <input type="checkbox" id="showResiduals" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+    </div>
+
+    <h2>Vergleich</h2>
+    <div class="stats-grid">
+      <div class="stats-col">
+        <div class="stats-col-header">
+          <span class="dot" style="background:#e07b39"></span>
+          <span style="color:#e07b39; overflow:hidden; text-overflow:ellipsis;">Eingeschränkt</span>
+        </div>
+        <div class="stat-row"><span class="stat-label">m</span><span class="stat-val" id="sM1">—</span></div>
+        <div class="stat-row"><span class="stat-label">b</span><span class="stat-val" id="sB1">—</span></div>
+        <div class="stat-row"><span class="stat-label">R²</span><span class="stat-val" id="sR1">—</span></div>
+        <div class="stat-row"><span class="stat-label">n</span><span class="stat-val" id="sN1">—</span></div>
+      </div>
+      <div class="stats-col">
+        <div class="stats-col-header">
+          <span class="dot" style="background:#5b9bd5"></span>
+          <span style="color:#5b9bd5; overflow:hidden; text-overflow:ellipsis;">Vollständig</span>
+        </div>
+        <div class="stat-row"><span class="stat-label">m</span><span class="stat-val" id="sM2">—</span></div>
+        <div class="stat-row"><span class="stat-label">b</span><span class="stat-val" id="sB2">—</span></div>
+        <div class="stat-row"><span class="stat-label">R²</span><span class="stat-val" id="sR2">—</span></div>
+        <div class="stat-row"><span class="stat-label">n</span><span class="stat-val" id="sN2">12</span></div>
+      </div>
+    </div>
+
+    <h2>Daten</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nr</th><th>T [°C]</th><th>Kugeln</th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="chart-area">
+    <h2>Visualisierung</h2>
+    <canvas id="plot" height="440"></canvas>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-line" style="background:#e07b39"></div>
+        <span>Eingeschränkte Gerade</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background: repeating-linear-gradient(90deg,#5b9bd5 0 5px,transparent 5px 9px)"></div>
+        <span>Vollständige Gerade</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="height:1px; background: repeating-linear-gradient(90deg,rgba(224,123,57,0.8) 0 4px,transparent 4px 7px)"></div>
+        <span>Residuum (yᵢ − ŷᵢ)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#aaa"></div>
+        <span>Inaktive Punkte</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleAcc() {
+  const btn  = document.getElementById('accBtn');
+  const body = document.getElementById('accBody');
+  btn.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+const raw = [
+  [1,1,0],[2,4,10],[3,13,10],[4,14,40],[5,18,180],
+  [6,24,180],[7,25,230],[8,28,350],[9,32,360],
+  [10,35,405],[11,40,360],[12,42,350]
+];
+
+const tbody = document.getElementById('tableBody');
+raw.forEach(([nr,t,k]) => {
+  const tr = document.createElement('tr');
+  tr.id = 'row-'+nr;
+  tr.innerHTML = `<td class="nr">${nr}</td>
+    <td><input type="number" data-nr="${nr}" data-col="t" value="${t}"></td>
+    <td><input type="number" data-nr="${nr}" data-col="k" value="${k}"></td>`;
+  tbody.appendChild(tr);
+});
+
+function getData() {
+  return raw.map(([nr]) => {
+    const t = parseFloat(document.querySelector(`input[data-nr="${nr}"][data-col="t"]`).value);
+    const k = parseFloat(document.querySelector(`input[data-nr="${nr}"][data-col="k"]`).value);
+    return { nr, t, k };
+  });
+}
+function getRange() {
+  const f = Math.max(1, Math.min(12, parseInt(document.getElementById('rangeFrom').value)||1));
+  const t = Math.max(1, Math.min(12, parseInt(document.getElementById('rangeTo').value)||12));
+  return { from: Math.min(f,t), to: Math.max(f,t) };
+}
+function regression(pts) {
+  const n = pts.length;
+  if (n < 2) return null;
+  const mx = pts.reduce((s,p)=>s+p.x,0)/n;
+  const my = pts.reduce((s,p)=>s+p.y,0)/n;
+  let num=0, den=0;
+  pts.forEach(p => { num+=(p.x-mx)*(p.y-my); den+=(p.x-mx)**2; });
+  if (den===0) return null;
+  const m=num/den, b=my-m*mx;
+  let ss_res=0, ss_tot=0;
+  pts.forEach(p => { ss_res+=(p.y-(m*p.x+b))**2; ss_tot+=(p.y-my)**2; });
+  return { m, b, r2: ss_tot===0?1:1-ss_res/ss_tot };
+}
+
+const canvas = document.getElementById('plot');
+const ctx = canvas.getContext('2d');
+
+function draw() {
+  const data = getData();
+  const { from, to } = getRange();
+  const showRes = document.getElementById('showResiduals').checked;
+
+  data.forEach(({ nr }) => {
+    document.getElementById('row-'+nr).className = (nr>=from && nr<=to) ? 'active-row' : 'inactive-row';
+  });
+
+  const activePts   = data.filter(d=>d.nr>=from&&d.nr<=to).map(d=>({x:d.t,y:d.k}));
+  const inactivePts = data.filter(d=>d.nr<from||d.nr>to).map(d=>({x:d.t,y:d.k}));
+  const allPts      = data.map(d=>({x:d.t,y:d.k}));
+
+  const reg1 = regression(activePts);
+  const reg2 = regression(allPts);
+
+  const fmt = (v,d=2) => v==null?'—':v.toFixed(d);
+  document.getElementById('sM1').textContent = fmt(reg1?.m,3);
+  document.getElementById('sB1').textContent = fmt(reg1?.b,1);
+  document.getElementById('sR1').textContent = fmt(reg1?.r2,4);
+  document.getElementById('sN1').textContent = activePts.length;
+  document.getElementById('sM2').textContent = fmt(reg2?.m,3);
+  document.getElementById('sB2').textContent = fmt(reg2?.b,1);
+  document.getElementById('sR2').textContent = fmt(reg2?.r2,4);
+
+  const W = canvas.offsetWidth, H = 440;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.height = H+'px';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  const pad = { top:24, right:24, bottom:44, left:64 };
+  const pw = W-pad.left-pad.right, ph = H-pad.top-pad.bottom;
+  const allX=data.map(d=>d.t), allY=data.map(d=>d.k);
+  const xMin=Math.min(...allX)-3, xMax=Math.max(...allX)+3;
+  const yMin=-20, yMax=Math.max(...allY)+50;
+  const sx=v=>pad.left+(v-xMin)/(xMax-xMin)*pw;
+  const sy=v=>pad.top+ph-(v-yMin)/(yMax-yMin)*ph;
+
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridC  = dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
+  const axisC  = dark?'rgba(255,255,255,0.22)':'rgba(0,0,0,0.22)';
+  const labelC = dark?'rgba(255,255,255,0.4)':'rgba(0,0,0,0.4)';
+
+  ctx.clearRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle=gridC; ctx.lineWidth=0.5; ctx.setLineDash([]);
+  for(let y=0;y<=400;y+=100){ ctx.beginPath();ctx.moveTo(pad.left,sy(y));ctx.lineTo(pad.left+pw,sy(y));ctx.stroke(); }
+  for(let x=0;x<=45;x+=10){ ctx.beginPath();ctx.moveTo(sx(x),pad.top);ctx.lineTo(sx(x),pad.top+ph);ctx.stroke(); }
+
+  // Achsen
+  ctx.strokeStyle=axisC; ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(pad.left,pad.top);ctx.lineTo(pad.left,pad.top+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pad.left,pad.top+ph);ctx.lineTo(pad.left+pw,pad.top+ph);ctx.stroke();
+
+  // Labels
+  ctx.fillStyle=labelC; ctx.font='11px DM Mono,monospace';
+  ctx.textAlign='right';
+  for(let y=0;y<=400;y+=100) ctx.fillText(y, pad.left-8, sy(y)+4);
+  ctx.textAlign='center';
+  for(let x=0;x<=45;x+=10) ctx.fillText(x+'°', sx(x), pad.top+ph+16);
+  ctx.fillStyle=labelC; ctx.font='11px DM Sans,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Temperatur [°C]', pad.left+pw/2, H-4);
+  ctx.save(); ctx.translate(14,pad.top+ph/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Absatzmenge [Kugeln]',0,0); ctx.restore();
+
+  // Vollständige Gerade (blau, gestrichelt)
+  if (reg2) {
+    ctx.strokeStyle='#5b9bd5'; ctx.lineWidth=1.5; ctx.setLineDash([6,5]); ctx.globalAlpha=0.75;
+    ctx.beginPath(); ctx.moveTo(sx(xMin),sy(reg2.m*xMin+reg2.b)); ctx.lineTo(sx(xMax),sy(reg2.m*xMax+reg2.b)); ctx.stroke();
+    ctx.globalAlpha=1; ctx.setLineDash([]);
+  }
+
+  // Orangenes Fehlerband
+  if (reg1) {
+    const resid = activePts.map(p=>p.y-(reg1.m*p.x+reg1.b));
+    const se = Math.sqrt(resid.reduce((s,r)=>s+r*r,0)/Math.max(activePts.length-2,1));
+    ctx.fillStyle='rgba(224,123,57,0.09)';
+    ctx.beginPath();
+    ctx.moveTo(sx(xMin), sy(reg1.m*xMin+reg1.b+se));
+    ctx.lineTo(sx(xMax), sy(reg1.m*xMax+reg1.b+se));
+    ctx.lineTo(sx(xMax), sy(reg1.m*xMax+reg1.b-se));
+    ctx.lineTo(sx(xMin), sy(reg1.m*xMin+reg1.b-se));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Orangene Gerade
+  if (reg1) {
+    ctx.strokeStyle='#e07b39'; ctx.lineWidth=2.2; ctx.setLineDash([]); ctx.globalAlpha=0.9;
+    ctx.beginPath(); ctx.moveTo(sx(xMin),sy(reg1.m*xMin+reg1.b)); ctx.lineTo(sx(xMax),sy(reg1.m*xMax+reg1.b)); ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+
+  // Schnittpunkt
+  if (reg1 && reg2 && Math.abs(reg1.m-reg2.m)>0.0001) {
+    const xi=(reg2.b-reg1.b)/(reg1.m-reg2.m);
+    const yi=reg1.m*xi+reg1.b;
+    if (xi>xMin && xi<xMax && yi>yMin && yi<yMax) {
+      ctx.beginPath(); ctx.arc(sx(xi),sy(yi),5,0,Math.PI*2);
+      ctx.fillStyle=dark?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)'; ctx.fill();
+    }
+  }
+
+  // Inaktive Punkte
+  inactivePts.forEach(p => {
+    ctx.beginPath(); ctx.arc(sx(p.x),sy(p.y),4.5,0,Math.PI*2);
+    ctx.fillStyle=dark?'rgba(255,255,255,0.18)':'rgba(0,0,0,0.13)'; ctx.fill();
+  });
+
+  // Residuenlinien
+  if (reg1 && showRes) {
+    activePts.forEach(p => {
+      const yHat = reg1.m * p.x + reg1.b;
+      const x0 = sx(p.x);
+      const y0 = sy(p.y);
+      const y1 = sy(yHat);
+
+      ctx.strokeStyle='rgba(224,123,57,0.75)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.strokeStyle='rgba(224,123,57,0.75)'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(x0-4,y1); ctx.lineTo(x0+4,y1); ctx.stroke();
+
+      const absRes = Math.abs(p.y - yHat);
+      if (absRes > 15) {
+        ctx.fillStyle='rgba(224,123,57,0.85)';
+        ctx.font='10px DM Mono,monospace'; ctx.textAlign='left';
+        ctx.fillText((p.y>yHat?'+':'−')+Math.round(absRes), x0+7, (y0+y1)/2+4);
+      }
+    });
+  }
+
+  // Aktive Punkte
+  activePts.forEach(p => {
+    ctx.beginPath(); ctx.arc(sx(p.x),sy(p.y),5.5,0,Math.PI*2);
+    ctx.fillStyle='#e07b39'; ctx.fill();
+    ctx.strokeStyle=dark?'#1a1a1a':'#fff'; ctx.lineWidth=1.5; ctx.stroke();
+  });
+}
+
+document.getElementById('rangeFrom').addEventListener('input', draw);
+document.getElementById('rangeTo').addEventListener('input', draw);
+document.getElementById('showResiduals').addEventListener('change', draw);
+document.querySelectorAll('td input').forEach(i=>i.addEventListener('input', draw));
+window.addEventListener('resize', draw);
+draw();
+</script>
+</body>
+</html>

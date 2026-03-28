@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prüfungstrainer – Random Forest</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--bg-card:#161b22;--border:#30363d;--text:#e6edf3;--text-muted:#8b949e;--accent:#58a6ff;--accent-glow:rgba(88,166,255,0.15);--green:#3fb950;--green-bg:rgba(63,185,80,0.1);--red:#f85149;--red-bg:rgba(248,81,73,0.1);--orange:#d29922;--orange-bg:rgba(210,153,34,0.1);--purple:#bc8cff;--radius:12px;--radius-sm:8px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;line-height:1.6;display:flex;flex-direction:column;overflow:hidden;}
+.top-bar{background:var(--bg-card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;flex-wrap:wrap;}
+.badge{background:var(--accent-glow);border:1px solid rgba(88,166,255,0.3);color:var(--accent);padding:3px 10px;border-radius:14px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.top-bar .title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;}
+.top-bar .score{margin-left:auto;display:flex;gap:12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text-muted);}
+.score .cs{color:var(--green);} .score .ws{color:var(--red);}
+.tabs-wrapper{background:var(--bg-card);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.tabs-wrapper::-webkit-scrollbar{display:none;}
+.tabs{display:flex;min-width:max-content;padding:0 12px;}
+.tab{padding:11px 16px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:7px;user-select:none;}
+.tab:hover:not(.locked){color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab.done{color:var(--green);}
+.tab.locked{opacity:.3;cursor:default;}
+.tab-icon{font-size:12px;}
+.progress-thin{height:3px;background:var(--border);flex-shrink:0;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));transition:width .6s cubic-bezier(.22,1,.36,1);}
+.content-area{flex:1;overflow-y:auto;padding:28px 20px 50px;}
+.content-inner{max-width:780px;margin:0 auto;}
+.panel{display:none;animation:fadeIn .3s ease;} .panel.visible{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.panel-header{margin-bottom:24px;}
+.panel-header h2{font-family:'Playfair Display',serif;font-size:clamp(20px,4vw,28px);font-weight:800;margin-bottom:4px;}
+.panel-header .sub{color:var(--text-muted);font-size:15px;}
+.pts{display:inline-block;background:var(--accent-glow);border:1px solid rgba(88,166,255,0.25);color:var(--accent);padding:2px 9px;border-radius:6px;font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;margin-left:8px;vertical-align:middle;}
+.ctx{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:22px;font-size:15px;line-height:1.75;}
+.ctx h3{color:var(--accent);font-size:12px;font-family:'JetBrains Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;}
+.ctx.hl{border-left:3px solid var(--accent);background:rgba(88,166,255,0.04);}
+.ctx.gr{border-left:3px solid var(--green);background:rgba(63,185,80,0.04);}
+.ctx.pu{border-left:3px solid var(--purple);background:rgba(188,140,255,0.04);}
+.ctx.or{border-left:3px solid var(--orange);background:rgba(210,153,34,0.04);}
+.code-block{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 20px;margin:18px 0;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.8;overflow-x:auto;white-space:pre;}
+.code-kw{color:var(--purple);font-weight:600;} .code-cm{color:var(--text-muted);font-style:italic;} .code-num{color:var(--orange);}
+.dtw{overflow-x:auto;margin:18px 0;border-radius:var(--radius-sm);border:1px solid var(--border);}
+.dt{width:100%;border-collapse:collapse;font-size:13px;font-family:'JetBrains Mono',monospace;}
+.dt th{background:rgba(88,166,255,0.08);color:var(--accent);padding:9px 11px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.dt td{padding:7px 11px;border-top:1px solid var(--border);white-space:nowrap;}
+.dt tr:hover td{background:rgba(255,255,255,0.02);}
+.dt .hl-row td{background:rgba(88,166,255,0.06)!important;}
+.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-weight:600;}
+.tg{background:var(--green-bg);color:var(--green);} .tr{background:var(--red-bg);color:var(--red);}
+.to{background:var(--orange-bg);color:var(--orange);}
+.qq{font-weight:600;font-size:16px;margin:22px 0 12px;}
+.qo{display:flex;flex-direction:column;gap:9px;}
+.qopt{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 16px;cursor:pointer;transition:all .2s;font-size:15px;display:flex;align-items:flex-start;gap:11px;}
+.qopt:hover{background:rgba(255,255,255,0.06);border-color:var(--accent);}
+.qopt.ok{border-color:var(--green);background:var(--green-bg);}
+.qopt.no{border-color:var(--red);background:var(--red-bg);}
+.qopt.dis{pointer-events:none;}
+.om{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;transition:all .2s;}
+.qopt.ok .om{border-color:var(--green);background:var(--green);color:#fff;}
+.qopt.no .om{border-color:var(--red);background:var(--red);color:#fff;}
+.cbo{display:flex;flex-direction:column;gap:9px;}
+.cb{display:flex;align-items:center;gap:11px;padding:11px 15px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;font-size:15px;}
+.cb:hover{background:rgba(255,255,255,0.06);}
+.cb.on{border-color:var(--accent);background:var(--accent-glow);}
+.cbx{width:18px;height:18px;border:2px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;transition:all .2s;}
+.cb.on .cbx{border-color:var(--accent);background:var(--accent);color:#fff;}
+.ti{width:100%;min-height:110px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;resize:vertical;line-height:1.6;}
+.ti:focus{outline:none;border-color:var(--accent);} .ti::placeholder{color:var(--text-muted);}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;}
+.bp{background:var(--accent);color:#fff;} .bp:hover{background:#79bbff;transform:translateY(-1px);}
+.bg{background:transparent;color:var(--text-muted);border:1px solid var(--border);} .bg:hover{background:rgba(255,255,255,0.05);color:var(--text);}
+.br{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+.fb{padding:13px 16px;border-radius:var(--radius-sm);margin-top:14px;font-size:14px;line-height:1.6;animation:fadeIn .3s ease;}
+.fb.ok{background:var(--green-bg);border:1px solid rgba(63,185,80,0.3);color:var(--green);}
+.fb.no{background:var(--red-bg);border:1px solid rgba(248,81,73,0.3);color:var(--red);}
+.fb.inf{background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.2);color:var(--accent);}
+.sep{border:none;border-top:1px solid var(--border);margin:26px 0;}
+.sa{display:none;margin-top:12px;padding:16px 20px;background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:var(--radius-sm);font-size:14px;line-height:1.7;}
+.sa.show{display:block;animation:fadeIn .3s ease;}
+.sa h4{color:var(--green);margin-bottom:6px;font-family:'JetBrains Mono',monospace;font-size:12px;}
+.completion{text-align:center;padding:40px 20px;}
+.completion-icon{font-size:60px;margin-bottom:18px;}
+.completion h2{font-family:'Playfair Display',serif;font-size:30px;margin-bottom:8px;}
+.cscore{font-size:46px;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--accent);margin:18px 0;}
+.step-marker{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;margin-right:8px;flex-shrink:0;}
+.step-marker.blue{background:var(--accent-glow);color:var(--accent);border:1.5px solid rgba(88,166,255,0.4);}
+.step-marker.green{background:var(--green-bg);color:var(--green);border:1.5px solid rgba(63,185,80,0.4);}
+.step-marker.purple{background:rgba(188,140,255,0.1);color:var(--purple);border:1.5px solid rgba(188,140,255,0.4);}
+.step-marker.orange{background:var(--orange-bg);color:var(--orange);border:1.5px solid rgba(210,153,34,0.4);}
+.tree-vote{display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);margin:6px 0;font-size:14px;font-family:'JetBrains Mono',monospace;}
+.tree-vote .label{color:var(--text-muted);min-width:60px;}
+@media(max-width:600px){.content-area{padding:18px 12px 36px;}.top-bar{padding:8px 12px;}.tab{padding:9px 10px;font-size:12px;}}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="badge">Prüfungsvorbereitung</div>
+  <div class="title">Random Forest – Kreditrisiko</div>
+  <div class="score">
+    <span class="cs">✓ <span id="sc">0</span></span>
+    <span class="ws">✗ <span id="sw">0</span></span>
+  </div>
+</div>
+
+<div class="tabs-wrapper">
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-s="0"><span class="tab-icon">📋</span> Szenario</div>
+    <div class="tab locked" data-s="1"><span class="tab-icon">🔒</span> So funktioniert's</div>
+    <div class="tab locked" data-s="2"><span class="tab-icon">🔒</span> 1) Algorithmus</div>
+    <div class="tab locked" data-s="3"><span class="tab-icon">🔒</span> 2) Pseudocode</div>
+    <div class="tab locked" data-s="4"><span class="tab-icon">🔒</span> 3) Bootstrapping</div>
+    <div class="tab locked" data-s="5"><span class="tab-icon">🔒</span> 4) Vorteile</div>
+    <div class="tab locked" data-s="6"><span class="tab-icon">🔒</span> 5) Klassifikation</div>
+    <div class="tab locked" data-s="7"><span class="tab-icon">🔒</span> 6) Vergleich kNN</div>
+    <div class="tab locked" data-s="8"><span class="tab-icon">🔒</span> 7) Vergleich ID3</div>
+    <div class="tab locked" data-s="9"><span class="tab-icon">🔒</span> 8) Anwendung</div>
+    <div class="tab locked" data-s="10"><span class="tab-icon">🔒</span> Ergebnis</div>
+  </div>
+</div>
+<div class="progress-thin"><div class="progress-fill" id="pf" style="width:0%"></div></div>
+
+<div class="content-area" id="ca">
+<div class="content-inner">
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- STEP 0: Szenario                                  -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="panel visible" id="p0">
+  <div class="panel-header">
+    <h2>Ausgangssituation</h2>
+    <p class="sub">Lies die Aufgabenstellung aufmerksam durch.</p>
+  </div>
+  <div class="ctx">
+    <h3>Szenario</h3>
+    Die FinSecure AG ist ein Finanzdienstleister mit 200 Mitarbeitern. Um Kreditausfälle zu reduzieren, soll ein ML-Modell entwickelt werden, das auf Basis historischer Kundendaten vorhersagt, ob ein Kreditantrag ausfallgefährdet ist. Die IT-Abteilung erhält eine CSV-Datei mit 15.000 Datensätzen.
+  </div>
+  <div class="dtw">
+    <table class="dt">
+      <thead><tr><th>Kunden-ID</th><th>Alter</th><th>Einkommen [€]</th><th>Kredit [€]</th><th>Beschäft.</th><th>Schufa</th><th>Ausfall</th></tr></thead>
+      <tbody>
+        <tr><td>K-10421</td><td>34</td><td>3.200</td><td>12.000</td><td>F</td><td>A</td><td><span class="tag tg">0</span></td></tr>
+        <tr><td>K-10422</td><td>52</td><td>4.800</td><td>25.000</td><td>V</td><td>B</td><td><span class="tag tg">0</span></td></tr>
+        <tr><td>K-10423</td><td>23</td><td>1.900</td><td>8.000</td><td>T</td><td>C</td><td><span class="tag tr">1</span></td></tr>
+        <tr><td>K-10424</td><td>41</td><td>2.600</td><td>18.000</td><td>F</td><td>B</td><td><span class="tag tg">0</span></td></tr>
+        <tr><td>K-10425</td><td>29</td><td>2.100</td><td>15.000</td><td>T</td><td>D</td><td><span class="tag tr">1</span></td></tr>
+        <tr><td>K-10426</td><td>47</td><td>5.500</td><td>30.000</td><td>V</td><td>A</td><td><span class="tag tg">0</span></td></tr>
+        <tr><td>K-10427</td><td>36</td><td>2.400</td><td>20.000</td><td>F</td><td>C</td><td><span class="tag tr">1</span></td></tr>
+        <tr><td>K-10428</td><td>55</td><td>3.800</td><td>10.000</td><td>V</td><td>A</td><td><span class="tag tg">0</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="ctx">
+    <h3>Legende</h3>
+    <strong>Ausfall 0</strong> = Kredit zurückgezahlt &nbsp;|&nbsp; <strong>Ausfall 1</strong> = Kreditausfall<br>
+    <strong>Beschäft.:</strong> F = Festangestellt, T = Teilzeit, V = Vollzeit/Selbständig<br>
+    <strong>Schufa:</strong> A (sehr gut) bis D (schlecht)
+  </div>
+  <div class="qq">Welche Merkmale in der Tabelle sind kategorisch (nicht-numerisch)?</div>
+  <div class="qo" id="q0">
+    <div class="qopt" onclick="quiz(0,this,false)"><div class="om">A</div><span>Alter, Einkommen, Kreditsumme und Schufa-Score</span></div>
+    <div class="qopt" onclick="quiz(0,this,true)"><div class="om">B</div><span>Beschäftigungsverhältnis und Schufa-Score</span></div>
+    <div class="qopt" onclick="quiz(0,this,false)"><div class="om">C</div><span>Kunden-ID, Beschäftigung und Kreditausfall</span></div>
+  </div>
+  <div id="f0"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- STEP 1: Algorithmus erklärt am konkreten Beispiel -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="panel" id="p1">
+  <div class="panel-header">
+    <h2>So funktioniert Random Forest</h2>
+    <p class="sub">Schritt für Schritt am Kreditbeispiel erklärt – mit konkreten Zahlen.</p>
+  </div>
+
+  <!-- Schritt 1 -->
+  <div class="ctx hl">
+    <h3><span class="step-marker blue">1</span> Mehrere Bäume bauen</h3>
+    Statt einen einzigen Entscheidungsbaum zu erstellen, baut Random Forest gleich <strong>mehrere</strong> – z.B. B = 3 Bäume. Jeder Baum bekommt <strong>andere Daten</strong> und <strong>andere Merkmale</strong>, damit die Bäume möglichst unterschiedlich sind.
+  </div>
+
+  <!-- Schritt 2 -->
+  <div class="ctx pu">
+    <h3><span class="step-marker purple">2</span> Bootstrapping – Zufällige Trainingsdaten ziehen</h3>
+    Für jeden Baum wird aus den 8 Kunden eine zufällige Stichprobe gezogen – <strong>mit Zurücklegen</strong>. Das heißt: Ein Kunde kann mehrfach vorkommen, ein anderer gar nicht.<br><br>
+    Beispiel für <strong>Baum 1</strong> – aus den 8 Kunden werden 8 gezogen:
+  </div>
+
+  <div class="dtw">
+    <table class="dt">
+      <thead><tr><th>Gezogen</th><th>Kunden-ID</th><th>Alter</th><th>Einkommen</th><th>Schufa</th><th>Ausfall</th></tr></thead>
+      <tbody>
+        <tr><td>1.</td><td>K-10423</td><td>23</td><td>1.900</td><td>C</td><td><span class="tag tr">1</span></td></tr>
+        <tr><td>2.</td><td>K-10421</td><td>34</td><td>3.200</td><td>A</td><td><span class="tag tg">0</span></td></tr>
+        <tr class="hl-row"><td>3.</td><td>K-10423</td><td>23</td><td>1.900</td><td>C</td><td><span class="tag tr">1</span></td></tr>
+        <tr><td>4.</td><td>K-10426</td><td>47</td><td>5.500</td><td>A</td><td><span class="tag tg">0</span></td></tr>
+        <tr><td>5.</td><td>K-10425</td><td>29</td><td>2.100</td><td>D</td><td><span class="tag tr">1</span></td></tr>
+        <tr class="hl-row"><td>6.</td><td>K-10425</td><td>29</td><td>2.100</td><td>D</td><td><span class="tag tr">1</span></td></tr>
+        <tr><td>7.</td><td>K-10428</td><td>55</td><td>3.800</td><td>A</td><td><span class="tag tg">0</span></td></tr>
+        <tr><td>8.</td><td>K-10422</td><td>52</td><td>4.800</td><td>B</td><td><span class="tag tg">0</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ctx" style="border-left:3px solid var(--text-muted);background:rgba(255,255,255,0.02);">
+    K-10423 und K-10425 kommen jeweils <strong>doppelt</strong> vor (blau markiert). K-10424 und K-10427 wurden <strong>gar nicht</strong> gezogen. Das ist bei Bootstrapping normal.
+  </div>
+
+  <!-- Schritt 3 -->
+  <div class="ctx or">
+    <h3><span class="step-marker orange">3</span> Zufällige Merkmals-Auswahl</h3>
+    Statt alle 5 Merkmale (Alter, Einkommen, Kredit, Beschäft., Schufa) zu nutzen, bekommt jeder Baum nur eine <strong>zufällige Teilmenge</strong>, z.B. m = 3 von 5:<br><br>
+    <strong>Baum 1</strong> bekommt: Alter, Schufa, Einkommen<br>
+    <strong>Baum 2</strong> bekommt: Kredit, Beschäft., Alter<br>
+    <strong>Baum 3</strong> bekommt: Einkommen, Kredit, Schufa<br><br>
+    So wird jeder Baum <strong>anders</strong> – er sieht andere Daten und andere Merkmale.
+  </div>
+
+  <!-- Schritt 4 -->
+  <div class="ctx gr">
+    <h3><span class="step-marker green">4</span> Entscheidungsbäume trainieren</h3>
+    Jeder Baum wird nun mit seinen Bootstrap-Daten und seiner Merkmals-Teilmenge trainiert – z.B. mit dem <strong>ID3-Algorithmus</strong>. Dabei wird bei jedem Knoten das Merkmal mit dem höchsten <strong>Informationsgewinn</strong> (Entropie) als Aufteilungskriterium gewählt. So entsteht für jeden Baum eine eigene Baumstruktur mit individuellen Regeln.<br><br>
+    Hier das Ergebnis für <strong>Baum 1</strong> (trainiert mit Alter, Schufa, Einkommen):
+  </div>
+
+  <!-- SVG: Decision tree for Baum 1 -->
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 10px;margin:18px 0;overflow-x:auto;">
+    <svg viewBox="0 0 600 340" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:600px;height:auto;display:block;margin:0 auto;" font-family="'JetBrains Mono',monospace">
+      <!-- Edges -->
+      <line x1="300" y1="52" x2="155" y2="128" stroke="var(--text-muted)" stroke-width="1.5"/>
+      <line x1="300" y1="52" x2="445" y2="128" stroke="var(--text-muted)" stroke-width="1.5"/>
+      <line x1="155" y1="168" x2="80" y2="248" stroke="var(--text-muted)" stroke-width="1.5"/>
+      <line x1="155" y1="168" x2="230" y2="248" stroke="var(--text-muted)" stroke-width="1.5"/>
+
+      <!-- Edge labels -->
+      <rect x="185" y="72" width="50" height="20" rx="4" fill="var(--bg)"/>
+      <text x="210" y="86" fill="var(--orange)" font-size="11" text-anchor="middle" font-weight="600">Ja</text>
+      <rect x="365" y="72" width="50" height="20" rx="4" fill="var(--bg)"/>
+      <text x="390" y="86" fill="var(--green)" font-size="11" text-anchor="middle" font-weight="600">Nein</text>
+      <rect x="78" y="198" width="50" height="20" rx="4" fill="var(--bg)"/>
+      <text x="103" y="212" fill="var(--orange)" font-size="11" text-anchor="middle" font-weight="600">Ja</text>
+      <rect x="188" y="198" width="50" height="20" rx="4" fill="var(--bg)"/>
+      <text x="213" y="212" fill="var(--green)" font-size="11" text-anchor="middle" font-weight="600">Nein</text>
+
+      <!-- Root node: Schufa -->
+      <rect x="210" y="18" width="180" height="38" rx="8" fill="rgba(88,166,255,0.12)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="300" y="42" fill="var(--accent)" font-size="13" text-anchor="middle" font-weight="600">Schufa = C oder D?</text>
+
+      <!-- Inner node: Einkommen -->
+      <rect x="60" y="128" width="190" height="38" rx="8" fill="rgba(188,140,255,0.12)" stroke="var(--purple)" stroke-width="1.5"/>
+      <text x="155" y="152" fill="var(--purple)" font-size="13" text-anchor="middle" font-weight="600">Einkommen &lt; 2.500 €?</text>
+
+      <!-- Leaf: Ausfall -->
+      <rect x="18" y="248" width="125" height="38" rx="8" fill="rgba(248,81,73,0.15)" stroke="var(--red)" stroke-width="1.5"/>
+      <text x="80" y="272" fill="var(--red)" font-size="13" text-anchor="middle" font-weight="600">⚠ Ausfall</text>
+
+      <!-- Leaf: Kein Ausfall (from Einkommen >= 2500) -->
+      <rect x="168" y="248" width="125" height="38" rx="8" fill="rgba(63,185,80,0.15)" stroke="var(--green)" stroke-width="1.5"/>
+      <text x="230" y="272" fill="var(--green)" font-size="13" text-anchor="middle" font-weight="600">✓ Kein Ausfall</text>
+
+      <!-- Leaf: Kein Ausfall (from Schufa A/B) -->
+      <rect x="383" y="128" width="125" height="38" rx="8" fill="rgba(63,185,80,0.15)" stroke="var(--green)" stroke-width="1.5"/>
+      <text x="445" y="152" fill="var(--green)" font-size="13" text-anchor="middle" font-weight="600">✓ Kein Ausfall</text>
+
+      <!-- Annotation -->
+      <text x="300" y="325" fill="var(--text-muted)" font-size="11" text-anchor="middle">Baum 1 – trainiert mit ID3 auf Merkmalen: Alter, Schufa, Einkommen</text>
+    </svg>
+  </div>
+
+  <div class="ctx" style="border-left:3px solid var(--text-muted);background:rgba(255,255,255,0.02);">
+    ID3 hat hier <strong>Schufa</strong> als Wurzelknoten gewählt, weil dieses Merkmal den höchsten Informationsgewinn hatte – es trennt die Daten am besten. Im linken Zweig (Schufa C/D) wurde dann <strong>Einkommen</strong> als nächstes Kriterium gewählt. Baum 2 und 3 haben andere Merkmale und andere Bootstrap-Daten, deshalb entstehen bei ihnen <strong>andere Baumstrukturen</strong> mit anderen Regeln.
+  </div>
+
+  <!-- Schritt 5 -->
+  <div class="ctx hl">
+    <h3><span class="step-marker blue">5</span> Neuen Kunden klassifizieren – Abstimmung</h3>
+    Jetzt kommt ein <strong>neuer Kreditantrag</strong>: Alter 31, Einkommen 2.300 €, Kredit 14.000 €, Teilzeit, Schufa C.<br><br>
+    Jeder Baum gibt seine Vorhersage ab:
+  </div>
+
+  <div class="tree-vote"><span class="label">Baum 1:</span> Schufa=C → Ja → Einkommen 2.300 &lt; 2.500 → Ja → <span class="tag tr">Ausfall</span></div>
+  <div class="tree-vote"><span class="label">Baum 2:</span> Alter=31 → ... → Kredit 14.000 → ... → <span class="tag tg">Kein Ausfall</span></div>
+  <div class="tree-vote"><span class="label">Baum 3:</span> Schufa=C → ... → Einkommen 2.300 → ... → <span class="tag tr">Ausfall</span></div>
+
+  <div class="ctx gr" style="margin-top:18px;">
+    <h3><span class="step-marker green">→</span> Mehrheitsentscheid</h3>
+    <strong>2 von 3</strong> Bäumen sagen „Ausfall" → Der Random Forest klassifiziert den Antrag als <span class="tag tr">Ausfall</span>.<br><br>
+    Das ist der Kern: Kein einzelner Baum entscheidet allein. Die <strong>Mehrheit aller Bäume</strong> bestimmt das Ergebnis. Dadurch werden Fehler einzelner Bäume ausgeglichen.
+  </div>
+
+  <div class="qq">Verständnischeck: Warum kommt Baum 1 zu einem anderen Ergebnis als Baum 2?</div>
+  <div class="qo" id="q1x">
+    <div class="qopt" onclick="quiz('1x',this,false)"><div class="om">A</div><span>Weil Baum 2 falsch trainiert wurde und deshalb ein falsches Ergebnis liefert</span></div>
+    <div class="qopt" onclick="quiz('1x',this,true)"><div class="om">B</div><span>Weil jeder Baum andere Daten und andere Merkmale verwendet und so andere Regeln lernt</span></div>
+    <div class="qopt" onclick="quiz('1x',this,false)"><div class="om">C</div><span>Weil Baum 2 mehr Datensätze zur Verfügung hat als Baum 1 und daher genauer rechnet</span></div>
+  </div>
+  <div id="f1x"></div>
+</div>
+
+<!-- ══ 2: Algorithmus erklären (Quiz) ══ -->
+<div class="panel" id="p2">
+  <div class="panel-header">
+    <h2>Aufgabe 1 – Random Forest erklären <span class="pts">6 Pkt.</span></h2>
+  </div>
+  <div class="qq">Was beschreibt den Random-Forest-Algorithmus korrekt?</div>
+  <div class="qo" id="q2a">
+    <div class="qopt" onclick="quiz('2a',this,false)"><div class="om">A</div><span>Er berechnet Abstände zu allen Datenpunkten und nutzt die k nächsten Nachbarn zur Klassifikation</span></div>
+    <div class="qopt" onclick="quiz('2a',this,true)"><div class="om">B</div><span>Er erstellt mehrere Entscheidungsbäume auf zufälligen Teildaten und lässt sie per Mehrheit abstimmen</span></div>
+    <div class="qopt" onclick="quiz('2a',this,false)"><div class="om">C</div><span>Er bildet Gruppen ähnlicher Datenpunkte und ordnet neue Daten dem passendsten Cluster zu</span></div>
+  </div>
+  <div id="f2a"></div>
+  <hr class="sep">
+  <div class="qq">Zu welcher Kategorie des maschinellen Lernens gehört Random Forest?</div>
+  <div class="qo" id="q2b">
+    <div class="qopt" onclick="quiz('2b',this,false)"><div class="om">A</div><span>Unüberwachtes Lernen, da die Bäume ohne Zielvariable erstellt werden</span></div>
+    <div class="qopt" onclick="quiz('2b',this,true)"><div class="om">B</div><span>Überwachtes Lernen, da die Trainingsdaten gelabelte Ergebnisse enthalten</span></div>
+    <div class="qopt" onclick="quiz('2b',this,false)"><div class="om">C</div><span>Bestärkendes Lernen, da das Modell durch Belohnungen optimiert wird</span></div>
+  </div>
+  <div id="f2b"></div>
+</div>
+
+<!-- ══ 3: Pseudocode ══ -->
+<div class="panel" id="p3">
+  <div class="panel-header">
+    <h2>Aufgabe 2 – Pseudocode analysieren <span class="pts">8 Pkt.</span></h2>
+  </div>
+  <div class="code-block"><span class="code-kw">for</span> Bäume <span class="code-num">1</span>, ..., B <span class="code-kw">do</span>
+    Sei N die Zahl vorhandener Datensätze
+    Wähle zufällig N Datensätze mit Zurücklegen <span class="code-cm">// Bootstrapping</span>
+    Wähle aus der Anzahl an Attributen m zufällig aus
+    Erstelle mit den Attributen einen Entscheidungsbaum <span class="code-cm">// z.B. ID3</span>
+<span class="code-kw">end for</span>
+<span class="code-kw">return</span> Bäume</div>
+  <div class="qq">Was bedeutet „mit Zurücklegen" in Zeile 3?</div>
+  <div class="qo" id="q3a">
+    <div class="qopt" onclick="quiz('3a',this,false)"><div class="om">A</div><span>Jeder Datensatz wird genau einmal verwendet und dann entfernt</span></div>
+    <div class="qopt" onclick="quiz('3a',this,true)"><div class="om">B</div><span>Ein Datensatz kann mehrfach gezogen werden, andere gar nicht</span></div>
+    <div class="qopt" onclick="quiz('3a',this,false)"><div class="om">C</div><span>Die Datensätze werden vor dem Ziehen sortiert und gefiltert</span></div>
+  </div>
+  <div id="f3a"></div>
+  <hr class="sep">
+  <div class="qq">Warum werden nur m (nicht alle) Attribute pro Baum zufällig ausgewählt?</div>
+  <div class="qo" id="q3b">
+    <div class="qopt" onclick="quiz('3b',this,false)"><div class="om">A</div><span>Damit die Bäume schneller berechnet werden und weniger Speicher brauchen</span></div>
+    <div class="qopt" onclick="quiz('3b',this,false)"><div class="om">B</div><span>Damit nur die wichtigsten Attribute genutzt und unwichtige ignoriert werden</span></div>
+    <div class="qopt" onclick="quiz('3b',this,true)"><div class="om">C</div><span>Damit die Bäume sich unterscheiden und der Wald insgesamt vielfältiger wird</span></div>
+  </div>
+  <div id="f3b"></div>
+</div>
+
+<!-- ══ 4: Bootstrapping ══ -->
+<div class="panel" id="p4">
+  <div class="panel-header">
+    <h2>Aufgabe 3 – Bootstrapping nachvollziehen <span class="pts">5 Pkt.</span></h2>
+  </div>
+
+  <div class="ctx hl" style="text-align:center;">
+    <h3>Originaldatensatz</h3>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:4px;"><strong>D1 &nbsp; D2 &nbsp; D3 &nbsp; D4 &nbsp; D5 &nbsp; D6</strong></span>
+  </div>
+
+  <div class="ctx">
+    <h3>Bootstrap-Stichprobe (gezogen mit Zurücklegen)</h3>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:16px;"><strong>{ D2, D5, D2, D1, D6, D2 }</strong></span>
+  </div>
+  <div class="qq">Wie oft kommt D2 in dieser Stichprobe vor?</div>
+  <div class="qo" id="q4a">
+    <div class="qopt" onclick="quiz('4a',this,false)"><div class="om">A</div><span>Einmal – jeder Datensatz kommt höchstens einmal vor</span></div>
+    <div class="qopt" onclick="quiz('4a',this,false)"><div class="om">B</div><span>Zweimal – er wurde doppelt gezogen und dann gesperrt</span></div>
+    <div class="qopt" onclick="quiz('4a',this,true)"><div class="om">C</div><span>Dreimal – beim Ziehen mit Zurücklegen ist das möglich</span></div>
+  </div>
+  <div id="f4a"></div>
+  <hr class="sep">
+  <div class="qq">Welche Datensätze fehlen in der Stichprobe?</div>
+  <div class="qo" id="q4b">
+    <div class="qopt" onclick="quiz('4b',this,true)"><div class="om">A</div><span>D3 und D4 – sie wurden beim Ziehen zufällig nicht ausgewählt</span></div>
+    <div class="qopt" onclick="quiz('4b',this,false)"><div class="om">B</div><span>D4 und D6 – sie haben die niedrigste Priorität im Datensatz</span></div>
+    <div class="qopt" onclick="quiz('4b',this,false)"><div class="om">C</div><span>Alle sind enthalten – Bootstrapping garantiert Vollständigkeit</span></div>
+  </div>
+  <div id="f4b"></div>
+</div>
+
+<!-- ══ 5: Vorteile ══ -->
+<div class="panel" id="p5">
+  <div class="panel-header">
+    <h2>Aufgabe 4 – Vor- und Nachteile <span class="pts">6 Pkt.</span></h2>
+  </div>
+  <div class="qq">Welche Aussagen sind Vorteile von Random Forest gegenüber einem einzelnen Entscheidungsbaum?</div>
+  <div class="cbo" id="cb5">
+    <div class="cb" onclick="tcb(this)"><div class="cbx"></div><span>Robuster gegenüber Overfitting als ein einzelner Baum</span></div>
+    <div class="cb" onclick="tcb(this)"><div class="cbx"></div><span>Das Ergebnis ist leichter interpretierbar als ein einzelner Baum</span></div>
+    <div class="cb" onclick="tcb(this)"><div class="cbx"></div><span>Genauere Vorhersagen durch Kombination vieler Bäume</span></div>
+    <div class="cb" onclick="tcb(this)"><div class="cbx"></div><span>Benötigt deutlich weniger Rechenzeit als ein einzelner Baum</span></div>
+    <div class="cb" onclick="tcb(this)"><div class="cbx"></div><span>Weniger anfällig für Ausreißer und Rauschen in den Daten</span></div>
+  </div>
+  <div class="br"><button class="btn bp" onclick="chkCb5()">Auswahl prüfen</button></div>
+  <div id="f5"></div>
+</div>
+
+<!-- ══ 6: Klassifikation ══ -->
+<div class="panel" id="p6">
+  <div class="panel-header">
+    <h2>Aufgabe 5 – Mehrheitsentscheid <span class="pts">4 Pkt.</span></h2>
+    <p class="sub">Ein Random Forest mit 5 Bäumen klassifiziert einen neuen Kreditantrag.</p>
+  </div>
+  <div class="dtw">
+    <table class="dt">
+      <thead><tr><th>Baum</th><th>Verwendete Attribute</th><th>Vorhersage</th></tr></thead>
+      <tbody>
+        <tr><td>Baum 1</td><td>Alter, Schufa, Einkommen</td><td><span class="tag tr">Ausfall</span></td></tr>
+        <tr><td>Baum 2</td><td>Kredit, Beschäft., Alter</td><td><span class="tag tg">Kein Ausfall</span></td></tr>
+        <tr><td>Baum 3</td><td>Einkommen, Kredit, Schufa</td><td><span class="tag tr">Ausfall</span></td></tr>
+        <tr><td>Baum 4</td><td>Schufa, Beschäft., Kredit</td><td><span class="tag tg">Kein Ausfall</span></td></tr>
+        <tr><td>Baum 5</td><td>Alter, Einkommen, Beschäft.</td><td><span class="tag tr">Ausfall</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="qq">Wie klassifiziert der Random Forest diesen Kreditantrag?</div>
+  <div class="qo" id="q6a">
+    <div class="qopt" onclick="quiz('6a',this,true)"><div class="om">A</div><span>Als Ausfall – 3 von 5 Bäumen sagen „Ausfall" vorher (Mehrheit)</span></div>
+    <div class="qopt" onclick="quiz('6a',this,false)"><div class="om">B</div><span>Als kein Ausfall – Bäume mit mehr Attributen wiegen stärker</span></div>
+    <div class="qopt" onclick="quiz('6a',this,false)"><div class="om">C</div><span>Unentschieden – bei 5 Bäumen gibt es keine klare Mehrheit</span></div>
+  </div>
+  <div id="f6a"></div>
+  <hr class="sep">
+  <div class="qq">Warum verwenden die Bäume jeweils unterschiedliche Attribute?</div>
+  <div class="qo" id="q6b">
+    <div class="qopt" onclick="quiz('6b',this,false)"><div class="om">A</div><span>Weil jedem Baum nur die Attribute zugewiesen werden, die miteinander korrelieren</span></div>
+    <div class="qopt" onclick="quiz('6b',this,false)"><div class="om">B</div><span>Weil die Attribute gleichmäßig und alphabetisch auf die einzelnen Bäume verteilt werden</span></div>
+    <div class="qopt" onclick="quiz('6b',this,true)"><div class="om">C</div><span>Weil Random Forest pro Baum nur eine zufällige Teilmenge der Attribute auswählt</span></div>
+  </div>
+  <div id="f6b"></div>
+</div>
+
+<!-- ══ 7: Vergleich kNN ══ -->
+<div class="panel" id="p7">
+  <div class="panel-header">
+    <h2>Aufgabe 6 – Vergleich mit kNN <span class="pts">5 Pkt.</span></h2>
+  </div>
+  <div class="qq">Warum muss man bei kNN die Daten normalisieren, bei Random Forest aber nicht?</div>
+  <div class="qo" id="q7a">
+    <div class="qopt" onclick="quiz('7a',this,true)"><div class="om">A</div><span>kNN berechnet Distanzen, die von den Wertebereichen abhängen – Random Forest teilt nach Schwellenwerten auf, die skalenunabhängig sind</span></div>
+    <div class="qopt" onclick="quiz('7a',this,false)"><div class="om">B</div><span>kNN nutzt ausschließlich kategorische Daten, die vorher normalisiert werden müssen – Random Forest arbeitet nur mit numerischen Rohdaten</span></div>
+    <div class="qopt" onclick="quiz('7a',this,false)"><div class="om">C</div><span>kNN benötigt Normalisierung für die Entropie-Berechnung – Random Forest berechnet grundsätzlich keine Entropie und braucht sie daher nicht</span></div>
+  </div>
+  <div id="f7a"></div>
+  <hr class="sep">
+  <div class="qq">Wann wäre kNN gegenüber Random Forest im Vorteil?</div>
+  <div class="qo" id="q7b">
+    <div class="qopt" onclick="quiz('7b',this,false)"><div class="om">A</div><span>Bei sehr großen Datensätzen mit vielen kategorischen Merkmalen und hoher Dimensionalität</span></div>
+    <div class="qopt" onclick="quiz('7b',this,true)"><div class="om">B</div><span>Bei kleinen Datensätzen mit wenigen numerischen Merkmalen, wo kein Modelltraining nötig sein soll</span></div>
+    <div class="qopt" onclick="quiz('7b',this,false)"><div class="om">C</div><span>Bei Datensätzen mit vielen Ausreißern, wo ein robuster Mehrheitsentscheid gebraucht wird</span></div>
+  </div>
+  <div id="f7b"></div>
+</div>
+
+<!-- ══ 8: Vergleich mit einzelnem ID3-Baum ══ -->
+<div class="panel" id="p8">
+  <div class="panel-header">
+    <h2>Aufgabe 7 – Vergleich mit einzelnem Entscheidungsbaum <span class="pts">5 Pkt.</span></h2>
+  </div>
+  <div class="qq">Ein Kollege schlägt vor, statt Random Forest einfach einen einzelnen ID3-Baum zu nutzen. Welches Risiko besteht dabei?</div>
+  <div class="qo" id="q8a">
+    <div class="qopt" onclick="quiz('8a',this,false)"><div class="om">A</div><span>Ein einzelner ID3-Baum kann keine kategorischen Merkmale wie Schufa oder Beschäftigung verarbeiten</span></div>
+    <div class="qopt" onclick="quiz('8a',this,true)"><div class="om">B</div><span>Ein einzelner ID3-Baum neigt zu Overfitting – er lernt die Trainingsdaten auswendig statt allgemeine Muster zu erkennen</span></div>
+    <div class="qopt" onclick="quiz('8a',this,false)"><div class="om">C</div><span>Ein einzelner ID3-Baum kann nur binäre Ja/Nein-Entscheidungen treffen und keine abgestuften Vorhersagen</span></div>
+  </div>
+  <div id="f8a"></div>
+  <hr class="sep">
+  <div class="qq">Warum ist Random Forest trotz höherer Rechenzeit oft die bessere Wahl für Produktivsysteme?</div>
+  <div class="qo" id="q8b">
+    <div class="qopt" onclick="quiz('8b',this,false)"><div class="om">A</div><span>Weil Random Forest weniger Trainingsdaten benötigt und dadurch schneller einsatzbereit ist</span></div>
+    <div class="qopt" onclick="quiz('8b',this,false)"><div class="om">B</div><span>Weil die Bäume parallel auf verschiedenen Servern laufen und so die Antwortzeit sinkt</span></div>
+    <div class="qopt" onclick="quiz('8b',this,true)"><div class="om">C</div><span>Weil die Mehrheitsabstimmung vieler Bäume zuverlässiger ist als die Entscheidung eines einzelnen Baums</span></div>
+  </div>
+  <div id="f8b"></div>
+</div>
+
+<!-- ══ 9: Anwendung ══ -->
+<div class="panel" id="p9">
+  <div class="panel-header">
+    <h2>Aufgabe 8 – Entscheidung begründen <span class="pts">6 Pkt.</span></h2>
+    <p class="sub">Die IT-Abteilung wählt Random Forest. Nenne drei Argumente, die sich auf das Kreditrisiko-Szenario beziehen.</p>
+  </div>
+  <div class="ctx">
+    <h3>Beachte</h3>
+    Numerische und kategorische Merkmale liegen gemischt vor. 15.000 Datensätze. Die Bank muss Entscheidungen gegenüber Regulierungsbehörden nachvollziehbar erklären können.
+  </div>
+  <textarea class="ti" id="t9" placeholder="Argument 1: ...&#10;&#10;Argument 2: ...&#10;&#10;Argument 3: ..."></textarea>
+  <div class="br">
+    <button class="btn bp" onclick="freetxt(9)">Antwort prüfen</button>
+    <button class="btn bg" onclick="showSa(9)">Musterlösung zeigen</button>
+  </div>
+  <div class="sa" id="sa9">
+    <h4>Musterlösung</h4>
+    <strong>Argument 1:</strong> Random Forest kann numerische und kategorische Merkmale gemeinsam verarbeiten, ohne aufwändige Normalisierung – ideal für den gemischten Datensatz.<br><br>
+    <strong>Argument 2:</strong> Durch die Kombination vieler Bäume ist das Modell robust gegen Overfitting und Ausreißer – wichtig bei 15.000 Datensätzen mit möglichen Sonderfällen.<br><br>
+    <strong>Argument 3:</strong> Random Forest liefert eine Feature-Importance, die zeigt, welche Faktoren die Kreditentscheidung am stärksten beeinflussen. Das hilft bei der Erklärbarkeit gegenüber Regulierungsbehörden.
+  </div>
+  <div id="f9"></div>
+</div>
+
+<!-- ══ 10: Ergebnis ══ -->
+<div class="panel" id="p10">
+  <div class="completion">
+    <div class="completion-icon">🎓</div>
+    <h2>Aufgabe abgeschlossen!</h2>
+    <div class="cscore" id="fs">0 / 0</div>
+    <p style="color:var(--text-muted);margin-bottom:22px" id="fm"></p>
+    <button class="btn bp" onclick="location.reload()">Nochmal üben</button>
+  </div>
+</div>
+
+</div></div>
+
+<script>
+let C=0,W=0,T=0,cur=0;
+const STEPS=10;
+const UL=new Set([0]),DN=new Set();
+const SQ={
+  0:{n:['q0'],d:new Set()},
+  1:{n:['q1x'],d:new Set()},
+  2:{n:['q2a','q2b'],d:new Set()},
+  3:{n:['q3a','q3b'],d:new Set()},
+  4:{n:['q4a','q4b'],d:new Set()},
+  5:{n:['cb5'],d:new Set()},
+  6:{n:['q6a','q6b'],d:new Set()},
+  7:{n:['q7a','q7b'],d:new Set()},
+  8:{n:['q8a','q8b'],d:new Set()},
+  9:{n:['t9'],d:new Set()},
+};
+const tabIcons=['📋','💡','🌲','💻','🎲','⚖️','🗳️','🔄','🌳','✍️','🏆'];
+
+function ui(){
+  document.getElementById('sc').textContent=C;
+  document.getElementById('sw').textContent=W;
+  document.getElementById('pf').style.width=Math.round((DN.size/STEPS)*100)+'%';
+  document.querySelectorAll('.tab').forEach(t=>{
+    const s=+t.dataset.s;
+    t.classList.remove('active','locked','done');
+    const ic=t.querySelector('.tab-icon');
+    if(DN.has(s)){t.classList.add('done');if(ic)ic.textContent='✓';}
+    else if(s===cur){t.classList.add('active');if(ic)ic.textContent=tabIcons[s];}
+    else if(!UL.has(s)){t.classList.add('locked');if(ic)ic.textContent='🔒';}
+    else{if(ic)ic.textContent=tabIcons[s];}
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('visible'));
+  const pan=document.getElementById('p'+cur);
+  if(pan)pan.classList.add('visible');
+}
+function go(s){if(!UL.has(s)&&!DN.has(s))return;cur=s;ui();document.getElementById('ca').scrollTo(0,0);}
+function unlock(from){
+  const nx=from+1;DN.add(from);
+  if(nx<=STEPS)UL.add(nx);
+  if(nx===STEPS){document.getElementById('fs').textContent=`${C} / ${T}`;const p=T>0?Math.round(C/T*100):0;let m='';if(p>=90)m='Hervorragend! Du beherrschst Random Forest! 🌟';else if(p>=70)m='Gut gemacht! Nur ein paar Lücken.';else if(p>=50)m='Solide – wiederhole die schwierigen Teile.';else m='Nicht aufgeben!';document.getElementById('fm').textContent=m;}
+  ui();
+  if(nx<=STEPS){const panel=document.getElementById('p'+from);if(panel&&!panel.querySelector('.next-btn')){const btn=document.createElement('button');btn.className='btn bp next-btn';btn.style.marginTop='24px';btn.textContent='Weiter →';btn.onclick=()=>{go(nx);const tb=document.querySelector(`.tab[data-s="${nx}"]`);if(tb)tb.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});};panel.appendChild(btn);}}
+}
+function done(step,qid){if(SQ[step]){SQ[step].d.add(qid);if(SQ[step].n.every(q=>SQ[step].d.has(q)))unlock(step);}}
+function quiz(id,el,ok){
+  const c=el.parentElement;if(c.dataset.a)return;c.dataset.a='1';T++;
+  c.querySelectorAll('.qopt').forEach(o=>o.classList.add('dis'));
+  const fb=document.getElementById('f'+id);
+  if(ok){el.classList.add('ok');C++;if(fb)fb.innerHTML='<div class="fb ok">✓ Richtig!</div>';}
+  else{el.classList.add('no');W++;c.querySelectorAll('.qopt').forEach(o=>{if(o.getAttribute('onclick')&&o.getAttribute('onclick').includes('true'))o.classList.add('ok');});if(fb)fb.innerHTML='<div class="fb no">✗ Falsch – richtige Antwort ist grün markiert.</div>';}
+  ui();
+  const mp={
+    0:[0,'q0'],
+    '1x':[1,'q1x'],
+    '2a':[2,'q2a'],'2b':[2,'q2b'],
+    '3a':[3,'q3a'],'3b':[3,'q3b'],
+    '4a':[4,'q4a'],'4b':[4,'q4b'],
+    '6a':[6,'q6a'],'6b':[6,'q6b'],
+    '7a':[7,'q7a'],'7b':[7,'q7b'],
+    '8a':[8,'q8a'],'8b':[8,'q8b'],
+  };
+  if(mp[id])done(mp[id][0],mp[id][1]);
+}
+function freetxt(s){
+  const t=document.getElementById('t'+s);
+  if(!t||t.value.trim().length<30){document.getElementById('f'+s).innerHTML='<div class="fb no">✗ Bitte schreibe ausführlicher (mindestens drei Argumente).</div>';return;}
+  T++;C++;ui();
+  document.getElementById('f'+s).innerHTML='<div class="fb inf">📝 Gespeichert – vergleiche mit der Musterlösung!</div>';
+  done(s,'t'+s);
+}
+function showSa(s){const el=document.getElementById('sa'+s);if(el)el.classList.add('show');if(!SQ[s].d.has('t'+s)){T++;ui();done(s,'t'+s);}}
+function tcb(el){el.classList.toggle('on');const b=el.querySelector('.cbx');b.textContent=el.classList.contains('on')?'✓':'';}
+function chkCb5(){
+  const opts=document.querySelectorAll('#cb5 .cb');const sel=[];
+  opts.forEach((o,i)=>{if(o.classList.contains('on'))sel.push(i);});T++;
+  const ok=sel.length===3&&sel.includes(0)&&sel.includes(2)&&sel.includes(4);
+  const explanations = `<br><br><strong style="color:var(--text)">Erklärung zu jeder Aussage:</strong><br><br>`
+    +`<strong style="color:var(--green)">✓ Robuster gegenüber Overfitting</strong><br>Einzelne Bäume passen sich oft zu stark an die Trainingsdaten an. Durch die Kombination vieler verschiedener Bäume mitteln sich diese Überanpassungen heraus.<br><br>`
+    +`<strong style="color:var(--red)">✗ Leichter interpretierbar</strong> → Das ist ein <em>Nachteil</em>.<br>Einen einzelnen Baum kann man direkt ablesen. Bei hunderten Bäumen gleichzeitig ist das deutlich schwieriger.<br><br>`
+    +`<strong style="color:var(--green)">✓ Genauere Vorhersagen</strong><br>Jeder einzelne Baum macht Fehler, aber verschiedene Bäume machen verschiedene Fehler. Durch die Mehrheitsabstimmung heben sich diese Fehler gegenseitig auf.<br><br>`
+    +`<strong style="color:var(--red)">✗ Weniger Rechenzeit</strong> → Das ist ein <em>Nachteil</em>.<br>Statt einem Baum müssen viele Bäume erstellt werden – das braucht mehr Rechenleistung und Speicher.<br><br>`
+    +`<strong style="color:var(--green)">✓ Weniger anfällig für Ausreißer</strong><br>Ein einzelner Ausreißer beeinflusst vielleicht einen Baum, aber nicht die Mehrheit aller Bäume. Das macht das Gesamtergebnis stabiler.`;
+  if(ok){C++;document.getElementById('f5').innerHTML='<div class="fb ok">✓ Richtig!'+explanations+'</div>';}
+  else{W++;document.getElementById('f5').innerHTML='<div class="fb no">✗ Nicht ganz richtig.'+explanations+'</div>';}
+  opts.forEach(o=>{o.style.pointerEvents='none';o.style.opacity='.6';});
+  ui();done(5,'cb5');
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(+t.dataset.s)));
+ui();
+</script>
+</body>
+</html>

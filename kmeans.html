@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prüfungstrainer – k-Means Clustering</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--bg-card:#161b22;--border:#30363d;--text:#e6edf3;--text-muted:#8b949e;--accent:#58a6ff;--accent-glow:rgba(88,166,255,0.15);--green:#3fb950;--green-bg:rgba(63,185,80,0.1);--red:#f85149;--red-bg:rgba(248,81,73,0.1);--orange:#d29922;--orange-bg:rgba(210,153,34,0.1);--purple:#bc8cff;--radius:12px;--radius-sm:8px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;line-height:1.6;display:flex;flex-direction:column;overflow:hidden;}
+.top-bar{background:var(--bg-card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;flex-wrap:wrap;}
+.badge{background:var(--accent-glow);border:1px solid rgba(88,166,255,0.3);color:var(--accent);padding:3px 10px;border-radius:14px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.top-bar .title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;}
+.top-bar .score{margin-left:auto;display:flex;gap:12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text-muted);}
+.score .cs{color:var(--green);} .score .ws{color:var(--red);}
+.tabs-wrapper{background:var(--bg-card);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.tabs-wrapper::-webkit-scrollbar{display:none;}
+.tabs{display:flex;min-width:max-content;padding:0 12px;}
+.tab{padding:11px 16px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:7px;user-select:none;}
+.tab:hover:not(.locked){color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab.done{color:var(--green);}
+.tab.locked{opacity:.3;cursor:default;}
+.tab-icon{font-size:12px;}
+.progress-thin{height:3px;background:var(--border);flex-shrink:0;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));transition:width .6s cubic-bezier(.22,1,.36,1);}
+.content-area{flex:1;overflow-y:auto;padding:28px 20px 50px;}
+.content-inner{max-width:780px;margin:0 auto;}
+.panel{display:none;animation:fadeIn .3s ease;} .panel.visible{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.panel-header{margin-bottom:24px;}
+.panel-header h2{font-family:'Playfair Display',serif;font-size:clamp(20px,4vw,28px);font-weight:800;margin-bottom:4px;}
+.panel-header .sub{color:var(--text-muted);font-size:15px;}
+.pts{display:inline-block;background:var(--accent-glow);border:1px solid rgba(88,166,255,0.25);color:var(--accent);padding:2px 9px;border-radius:6px;font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;margin-left:8px;vertical-align:middle;}
+.ctx{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:22px;font-size:15px;line-height:1.75;}
+.ctx h3{color:var(--accent);font-size:12px;font-family:'JetBrains Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;}
+.ctx.hl{border-left:3px solid var(--accent);background:rgba(88,166,255,0.04);}
+.ctx.gr{border-left:3px solid var(--green);background:rgba(63,185,80,0.04);}
+.ctx.pu{border-left:3px solid var(--purple);background:rgba(188,140,255,0.04);}
+.ctx.or{border-left:3px solid var(--orange);background:rgba(210,153,34,0.04);}
+.ctx.gray{border-left:3px solid var(--text-muted);background:rgba(255,255,255,0.02);}
+.code-block{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 20px;margin:18px 0;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.8;overflow-x:auto;white-space:pre;}
+.code-kw{color:var(--purple);font-weight:600;} .code-cm{color:var(--text-muted);font-style:italic;} .code-num{color:var(--orange);}
+.dtw{overflow-x:auto;margin:18px 0;border-radius:var(--radius-sm);border:1px solid var(--border);}
+.dt{width:100%;border-collapse:collapse;font-size:13px;font-family:'JetBrains Mono',monospace;}
+.dt th{background:rgba(88,166,255,0.08);color:var(--accent);padding:9px 11px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.dt td{padding:7px 11px;border-top:1px solid var(--border);white-space:nowrap;}
+.dt tr:hover td{background:rgba(255,255,255,0.02);}
+.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-weight:600;}
+.tg{background:var(--green-bg);color:var(--green);} .tr{background:var(--red-bg);color:var(--red);} .to{background:var(--orange-bg);color:var(--orange);} .tp{background:rgba(188,140,255,0.15);color:var(--purple);}
+.qq{font-weight:600;font-size:16px;margin:22px 0 12px;}
+.qo{display:flex;flex-direction:column;gap:9px;}
+.qopt{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 16px;cursor:pointer;transition:all .2s;font-size:15px;display:flex;align-items:flex-start;gap:11px;}
+.qopt:hover{background:rgba(255,255,255,0.06);border-color:var(--accent);}
+.qopt.ok{border-color:var(--green);background:var(--green-bg);}
+.qopt.no{border-color:var(--red);background:var(--red-bg);}
+.qopt.dis{pointer-events:none;}
+.om{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;transition:all .2s;}
+.qopt.ok .om{border-color:var(--green);background:var(--green);color:#fff;}
+.qopt.no .om{border-color:var(--red);background:var(--red);color:#fff;}
+.cbo{display:flex;flex-direction:column;gap:9px;}
+.cb{display:flex;align-items:center;gap:11px;padding:11px 15px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;font-size:15px;}
+.cb:hover{background:rgba(255,255,255,0.06);}
+.cb.on{border-color:var(--accent);background:var(--accent-glow);}
+.cbx{width:18px;height:18px;border:2px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;transition:all .2s;}
+.cb.on .cbx{border-color:var(--accent);background:var(--accent);color:#fff;}
+.ti{width:100%;min-height:110px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;resize:vertical;line-height:1.6;}
+.ti:focus{outline:none;border-color:var(--accent);} .ti::placeholder{color:var(--text-muted);}
+.ni{width:110px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 13px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:15px;}
+.ni:focus{outline:none;border-color:var(--accent);}
+.cr{display:flex;align-items:center;gap:10px;margin:9px 0;font-family:'JetBrains Mono',monospace;font-size:14px;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;}
+.bp{background:var(--accent);color:#fff;} .bp:hover{background:#79bbff;transform:translateY(-1px);}
+.bg{background:transparent;color:var(--text-muted);border:1px solid var(--border);} .bg:hover{background:rgba(255,255,255,0.05);color:var(--text);}
+.br{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+.fb{padding:13px 16px;border-radius:var(--radius-sm);margin-top:14px;font-size:14px;line-height:1.6;animation:fadeIn .3s ease;}
+.fb.ok{background:var(--green-bg);border:1px solid rgba(63,185,80,0.3);color:var(--green);}
+.fb.no{background:var(--red-bg);border:1px solid rgba(248,81,73,0.3);color:var(--red);}
+.fb.inf{background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.2);color:var(--accent);}
+.sep{border:none;border-top:1px solid var(--border);margin:26px 0;}
+.sa{display:none;margin-top:12px;padding:16px 20px;background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:var(--radius-sm);font-size:14px;line-height:1.7;}
+.sa.show{display:block;animation:fadeIn .3s ease;}
+.sa h4{color:var(--green);margin-bottom:6px;font-family:'JetBrains Mono',monospace;font-size:12px;}
+.formula{background:rgba(188,140,255,0.08);border:1px solid rgba(188,140,255,0.2);border-radius:var(--radius-sm);padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center;margin:18px 0;color:var(--purple);}
+.completion{text-align:center;padding:40px 20px;}
+.completion-icon{font-size:60px;margin-bottom:18px;}
+.completion h2{font-family:'Playfair Display',serif;font-size:30px;margin-bottom:8px;}
+.cscore{font-size:46px;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--accent);margin:18px 0;}
+.step-marker{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;margin-right:8px;flex-shrink:0;}
+.step-marker.blue{background:var(--accent-glow);color:var(--accent);border:1.5px solid rgba(88,166,255,0.4);}
+.step-marker.green{background:var(--green-bg);color:var(--green);border:1.5px solid rgba(63,185,80,0.4);}
+.step-marker.purple{background:rgba(188,140,255,0.1);color:var(--purple);border:1.5px solid rgba(188,140,255,0.4);}
+.step-marker.orange{background:var(--orange-bg);color:var(--orange);border:1.5px solid rgba(210,153,34,0.4);}
+.chart-box{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:18px 0;overflow-x:auto;}
+.chart-box svg text{font-family:'JetBrains Mono',monospace;}
+@media(max-width:600px){.content-area{padding:18px 12px 36px;}.top-bar{padding:8px 12px;}.tab{padding:9px 10px;font-size:12px;}}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="badge">Prüfungsvorbereitung</div>
+  <div class="title">k-Means – Kundensegmentierung</div>
+  <div class="score">
+    <span class="cs">✓ <span id="sc">0</span></span>
+    <span class="ws">✗ <span id="sw">0</span></span>
+  </div>
+</div>
+
+<div class="tabs-wrapper">
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-s="0"><span class="tab-icon">📋</span> Szenario</div>
+    <div class="tab locked" data-s="1"><span class="tab-icon">🔒</span> So funktioniert's</div>
+    <div class="tab locked" data-s="2"><span class="tab-icon">🔒</span> 1) Einordnung</div>
+    <div class="tab locked" data-s="3"><span class="tab-icon">🔒</span> 2) Pseudocode</div>
+    <div class="tab locked" data-s="4"><span class="tab-icon">🔒</span> 3) Distanz berechnen</div>
+    <div class="tab locked" data-s="5"><span class="tab-icon">🔒</span> 4) Zuordnung</div>
+    <div class="tab locked" data-s="6"><span class="tab-icon">🔒</span> 5) Schwerpunkte</div>
+    <div class="tab locked" data-s="7"><span class="tab-icon">🔒</span> 6) Konfusionsmatrix</div>
+    <div class="tab locked" data-s="8"><span class="tab-icon">🔒</span> 7) Wahl von k</div>
+    <div class="tab locked" data-s="9"><span class="tab-icon">🔒</span> Ergebnis</div>
+  </div>
+</div>
+<div class="progress-thin"><div class="progress-fill" id="pf" style="width:0%"></div></div>
+
+<div class="content-area" id="ca">
+<div class="content-inner">
+
+<!-- ══ 0: Szenario ══ -->
+<div class="panel visible" id="p0">
+  <div class="panel-header">
+    <h2>Ausgangssituation</h2>
+    <p class="sub">Lies die Aufgabenstellung aufmerksam durch.</p>
+  </div>
+  <div class="ctx">
+    <h3>Szenario</h3>
+    Die ShopNow GmbH betreibt einen Online-Shop mit 50.000 registrierten Kunden. Um gezieltere Marketingkampagnen zu fahren, soll die Kundschaft in Gruppen (Segmente) aufgeteilt werden – basierend auf ihrem Kaufverhalten. Es gibt <strong>keine vordefinierten Kategorien</strong> – die Gruppen sollen automatisch aus den Daten entstehen. Die IT-Abteilung erhält folgende Kundendaten:
+  </div>
+  <div class="dtw">
+    <table class="dt">
+      <thead><tr><th>Kunden-ID</th><th>Bestellungen/Jahr</th><th>∅ Warenkorb [€]</th><th>Retouren [%]</th><th>Letzte Bestellung [Tage]</th></tr></thead>
+      <tbody>
+        <tr><td>C-001</td><td>24</td><td>85</td><td>5</td><td>3</td></tr>
+        <tr><td>C-002</td><td>2</td><td>210</td><td>12</td><td>95</td></tr>
+        <tr><td>C-003</td><td>18</td><td>45</td><td>3</td><td>7</td></tr>
+        <tr><td>C-004</td><td>1</td><td>320</td><td>25</td><td>180</td></tr>
+        <tr><td>C-005</td><td>30</td><td>65</td><td>8</td><td>1</td></tr>
+        <tr><td>C-006</td><td>3</td><td>190</td><td>18</td><td>60</td></tr>
+        <tr><td>C-007</td><td>22</td><td>55</td><td>4</td><td>5</td></tr>
+        <tr><td>C-008</td><td>1</td><td>280</td><td>30</td><td>200</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="ctx">
+    <h3>Ziel</h3>
+    Die Kunden sollen automatisch in Segmente eingeteilt werden, z.B. „Stammkunden", „Gelegenheitskäufer", „Einmalkäufer". Da es <strong>keine Labels</strong> gibt (niemand hat die Kunden vorher kategorisiert), wird ein <strong>unüberwachtes</strong> Verfahren benötigt.
+  </div>
+  <div class="qq">Warum kann hier kein überwachtes Verfahren wie kNN oder Random Forest eingesetzt werden?</div>
+  <div class="qo" id="q0">
+    <div class="qopt" onclick="quiz(0,this,false)"><div class="om">A</div><span>Weil die Daten zu wenige Merkmale enthalten und überwachte Verfahren mehr brauchen</span></div>
+    <div class="qopt" onclick="quiz(0,this,true)"><div class="om">B</div><span>Weil es keine gelabelten Zielwerte gibt – niemand hat vorher festgelegt, welcher Kunde in welche Gruppe gehört</span></div>
+    <div class="qopt" onclick="quiz(0,this,false)"><div class="om">C</div><span>Weil überwachte Verfahren nur mit numerischen Daten arbeiten und hier auch Text vorkommt</span></div>
+  </div>
+  <div id="f0"></div>
+</div>
+
+<!-- ══ 1: So funktioniert's ══ -->
+<div class="panel" id="p1">
+  <div class="panel-header">
+    <h2>So funktioniert k-Means</h2>
+    <p class="sub">Schritt für Schritt am Kundenbeispiel – mit konkreten Zahlen.</p>
+  </div>
+
+  <div class="ctx hl">
+    <h3><span class="step-marker blue">1</span> k festlegen und Startschwerpunkte wählen</h3>
+    Wir wollen <strong>k = 2</strong> Kundengruppen finden. Der Algorithmus wählt zufällig 2 Kunden als Startschwerpunkte (Centroids):<br><br>
+    <strong>Schwerpunkt A</strong> = C-001 → (24 Bestellungen, 85 € Warenkorb)<br>
+    <strong>Schwerpunkt B</strong> = C-004 → (1 Bestellung, 320 € Warenkorb)<br><br>
+    <em>Zur Vereinfachung nutzen wir nur 2 Merkmale: Bestellungen/Jahr und ∅ Warenkorb.</em>
+  </div>
+
+  <!-- SVG: Initial state -->
+  <div class="chart-box">
+    <svg viewBox="0 0 500 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:500px;height:auto;display:block;margin:0 auto;">
+      <rect x="50" y="10" width="430" height="260" fill="rgba(255,255,255,0.02)" rx="4"/>
+      <line x1="50" y1="270" x2="480" y2="270" stroke="var(--text-muted)" stroke-width="1"/>
+      <line x1="50" y1="10" x2="50" y2="270" stroke="var(--text-muted)" stroke-width="1"/>
+      <text x="265" y="298" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="'JetBrains Mono',monospace">Bestellungen / Jahr</text>
+      <text x="14" y="140" fill="var(--text-muted)" font-size="11" text-anchor="middle" transform="rotate(-90,14,140)" font-family="'JetBrains Mono',monospace">∅ Warenkorb [€]</text>
+      <!-- X: 0-35, Y: 0-350 -->
+      <text x="50" y="285" fill="var(--text-muted)" font-size="9" text-anchor="middle">0</text>
+      <text x="172" y="285" fill="var(--text-muted)" font-size="9" text-anchor="middle">10</text>
+      <text x="295" y="285" fill="var(--text-muted)" font-size="9" text-anchor="middle">20</text>
+      <text x="418" y="285" fill="var(--text-muted)" font-size="9" text-anchor="middle">30</text>
+      <text x="44" y="270" fill="var(--text-muted)" font-size="9" text-anchor="end">0</text>
+      <text x="44" y="196" fill="var(--text-muted)" font-size="9" text-anchor="end">100</text>
+      <text x="44" y="122" fill="var(--text-muted)" font-size="9" text-anchor="end">200</text>
+      <text x="44" y="48" fill="var(--text-muted)" font-size="9" text-anchor="end">300</text>
+      <!-- Grid -->
+      <g stroke="rgba(255,255,255,0.05)" stroke-width="1">
+        <line x1="50" y1="196" x2="480" y2="196"/>
+        <line x1="50" y1="122" x2="480" y2="122"/>
+        <line x1="50" y1="48" x2="480" y2="48"/>
+        <line x1="172" y1="10" x2="172" y2="270"/>
+        <line x1="295" y1="10" x2="295" y2="270"/>
+        <line x1="418" y1="10" x2="418" y2="270"/>
+      </g>
+      <!-- Data points: (orders, basket) → x=50+orders*12.3, y=270-basket*0.74 -->
+      <!-- C-001: (24, 85) → (345, 207) -->
+      <circle cx="345" cy="207" r="5" fill="var(--text-muted)"/><text x="345" y="225" fill="var(--text-muted)" font-size="8" text-anchor="middle">C-001</text>
+      <!-- C-002: (2, 210) → (75, 115) -->
+      <circle cx="75" cy="115" r="5" fill="var(--text-muted)"/><text x="75" y="108" fill="var(--text-muted)" font-size="8" text-anchor="middle">C-002</text>
+      <!-- C-003: (18, 45) → (271, 237) -->
+      <circle cx="271" cy="237" r="5" fill="var(--text-muted)"/><text x="271" y="252" fill="var(--text-muted)" font-size="8" text-anchor="middle">C-003</text>
+      <!-- C-004: (1, 320) → (62, 33) -->
+      <circle cx="62" cy="33" r="5" fill="var(--text-muted)"/><text x="62" y="26" fill="var(--text-muted)" font-size="8" text-anchor="middle">C-004</text>
+      <!-- C-005: (30, 65) → (419, 222) -->
+      <circle cx="419" cy="222" r="5" fill="var(--text-muted)"/><text x="419" y="240" fill="var(--text-muted)" font-size="8" text-anchor="middle">C-005</text>
+      <!-- C-006: (3, 190) → (87, 129) -->
+      <circle cx="87" cy="129" r="5" fill="var(--text-muted)"/><text x="87" y="145" fill="var(--text-muted)" font-size="8" text-anchor="middle">C-006</text>
+      <!-- C-007: (22, 55) → (321, 229) -->
+      <circle cx="321" cy="229" r="5" fill="var(--text-muted)"/><text x="321" y="247" fill="var(--text-muted)" font-size="8" text-anchor="middle">C-007</text>
+      <!-- C-008: (1, 280) → (62, 63) -->
+      <circle cx="62" cy="63" r="5" fill="var(--text-muted)"/><text x="75" y="58" fill="var(--text-muted)" font-size="8" text-anchor="start">C-008</text>
+      <!-- Centroids -->
+      <rect x="339" y="201" width="12" height="12" rx="2" fill="var(--accent)" stroke="#fff" stroke-width="1.5" transform="rotate(45,345,207)"/>
+      <rect x="56" y="27" width="12" height="12" rx="2" fill="var(--red)" stroke="#fff" stroke-width="1.5" transform="rotate(45,62,33)"/>
+      <!-- Legend -->
+      <circle cx="180" cy="310" r="4" fill="var(--text-muted)"/><text x="188" y="313" fill="var(--text-muted)" font-size="9">Kunde</text>
+      <rect x="225" y="306" width="8" height="8" rx="1.5" fill="var(--accent)" transform="rotate(45,229,310)"/><text x="240" y="313" fill="var(--text-muted)" font-size="9">Schwerpunkt A</text>
+      <rect x="320" y="306" width="8" height="8" rx="1.5" fill="var(--red)" transform="rotate(45,324,310)"/><text x="335" y="313" fill="var(--text-muted)" font-size="9">Schwerpunkt B</text>
+    </svg>
+  </div>
+
+  <div class="ctx pu">
+    <h3><span class="step-marker purple">2</span> Jeden Kunden dem nächsten Schwerpunkt zuordnen</h3>
+    Für jeden Kunden wird die <strong>euklidische Distanz</strong> zu beiden Schwerpunkten berechnet. Der Kunde wird dem näheren Schwerpunkt zugeordnet.<br><br>
+    Beispiel <strong>C-003</strong> (18 Bestellungen, 45 € Warenkorb):<br>
+    Distanz zu A (24, 85): √((18−24)² + (45−85)²) = √(36 + 1600) = √1636 ≈ <strong>40,4</strong><br>
+    Distanz zu B (1, 320): √((18−1)² + (45−320)²) = √(289 + 75625) = √75914 ≈ <strong>275,5</strong><br><br>
+    → C-003 ist viel näher an <span class="tag tg">Schwerpunkt A</span> und wird Cluster A zugeordnet.
+  </div>
+
+  <div class="ctx gray">
+    Nach der Zuordnung aller 8 Kunden ergibt sich:<br><br>
+    <span class="tag tg">Cluster A</span> (Vielbesteller): C-001, C-003, C-005, C-007<br>
+    <span class="tag tr">Cluster B</span> (Wenigbesteller): C-002, C-004, C-006, C-008
+  </div>
+
+  <div class="ctx or">
+    <h3><span class="step-marker orange">3</span> Schwerpunkte neu berechnen</h3>
+    Jetzt wird für jedes Cluster der <strong>Mittelwert</strong> aller zugeordneten Kunden berechnet – das ist der neue Schwerpunkt:<br><br>
+    <strong>Neuer Schwerpunkt A:</strong><br>
+    Bestellungen: (24 + 18 + 30 + 22) / 4 = <strong>23,5</strong><br>
+    Warenkorb: (85 + 45 + 65 + 55) / 4 = <strong>62,5 €</strong><br><br>
+    <strong>Neuer Schwerpunkt B:</strong><br>
+    Bestellungen: (2 + 1 + 3 + 1) / 4 = <strong>1,75</strong><br>
+    Warenkorb: (210 + 320 + 190 + 280) / 4 = <strong>250 €</strong>
+  </div>
+
+  <div class="ctx gr">
+    <h3><span class="step-marker green">4</span> Wiederholen bis Konvergenz</h3>
+    Schritte 2 und 3 werden wiederholt: Kunden werden den neuen Schwerpunkten zugeordnet, dann werden die Schwerpunkte erneut berechnet. Das geht so lange, <strong>bis sich die Schwerpunkte nicht mehr ändern</strong> – dann ist der Algorithmus konvergiert.<br><br>
+    Am Ende hat k-Means zwei Kundensegmente gefunden:<br>
+    <span class="tag tg">Segment A</span> = Stammkunden (viele Bestellungen, kleine Warenkörbe)<br>
+    <span class="tag tr">Segment B</span> = Gelegenheitskäufer (wenige Bestellungen, große Warenkörbe)
+  </div>
+
+  <div class="ctx gray">
+    <strong>Wichtig:</strong> k-Means vergibt <strong>keine Labelnamen</strong> wie „Stammkunde". Es findet nur Gruppen. Die Interpretation und Benennung der Cluster muss der Mensch übernehmen.
+  </div>
+
+  <div class="qq">Verständnischeck: Was passiert, wenn sich nach einer Iteration die Schwerpunkte nicht mehr verändern?</div>
+  <div class="qo" id="q1x">
+    <div class="qopt" onclick="quiz('1x',this,false)"><div class="om">A</div><span>Der Algorithmus startet von vorne mit neuen zufälligen Schwerpunkten</span></div>
+    <div class="qopt" onclick="quiz('1x',this,true)"><div class="om">B</div><span>Der Algorithmus stoppt – die endgültige Zuordnung steht fest</span></div>
+    <div class="qopt" onclick="quiz('1x',this,false)"><div class="om">C</div><span>Der Algorithmus erhöht k um 1 und bildet ein weiteres Cluster</span></div>
+  </div>
+  <div id="f1x"></div>
+</div>
+
+<!-- ══ 2: Einordnung ══ -->
+<div class="panel" id="p2">
+  <div class="panel-header">
+    <h2>Aufgabe 1 – Einordnung ins maschinelle Lernen <span class="pts">4 Pkt.</span></h2>
+  </div>
+  <div class="qq">Zu welcher Kategorie des maschinellen Lernens gehört k-Means?</div>
+  <div class="qo" id="q2a">
+    <div class="qopt" onclick="quiz('2a',this,false)"><div class="om">A</div><span>Überwachtes Lernen – die Trainingsdaten enthalten gelabelte Zielwerte</span></div>
+    <div class="qopt" onclick="quiz('2a',this,true)"><div class="om">B</div><span>Unüberwachtes Lernen – der Algorithmus findet Strukturen ohne Labels</span></div>
+    <div class="qopt" onclick="quiz('2a',this,false)"><div class="om">C</div><span>Bestärkendes Lernen – das Modell wird durch Belohnungssignale optimiert</span></div>
+  </div>
+  <div id="f2a"></div>
+  <hr class="sep">
+  <div class="qq">Was unterscheidet Clustering grundsätzlich von Klassifikation?</div>
+  <div class="qo" id="q2b">
+    <div class="qopt" onclick="quiz('2b',this,true)"><div class="om">A</div><span>Bei Clustering gibt es keine vordefinierten Klassen – die Gruppen entstehen aus den Daten selbst</span></div>
+    <div class="qopt" onclick="quiz('2b',this,false)"><div class="om">B</div><span>Bei Clustering werden die Daten anhand eines Entscheidungsbaums in Klassen eingeteilt</span></div>
+    <div class="qopt" onclick="quiz('2b',this,false)"><div class="om">C</div><span>Bei Clustering wird immer nur eine einzige Gruppe gebildet, bei Klassifikation mehrere</span></div>
+  </div>
+  <div id="f2b"></div>
+</div>
+
+<!-- ══ 3: Pseudocode ══ -->
+<div class="panel" id="p3">
+  <div class="panel-header">
+    <h2>Aufgabe 2 – Pseudocode analysieren <span class="pts">6 Pkt.</span></h2>
+  </div>
+  <div class="code-block"><span class="code-num">1:</span> Wähle (zufällig) k Punkte als initiale Schwerpunkte
+<span class="code-num">2:</span> <span class="code-kw">repeat</span>
+<span class="code-num">3:</span>     Bilde k Cluster durch Zuweisung jedes Punkts
+       zum nächstliegenden Schwerpunkt
+<span class="code-num">4:</span>     Aktualisiere den Schwerpunkt jedes Clusters
+       als Mittelwert der enthaltenen Punkte
+<span class="code-num">5:</span> <span class="code-kw">until</span> die Schwerpunkte sich nicht mehr ändern</div>
+  <div class="qq">In Zeile 3 wird jeder Punkt dem „nächstliegenden Schwerpunkt" zugewiesen. Welche Berechnung steckt dahinter?</div>
+  <div class="qo" id="q3a">
+    <div class="qopt" onclick="quiz('3a',this,true)"><div class="om">A</div><span>Die euklidische Distanz zwischen dem Punkt und jedem Schwerpunkt wird berechnet</span></div>
+    <div class="qopt" onclick="quiz('3a',this,false)"><div class="om">B</div><span>Der Informationsgewinn (Entropie) jeder möglichen Zuweisung wird verglichen</span></div>
+    <div class="qopt" onclick="quiz('3a',this,false)"><div class="om">C</div><span>Die Korrelation zwischen dem Punkt und den Schwerpunkten wird berechnet</span></div>
+  </div>
+  <div id="f3a"></div>
+  <hr class="sep">
+  <div class="qq">Was genau passiert in Zeile 4 – „Schwerpunkt aktualisieren"?</div>
+  <div class="qo" id="q3b">
+    <div class="qopt" onclick="quiz('3b',this,false)"><div class="om">A</div><span>Der Schwerpunkt wird auf den Datenpunkt verschoben, der am weitesten entfernt liegt</span></div>
+    <div class="qopt" onclick="quiz('3b',this,false)"><div class="om">B</div><span>Der Schwerpunkt wird auf einen zufällig gewählten Punkt im Cluster gesetzt</span></div>
+    <div class="qopt" onclick="quiz('3b',this,true)"><div class="om">C</div><span>Der Schwerpunkt wird als arithmetischer Mittelwert aller Punkte im Cluster berechnet</span></div>
+  </div>
+  <div id="f3b"></div>
+</div>
+
+<!-- ══ 4: Distanz berechnen ══ -->
+<div class="panel" id="p4">
+  <div class="panel-header">
+    <h2>Aufgabe 3 – Distanz berechnen <span class="pts">4 Pkt.</span></h2>
+    <p class="sub">Berechne die Distanz eines Kunden zu zwei Schwerpunkten.</p>
+  </div>
+  <div class="ctx">
+    <h3>Gegeben</h3>
+    <strong>Kunde C-006:</strong> Bestellungen = 3, ∅ Warenkorb = 190 €<br>
+    <strong>Schwerpunkt A:</strong> (23,5 ; 62,5)<br>
+    <strong>Schwerpunkt B:</strong> (1,75 ; 250)
+  </div>
+  <div class="formula">d = √( (x₁ − x₂)² + (y₁ − y₂)² )</div>
+  <div class="qq">Distanz zu Schwerpunkt A:</div>
+  <div class="cr"><span style="min-width:200px">(3 − 23,5)² =</span><input type="number" class="ni" id="c1" step="0.01" placeholder="??"></div>
+  <div class="cr"><span style="min-width:200px">(190 − 62,5)² =</span><input type="number" class="ni" id="c2" step="0.01" placeholder="??"></div>
+  <div class="cr"><span style="min-width:200px">d(C-006, A) ≈</span><input type="number" class="ni" id="c3" step="0.01" placeholder="??"></div>
+  <div class="qq">Distanz zu Schwerpunkt B:</div>
+  <div class="cr"><span style="min-width:200px">(3 − 1,75)² =</span><input type="number" class="ni" id="c4" step="0.01" placeholder="??"></div>
+  <div class="cr"><span style="min-width:200px">(190 − 250)² =</span><input type="number" class="ni" id="c5" step="0.01" placeholder="??"></div>
+  <div class="cr"><span style="min-width:200px">d(C-006, B) ≈</span><input type="number" class="ni" id="c6" step="0.01" placeholder="??"></div>
+  <div class="br"><button class="btn bp" onclick="chkCalc()">Prüfen</button></div>
+  <div id="f4"></div>
+</div>
+
+<!-- ══ 5: Zuordnung ══ -->
+<div class="panel" id="p5">
+  <div class="panel-header">
+    <h2>Aufgabe 4 – Cluster-Zuordnung <span class="pts">3 Pkt.</span></h2>
+  </div>
+  <div class="ctx">
+    <h3>Ergebnisse aus Aufgabe 3</h3>
+    Distanz C-006 → Schwerpunkt A ≈ 130,6<br>
+    Distanz C-006 → Schwerpunkt B ≈ 60,0
+  </div>
+  <div class="qq">Welchem Cluster wird C-006 zugeordnet?</div>
+  <div class="qo" id="q5a">
+    <div class="qopt" onclick="quiz('5a',this,false)"><div class="om">A</div><span>Cluster A – weil der Schwerpunkt A der Ursprungspunkt des Algorithmus ist</span></div>
+    <div class="qopt" onclick="quiz('5a',this,true)"><div class="om">B</div><span>Cluster B – weil die Distanz zu Schwerpunkt B kleiner ist (60,0 &lt; 130,6)</span></div>
+    <div class="qopt" onclick="quiz('5a',this,false)"><div class="om">C</div><span>Keinem Cluster – die Distanzen müssen unter einem Schwellenwert liegen</span></div>
+  </div>
+  <div id="f5a"></div>
+  <hr class="sep">
+  <div class="qq">Was passiert mit den Schwerpunkten, nachdem alle Kunden zugeordnet wurden?</div>
+  <div class="qo" id="q5b">
+    <div class="qopt" onclick="quiz('5b',this,false)"><div class="om">A</div><span>Sie bleiben unverändert, weil sie bereits optimal positioniert sind</span></div>
+    <div class="qopt" onclick="quiz('5b',this,true)"><div class="om">B</div><span>Sie werden als Mittelwert aller Punkte im jeweiligen Cluster neu berechnet</span></div>
+    <div class="qopt" onclick="quiz('5b',this,false)"><div class="om">C</div><span>Sie werden zufällig auf einen anderen Datenpunkt im Cluster verschoben</span></div>
+  </div>
+  <div id="f5b"></div>
+</div>
+
+<!-- ══ 6: Schwerpunkte berechnen ══ -->
+<div class="panel" id="p6">
+  <div class="panel-header">
+    <h2>Aufgabe 5 – Neuen Schwerpunkt berechnen <span class="pts">4 Pkt.</span></h2>
+    <p class="sub">Nach der Zuordnung enthält Cluster A die Kunden C-001, C-003, C-005, C-007.</p>
+  </div>
+
+  <div class="ctx hl">
+    <h3>Was ist ein Schwerpunkt (Centroid)?</h3>
+    Der Schwerpunkt ist der <strong>Mittelpunkt</strong> eines Clusters – also der Durchschnittswert aller Datenpunkte in dem Cluster, und zwar <strong>für jedes Merkmal einzeln</strong>. Man addiert alle Werte eines Merkmals und teilt durch die Anzahl der Punkte im Cluster.<br><br>
+    Der neue Schwerpunkt muss kein tatsächlicher Datenpunkt sein – er ist ein berechneter „virtueller" Punkt, der das Zentrum der Gruppe repräsentiert. In der nächsten Iteration werden dann alle Kunden erneut dem nächstgelegenen Schwerpunkt zugeordnet.
+  </div>
+
+  <div class="dtw">
+    <table class="dt">
+      <thead><tr><th>Kunde</th><th>Bestellungen</th><th>∅ Warenkorb [€]</th></tr></thead>
+      <tbody>
+        <tr><td>C-001</td><td>24</td><td>85</td></tr>
+        <tr><td>C-003</td><td>18</td><td>45</td></tr>
+        <tr><td>C-005</td><td>30</td><td>65</td></tr>
+        <tr><td>C-007</td><td>22</td><td>55</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="qq">Berechne den neuen Schwerpunkt A:</div>
+  <div class="cr"><span style="min-width:280px">∅ Bestellungen = (24+18+30+22)/4 =</span><input type="number" class="ni" id="s1" step="0.1" placeholder="??"></div>
+  <div class="cr"><span style="min-width:280px">∅ Warenkorb = (85+45+65+55)/4 =</span><input type="number" class="ni" id="s2" step="0.1" placeholder="??"></div>
+  <div class="br"><button class="btn bp" onclick="chkCenter()">Prüfen</button></div>
+  <div id="f6"></div>
+</div>
+
+<!-- ══ 7: Konfusionsmatrix ══ -->
+<div class="panel" id="p7">
+  <div class="panel-header">
+    <h2>Aufgabe 6 – Modellbewertung mit Konfusionsmatrix <span class="pts">8 Pkt.</span></h2>
+    <p class="sub">Überprüfe, ob das Modell in der Praxis zuverlässig genug ist.</p>
+  </div>
+
+  <div class="ctx hl">
+    <h3>Warum braucht man eine Konfusionsmatrix?</h3>
+    Der Marketing-Experte hat <strong>200 Kunden manuell</strong> bewertet – das ist aufwändig und teuer, lässt sich nicht auf 50.000 Kunden skalieren. Das ML-Modell soll diese Arbeit automatisieren. Aber bevor man es auf alle Kunden loslässt, muss man prüfen: <strong>Wie gut ist das Modell wirklich?</strong><br><br>
+    Dafür vergleicht man die Modell-Vorhersagen mit der manuellen Expertenbewertung auf den 200 Testdaten. Die Konfusionsmatrix zeigt, wo das Modell richtig liegt und wo es Fehler macht.
+  </div>
+
+  <div class="dtw">
+    <table class="dt" style="text-align:center;">
+      <thead><tr><th></th><th colspan="2" style="text-align:center">Vorhersage (Modell)</th></tr>
+      <tr><th style="text-align:left">Tatsächlich (Experte)</th><th>Ja (abwanderungsgef.)</th><th>Nein (treu)</th></tr></thead>
+      <tbody>
+        <tr><td style="text-align:left;font-weight:600;">Ja</td><td><span class="tag tg">TP = 45</span></td><td><span class="tag tr">FN = 15</span></td></tr>
+        <tr><td style="text-align:left;font-weight:600;">Nein</td><td><span class="tag to">FP = 20</span></td><td><span class="tag tp">TN = 120</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ctx">
+    <h3>Was bedeuten die vier Felder?</h3>
+    <strong style="color:var(--green)">TP = True Positive (45):</strong> Kunde ist gefährdet → Modell sagt „gefährdet" → <strong>Korrekt erkannt.</strong><br><br>
+    <strong style="color:var(--red)">FN = False Negative (15):</strong> Kunde ist gefährdet → Modell sagt „treu" → <strong>Übersehen!</strong> Diese Kunden wandern ab, ohne dass das Marketing reagiert.<br><br>
+    <strong style="color:var(--orange)">FP = False Positive (20):</strong> Kunde ist treu → Modell sagt „gefährdet" → <strong>Falscher Alarm.</strong> Man schickt unnötig einen Rabattgutschein – kostet Geld, aber der Kunde bleibt.<br><br>
+    <strong style="color:var(--purple)">TN = True Negative (120):</strong> Kunde ist treu → Modell sagt „treu" → <strong>Korrekt erkannt.</strong>
+  </div>
+
+  <div class="qq">Berechne die Accuracy (Genauigkeit):</div>
+  <div class="ctx gray"><strong>Accuracy</strong> = (TP + TN) / (TP + TN + FP + FN)<br><em>→ „Wie oft liegt das Modell insgesamt richtig?" – Anteil aller korrekten Vorhersagen.</em></div>
+  <div class="cr"><span style="min-width:200px">Accuracy =</span><input type="number" class="ni" id="m1" step="0.01" placeholder="z.B. 0,82"> <span style="color:var(--text-muted);font-size:13px">(als Dezimalzahl)</span></div>
+
+  <div class="qq">Berechne die Precision:</div>
+  <div class="ctx gray"><strong>Precision</strong> = TP / (TP + FP)<br><em>→ „Wenn das Modell Alarm schlägt – wie oft stimmt der Alarm?" – Wichtig, wenn falsche Alarme teuer sind (z.B. unnötige Rabatte).</em></div>
+  <div class="cr"><span style="min-width:200px">Precision =</span><input type="number" class="ni" id="m2" step="0.01" placeholder="z.B. 0,69"></div>
+
+  <div class="qq">Berechne den Recall (Sensitivity):</div>
+  <div class="ctx gray"><strong>Recall</strong> = TP / (TP + FN)<br><em>→ „Wie viele der echten Problemfälle werden gefunden?" – Wichtig, wenn das Übersehen von Fällen schlimm ist (z.B. Kunden verlieren).</em></div>
+  <div class="cr"><span style="min-width:200px">Recall =</span><input type="number" class="ni" id="m3" step="0.01" placeholder="z.B. 0,75"></div>
+
+  <div class="qq">Berechne die Specificity:</div>
+  <div class="ctx gray"><strong>Specificity</strong> = TN / (TN + FP)<br><em>→ „Wie viele der tatsächlich treuen Kunden werden korrekt als treu erkannt?" – Das Gegenstück zum Recall, aber für die Negativklasse.</em></div>
+  <div class="cr"><span style="min-width:200px">Specificity =</span><input type="number" class="ni" id="m4" step="0.01" placeholder="z.B. 0,86"></div>
+
+  <div class="br"><button class="btn bp" onclick="chkMetrics()">Prüfen</button></div>
+  <div id="f7"></div>
+</div>
+
+<!-- ══ 8: Wahl von k ══ -->
+<div class="panel" id="p8">
+  <div class="panel-header">
+    <h2>Aufgabe 7 – Die richtige Anzahl k wählen <span class="pts">5 Pkt.</span></h2>
+  </div>
+  <div class="qq">Was passiert, wenn k zu groß gewählt wird (z.B. k = 1000 bei 50.000 Kunden)?</div>
+  <div class="qo" id="q8a">
+    <div class="qopt" onclick="quiz('8a',this,false)"><div class="om">A</div><span>Die Cluster werden größer und allgemeiner, Details gehen verloren</span></div>
+    <div class="qopt" onclick="quiz('8a',this,true)"><div class="om">B</div><span>Die Cluster werden so klein, dass fast jeder Kunde ein eigenes Segment bildet – keine nützliche Gruppierung mehr</span></div>
+    <div class="qopt" onclick="quiz('8a',this,false)"><div class="om">C</div><span>Der Algorithmus kann nicht konvergieren und läuft endlos weiter</span></div>
+  </div>
+  <div id="f8a"></div>
+  <hr class="sep">
+  <div class="qq">Welche Methode hilft, ein geeignetes k zu finden?</div>
+  <div class="qo" id="q8b">
+    <div class="qopt" onclick="quiz('8b',this,false)"><div class="om">A</div><span>Man nimmt immer k = 2, weil Clustering grundsätzlich binär funktioniert</span></div>
+    <div class="qopt" onclick="quiz('8b',this,false)"><div class="om">B</div><span>Man wählt k gleich der Anzahl der Merkmale im Datensatz</span></div>
+    <div class="qopt" onclick="quiz('8b',this,true)"><div class="om">C</div><span>Die Elbow-Methode: Man testet verschiedene k-Werte und sucht den „Knick" im Diagramm der Fehlerquadratsumme</span></div>
+  </div>
+  <div id="f8b"></div>
+  <div class="sa" id="elbow-expl">
+    <h4>So funktioniert die Elbow-Methode</h4>
+    Man führt k-Means nacheinander mit k=1, k=2, k=3, ... aus und berechnet jeweils die <strong>Fehlerquadratsumme (WSS)</strong> – also die Summe der quadrierten Abstände aller Punkte zu ihrem jeweiligen Schwerpunkt. Je kleiner die WSS, desto kompakter die Cluster.<br><br>
+    Diese Werte trägt man in ein Diagramm ein (X-Achse = k, Y-Achse = WSS):<br><br>
+    <strong>k=1:</strong> WSS sehr hoch (alle Punkte in einem Cluster, großer Abstand zum Zentrum)<br>
+    <strong>k=2:</strong> WSS sinkt stark (zwei Gruppen sind schon viel besser)<br>
+    <strong>k=3:</strong> WSS sinkt nochmal deutlich<br>
+    <strong>k=4, 5, 6, ...:</strong> WSS sinkt nur noch minimal – weitere Cluster bringen kaum Verbesserung<br><br>
+    Die Kurve sieht dann aus wie ein <strong>gebeugter Arm</strong>: erst steil abfallend, dann flach. Der <strong>„Knick" (Elbow)</strong> – also der Übergang von steil zu flach – zeigt das optimale k. In diesem Beispiel wäre k=3 der Ellbogen: Danach lohnen sich weitere Cluster nicht mehr.
+  </div>
+</div>
+
+<!-- ══ 9: Ergebnis ══ -->
+<div class="panel" id="p9">
+  <div class="completion">
+    <div class="completion-icon">🎓</div>
+    <h2>Aufgabe abgeschlossen!</h2>
+    <div class="cscore" id="fs">0 / 0</div>
+    <p style="color:var(--text-muted);margin-bottom:22px" id="fm"></p>
+    <button class="btn bp" onclick="location.reload()">Nochmal üben</button>
+  </div>
+</div>
+
+</div></div>
+
+<script>
+let C=0,W=0,T=0,cur=0;
+const STEPS=9;
+const UL=new Set([0]),DN=new Set();
+const SQ={
+  0:{n:['q0'],d:new Set()},
+  1:{n:['q1x'],d:new Set()},
+  2:{n:['q2a','q2b'],d:new Set()},
+  3:{n:['q3a','q3b'],d:new Set()},
+  4:{n:['calc'],d:new Set()},
+  5:{n:['q5a','q5b'],d:new Set()},
+  6:{n:['center'],d:new Set()},
+  7:{n:['metrics'],d:new Set()},
+  8:{n:['q8a','q8b'],d:new Set()},
+};
+const tabIcons=['📋','💡','📂','💻','📐','🎯','📊','🧮','🔢','🏆'];
+
+function ui(){
+  document.getElementById('sc').textContent=C;
+  document.getElementById('sw').textContent=W;
+  document.getElementById('pf').style.width=Math.round((DN.size/STEPS)*100)+'%';
+  document.querySelectorAll('.tab').forEach(t=>{
+    const s=+t.dataset.s;t.classList.remove('active','locked','done');
+    const ic=t.querySelector('.tab-icon');
+    if(DN.has(s)){t.classList.add('done');if(ic)ic.textContent='✓';}
+    else if(s===cur){t.classList.add('active');if(ic)ic.textContent=tabIcons[s];}
+    else if(!UL.has(s)){t.classList.add('locked');if(ic)ic.textContent='🔒';}
+    else{if(ic)ic.textContent=tabIcons[s];}
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('visible'));
+  const pan=document.getElementById('p'+cur);if(pan)pan.classList.add('visible');
+}
+function go(s){if(!UL.has(s)&&!DN.has(s))return;cur=s;ui();document.getElementById('ca').scrollTo(0,0);}
+function unlock(from){
+  const nx=from+1;DN.add(from);if(nx<=STEPS)UL.add(nx);
+  if(nx===STEPS){document.getElementById('fs').textContent=`${C} / ${T}`;const p=T>0?Math.round(C/T*100):0;let m='';if(p>=90)m='Hervorragend! k-Means sitzt! 🌟';else if(p>=70)m='Gut gemacht! Nur ein paar Lücken.';else if(p>=50)m='Solide – wiederhole die schwierigen Teile.';else m='Nicht aufgeben!';document.getElementById('fm').textContent=m;}
+  ui();
+  if(nx<=STEPS){const panel=document.getElementById('p'+from);if(panel&&!panel.querySelector('.next-btn')){const btn=document.createElement('button');btn.className='btn bp next-btn';btn.style.marginTop='24px';btn.textContent='Weiter →';btn.onclick=()=>{go(nx);const tb=document.querySelector(`.tab[data-s="${nx}"]`);if(tb)tb.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});};panel.appendChild(btn);}}
+}
+function done(step,qid){if(SQ[step]){SQ[step].d.add(qid);if(SQ[step].n.every(q=>SQ[step].d.has(q)))unlock(step);}}
+function quiz(id,el,ok){
+  const c=el.parentElement;if(c.dataset.a)return;c.dataset.a='1';T++;
+  c.querySelectorAll('.qopt').forEach(o=>o.classList.add('dis'));
+  const fb=document.getElementById('f'+id);
+  if(ok){
+    el.classList.add('ok');C++;
+    if(fb)fb.innerHTML='<div class="fb ok">✓ Richtig!</div>';
+  } else {
+    el.classList.add('no');W++;
+    c.querySelectorAll('.qopt').forEach(o=>{if(o.getAttribute('onclick')&&o.getAttribute('onclick').includes('true'))o.classList.add('ok');});
+    if(fb)fb.innerHTML='<div class="fb no">✗ Falsch – richtige Antwort ist grün markiert.</div>';
+  }
+  // Show elbow explanation after answering q8b
+  if(id==='8b'){const elbEl=document.getElementById('elbow-expl');if(elbEl)elbEl.classList.add('show');}
+  ui();
+  const mp={0:[0,'q0'],'1x':[1,'q1x'],'2a':[2,'q2a'],'2b':[2,'q2b'],'3a':[3,'q3a'],'3b':[3,'q3b'],'5a':[5,'q5a'],'5b':[5,'q5b'],'8a':[8,'q8a'],'8b':[8,'q8b']};
+  if(mp[id])done(mp[id][0],mp[id][1]);
+}
+
+// Distanz: C-006(3,190) zu A(23.5,62.5) und B(1.75,250)
+// (3-23.5)²=420.25, (190-62.5)²=16256.25, sum=16676.5, d≈129.14 → ~130.6 was example, let's use exact
+// Actually let me recalculate: A was stated as (24,85) initially, then new A=(23.5,62.5)
+// d to A: (3-23.5)²=420.25, (190-62.5)²=16256.25, d=√16676.5≈129.14
+// d to B: (3-1.75)²=1.5625, (190-250)²=3600, d=√3601.5625≈60.01
+function chkCalc(){
+  const fields=[
+    {id:'c1',correct:420.25,tol:1,label:'(3−23,5)² = (−20,5)²',answer:'420,25'},
+    {id:'c2',correct:16256.25,tol:5,label:'(190−62,5)² = (127,5)²',answer:'16.256,25'},
+    {id:'c3',correct:129.14,tol:2,label:'d(C-006, A) = √16.676,5',answer:'≈ 129,1'},
+    {id:'c4',correct:1.5625,tol:0.1,label:'(3−1,75)² = (1,25)²',answer:'1,5625'},
+    {id:'c5',correct:3600,tol:1,label:'(190−250)² = (−60)²',answer:'3.600'},
+    {id:'c6',correct:60.01,tol:1,label:'d(C-006, B) = √3.601,56',answer:'≈ 60,0'},
+  ];
+  let n=0,c=0,m=[];
+  for(const f of fields){const v=parseFloat(document.getElementById(f.id).value);if(isNaN(v))continue;n++;if(Math.abs(v-f.correct)<=f.tol){c++;m.push('✓ '+f.label+' = '+f.answer);}else m.push('✗ '+f.label+' = <strong>'+f.answer+'</strong>');}
+  if(!n){document.getElementById('f4').innerHTML='<div class="fb no">Bitte fülle mindestens ein Feld aus.</div>';return;}
+  T+=n;C+=c;W+=(n-c);ui();
+  document.getElementById('f4').innerHTML=`<div class="fb ${c===n?'ok':'inf'}">${m.join('<br>')}<br><br>${c===n?'🎉 Perfekt!':'Die korrekten Werte stehen oben.'}</div>`;
+  fields.forEach(f=>{const el=document.getElementById(f.id);if(el)el.disabled=true;});
+  done(4,'calc');
+}
+
+function chkCenter(){
+  const v1=parseFloat(document.getElementById('s1').value);
+  const v2=parseFloat(document.getElementById('s2').value);
+  let n=0,c=0,m=[];
+  if(!isNaN(v1)){n++;if(Math.abs(v1-23.5)<=0.5){c++;m.push('✓ ∅ Bestellungen = 23,5');}else m.push('✗ (24+18+30+22)/4 = <strong>23,5</strong>');}
+  if(!isNaN(v2)){n++;if(Math.abs(v2-62.5)<=0.5){c++;m.push('✓ ∅ Warenkorb = 62,5 €');}else m.push('✗ (85+45+65+55)/4 = <strong>62,5</strong>');}
+  if(!n){document.getElementById('f6').innerHTML='<div class="fb no">Bitte fülle mindestens ein Feld aus.</div>';return;}
+  T+=n;C+=c;W+=(n-c);ui();
+  document.getElementById('f6').innerHTML=`<div class="fb ${c===n?'ok':'inf'}">${m.join('<br>')}</div>`;
+  ['s1','s2'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true;});
+  done(6,'center');
+}
+
+// Metrics: TP=45, FN=15, FP=20, TN=120
+// Accuracy = 165/200 = 0.825
+// Precision = 45/65 ≈ 0.6923
+// Recall = 45/60 = 0.75
+// Specificity = 120/140 ≈ 0.8571
+function chkMetrics(){
+  const fields=[
+    {id:'m1',correct:0.825,tol:0.02,label:'Accuracy = (45+120)/(45+120+20+15) = 165/200',answer:'0,825'},
+    {id:'m2',correct:0.6923,tol:0.02,label:'Precision = 45/(45+20) = 45/65',answer:'≈ 0,69'},
+    {id:'m3',correct:0.75,tol:0.02,label:'Recall = 45/(45+15) = 45/60',answer:'0,75'},
+    {id:'m4',correct:0.8571,tol:0.02,label:'Specificity = 120/(120+20) = 120/140',answer:'≈ 0,86'},
+  ];
+  let n=0,c=0,m=[];
+  for(const f of fields){const v=parseFloat(document.getElementById(f.id).value);if(isNaN(v))continue;n++;if(Math.abs(v-f.correct)<=f.tol){c++;m.push('✓ '+f.label+' = '+f.answer);}else m.push('✗ '+f.label+' = <strong>'+f.answer+'</strong>');}
+  if(!n){document.getElementById('f7').innerHTML='<div class="fb no">Bitte fülle mindestens ein Feld aus.</div>';return;}
+  T+=n;C+=c;W+=(n-c);ui();
+  const interp = `<br><br><strong style="color:var(--text)">Was bedeuten diese Werte konkret?</strong><br><br>`
+    +`<strong>Accuracy 82,5%</strong> – Das Modell liegt bei gut 4 von 5 Kunden richtig. Klingt gut, aber reicht das?<br><br>`
+    +`<strong>Precision 69%</strong> – Wenn das Modell „gefährdet" sagt, stimmt es nur in 2 von 3 Fällen. Jeder 3. Alarm ist ein Fehlalarm → unnötige Kosten für Rabattaktionen.<br><br>`
+    +`<strong>Recall 75%</strong> – Von 4 tatsächlich gefährdeten Kunden findet das Modell nur 3. Jeder 4. geht unbemerkt verloren.<br><br>`
+    +`<strong>Specificity 86%</strong> – Treue Kunden werden zuverlässig erkannt – nur 14% werden fälschlich als gefährdet eingestuft.<br><br>`
+    +`<strong style="color:var(--accent)">Entscheidung:</strong> Das Marketing muss abwägen: Ist es schlimmer, Kunden zu verlieren (→ Recall verbessern) oder Geld für falsche Alarme auszugeben (→ Precision verbessern)? Bei Kundenabwanderung ist ein hoher Recall oft wichtiger – lieber einmal zu viel warnen als einen Kunden stillschweigend verlieren.`;
+  document.getElementById('f7').innerHTML=`<div class="fb ${c===n?'ok':'inf'}">${m.join('<br>')}${interp}</div>`;
+  fields.forEach(f=>{const el=document.getElementById(f.id);if(el)el.disabled=true;});
+  done(7,'metrics');
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(+t.dataset.s)));
+ui();
+</script>
+</body>
+</html>

@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Lernseite – Aufgabe 3 | FI Daten- & Prozessanalyse</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --cyan: #39d0d8;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --code-bg: #0d1117;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* grid lines background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(57,208,216,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,208,216,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+    margin-bottom: 48px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(57,208,216,0.1);
+    border: 1px solid rgba(57,208,216,0.3);
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span { color: var(--cyan); }
+
+  .subtitle {
+    color: var(--muted);
+    margin-top: 10px;
+    font-size: 15px;
+    font-weight: 400;
+  }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    margin-top: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .progress-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--green));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  .progress-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 40px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    background: rgba(57,208,216,0.1);
+    border: 1px solid rgba(57,208,216,0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  /* Concept cards */
+  .concept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .concept-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+
+  .concept-card:hover {
+    border-color: var(--cyan);
+    transform: translateY(-2px);
+  }
+
+  .concept-card .kw {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cyan);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .concept-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Code block */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+
+  .code-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .code-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  pre {
+    padding: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-x: auto;
+    color: var(--text);
+  }
+
+  .kw { color: #ff7b72; font-weight: 700; }
+  .fn { color: var(--purple); }
+  .str { color: #a5d6ff; }
+  .cmt { color: var(--muted); font-style: italic; }
+  .col { color: var(--green); }
+  .tbl { color: var(--yellow); }
+  .num { color: #79c0ff; }
+
+  /* Task box */
+  .task-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--yellow);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+
+  .task-box .task-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--yellow);
+    margin-bottom: 8px;
+  }
+
+  .task-box p { font-size: 14px; line-height: 1.6; }
+  .task-box .points {
+    display: inline-flex;
+    background: rgba(210,153,34,0.15);
+    border: 1px solid rgba(210,153,34,0.3);
+    color: var(--yellow);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 10px;
+  }
+
+  /* Schema table */
+  .schema-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .schema-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    min-width: 180px;
+  }
+
+  .schema-table .tname {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--yellow);
+  }
+
+  .schema-table ul {
+    list-style: none;
+    padding: 10px 14px;
+  }
+
+  .schema-table li {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 2px 0;
+    color: var(--muted);
+  }
+
+  .schema-table li .pk { color: var(--cyan); font-weight: 700; }
+  .schema-table li .fk { color: var(--purple); }
+  .schema-table li .field { color: var(--green); }
+
+  /* Quiz */
+  .quiz-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 24px 0;
+  }
+
+  .quiz-block .q-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--cyan);
+    margin-bottom: 12px;
+  }
+
+  .quiz-block .q-text {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+
+  .quiz-block .q-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: left;
+    width: 100%;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+  }
+
+  .option:hover:not(:disabled) {
+    border-color: var(--cyan);
+    background: rgba(57,208,216,0.05);
+  }
+
+  .option .opt-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--border);
+    color: var(--muted);
+    padding: 1px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .option.correct {
+    border-color: var(--green) !important;
+    background: rgba(63,185,80,0.1) !important;
+  }
+
+  .option.wrong {
+    border-color: var(--red) !important;
+    background: rgba(248,81,73,0.1) !important;
+  }
+
+  .option:disabled { cursor: default; }
+
+  .feedback {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    display: none;
+  }
+
+  .feedback.show { display: block; }
+  .feedback.ok { background: rgba(63,185,80,0.1); border: 1px solid var(--green); color: var(--green); }
+  .feedback.err { background: rgba(248,81,73,0.1); border: 1px solid var(--red); color: #ff9492; }
+
+  /* Fill-in-the-blank */
+  .fill-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 24px 0;
+  }
+
+  .fill-block .q-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--purple);
+    margin-bottom: 12px;
+  }
+
+  .fill-block .q-text {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .fill-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+
+  .fill-blank {
+    display: inline-block;
+    min-width: 100px;
+    border-bottom: 2px dashed var(--purple);
+    color: var(--purple);
+    font-weight: 700;
+    padding: 0 4px;
+    cursor: pointer;
+  }
+
+  .select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .select-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  .select-row label {
+    color: var(--muted);
+    min-width: 20px;
+  }
+
+  .select-row select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+    flex: 1;
+  }
+
+  .select-row select:focus { border-color: var(--purple); }
+
+  /* Btn */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+  }
+
+  .btn-primary {
+    background: var(--cyan);
+    color: var(--bg);
+  }
+
+  .btn-primary:hover { background: #5ce8ef; }
+  .btn-primary:disabled { opacity: 0.4; cursor: default; }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  /* score */
+  .score-display {
+    display: none;
+    margin-top: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+  }
+
+  .score-display.show { display: block; }
+
+  .score-big {
+    font-size: 64px;
+    font-weight: 800;
+    color: var(--cyan);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .score-label { color: var(--muted); font-size: 16px; }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 40px 0;
+  }
+
+  /* info box */
+  .info-box {
+    background: rgba(57,208,216,0.07);
+    border: 1px solid rgba(57,208,216,0.2);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 16px 0;
+  }
+
+  .info-box strong { color: var(--cyan); }
+
+  /* note with icon */
+  .note {
+    display: flex;
+    gap: 10px;
+    background: rgba(188,140,255,0.07);
+    border: 1px solid rgba(188,140,255,0.2);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 12px 0;
+  }
+
+  .note-icon { color: var(--purple); font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* table */
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    margin: 16px 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  table.data-table th {
+    background: var(--surface2);
+    color: var(--cyan);
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.data-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  table.data-table tr:last-child td { border-bottom: none; }
+  table.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* sticky nav */
+  .sticky-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .nav-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+
+  .nav-chip:hover, .nav-chip.active { border-color: var(--cyan); color: var(--cyan); }
+
+  .answered-marker {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-left: 5px;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 600px) {
+    .concept-grid { grid-template-columns: 1fr; }
+    .schema-wrap { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="sticky-nav">
+  <a class="nav-chip" href="#konzepte">Konzepte</a>
+  <a class="nav-chip" href="#schema">Schema</a>
+  <a class="nav-chip" href="#aufgabe-a">3a – UPDATE</a>
+  <a class="nav-chip" href="#aufgabe-b">3b – JOIN</a>
+  <a class="nav-chip" href="#aufgabe-c">3c – GROUP BY</a>
+  <a class="nav-chip" href="#aufgabe-d">3d – AVG Zeit</a>
+  <a class="nav-chip" href="#abschluss">Ergebnis</a>
+</nav>
+
+<div class="container">
+
+  <header class="header">
+    <div class="badge">■ IHK Winter 2025/26 · FI Daten- &amp; Prozessanalyse</div>
+    <h1>Aufgabe 3<br><span>SQL-Abfragen</span></h1>
+    <p class="subtitle">Restaurant-Lieferservice · 27 Punkte · Interaktives Lernmodul</p>
+    <div class="progress-bar-wrap">
+      <span class="progress-label">Fortschritt</span>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-pct" id="progressPct">0 %</span>
+    </div>
+  </header>
+
+  <!-- KONZEPTE -->
+  <section class="section" id="konzepte">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>SQL-Konzepte im Überblick</h2>
+    </div>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <span class="kw">UPDATE … SET</span>
+        <p>Ändert Werte in einer Tabelle. Ohne WHERE werden <em>alle</em> Zeilen aktualisiert.</p>
+      </div>
+      <div class="concept-card">
+        <span class="kw">JOIN … ON</span>
+        <p>Verbindet Tabellen über gemeinsame Schlüssel. INNER JOIN liefert nur übereinstimmende Zeilen.</p>
+      </div>
+      <div class="concept-card">
+        <span class="kw">GROUP BY</span>
+        <p>Gruppiert Zeilen nach einem Attribut. Danach können Aggregatfunktionen angewendet werden.</p>
+      </div>
+      <div class="concept-card">
+        <span class="kw">HAVING</span>
+        <p>Filtert <em>nach</em> der Aggregation – wie WHERE, aber für Gruppen.</p>
+      </div>
+      <div class="concept-card">
+        <span class="kw">AVG / COUNT</span>
+        <p>Aggregatfunktionen: Durchschnitt und Anzahl über eine Gruppe von Zeilen.</p>
+      </div>
+      <div class="concept-card">
+        <span class="kw">ORDER BY</span>
+        <p>Sortiert das Ergebnis. ASC = aufsteigend (Standard), DESC = absteigend.</p>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Tipp:</strong> Der SQL-Grundaufbau lautet immer: <code>SELECT … FROM … [JOIN] … [WHERE] … [GROUP BY] … [HAVING] … [ORDER BY]</code>. Die Reihenfolge der Klauseln ist fest – nur SELECT und FROM sind Pflicht.
+    </div>
+
+    <!-- Quiz 0: Konzepte -->
+    <div class="quiz-block" id="q0">
+      <div class="q-label">✦ Wissens-Check · Konzepte</div>
+      <div class="q-text">Welche Klausel filtert Gruppen <em>nach</em> einer Aggregation?</div>
+      <div class="options">
+        <button class="option" onclick="answerMC('q0', this, false)"><span class="opt-key">A</span> WHERE – filtert einzelne Zeilen vor der Gruppierung</button>
+        <button class="option" onclick="answerMC('q0', this, true)"><span class="opt-key">B</span> HAVING – filtert Gruppen nach der Aggregation</button>
+        <button class="option" onclick="answerMC('q0', this, false)"><span class="opt-key">C</span> ORDER BY – sortiert die Ausgabe nach einem Kriterium</button>
+        <button class="option" onclick="answerMC('q0', this, false)"><span class="opt-key">D</span> GROUP BY – fasst Zeilen mit gleichem Wert zusammen</button>
+      </div>
+      <div class="feedback" id="q0-fb"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- SCHEMA -->
+  <section class="section" id="schema">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Datenbankschema – Lieferservice</h2>
+    </div>
+
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px;">Alle Beziehungen sind 1:N. Primärschlüssel sind <span style="color:var(--cyan)">cyan</span> markiert, Fremdschlüssel <span style="color:var(--purple)">lila</span>.</p>
+
+    <div class="schema-wrap">
+      <div class="schema-table">
+        <div class="tname">Bestellung</div>
+        <ul>
+          <li><span class="pk">PK BestellNr</span></li>
+          <li><span class="fk">FK1 Kunde</span> <span style="font-size:10px;color:var(--muted)">→ Kd_TelefonNr</span></li>
+          <li><span class="fk">FK2 CourierID</span> <span style="font-size:10px;color:var(--muted)">→ CourierID</span></li>
+          <li><span class="field">Datum</span></li>
+          <li><span class="field">Bestell_Uhrzeit</span></li>
+          <li><span class="field">UebergabeAnCourier_Uhrzeit</span></li>
+          <li><span class="field">ZustellungsUhrzeit</span></li>
+          <li><span class="field">Rabattbetrag</span></li>
+        </ul>
+      </div>
+      <div class="schema-table">
+        <div class="tname">Kunde</div>
+        <ul>
+          <li><span class="pk">PK Kd_TelefonNr</span></li>
+          <li><span class="field">Kd_Vorname</span></li>
+          <li><span class="field">Kd_Nachname</span></li>
+          <li><span class="field">Str_HsNr</span></li>
+          <li><span class="field">PLZ</span></li>
+          <li><span class="field">Ort</span></li>
+        </ul>
+      </div>
+      <div class="schema-table">
+        <div class="tname">Kurier</div>
+        <ul>
+          <li><span class="pk">PK CourierID</span></li>
+          <li><span class="field">Vorname</span></li>
+          <li><span class="field">Nachname</span></li>
+          <li><span class="field">Fahrzeug</span></li>
+        </ul>
+      </div>
+      <div class="schema-table">
+        <div class="tname">SpeisenGetränk</div>
+        <ul>
+          <li><span class="pk">PK MenuNr</span></li>
+          <li><span class="field">Name</span></li>
+          <li><span class="field">PreisAktuell</span></li>
+          <li><span class="field">Beschreibung</span></li>
+        </ul>
+      </div>
+      <div class="schema-table">
+        <div class="tname">Bestellposition</div>
+        <ul>
+          <li><span class="pk">PK,FK1 BestellNr</span></li>
+          <li><span class="pk">PK,FK2 MenuNr</span></li>
+          <li><span class="field">Anzahl</span></li>
+          <li><span class="field">PreisZumBestellzeitpunkt</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Quiz Schema -->
+    <div class="quiz-block" id="q1">
+      <div class="q-label">✦ Wissens-Check · Schema</div>
+      <div class="q-text">Über welches Attribut verknüpft man <code>Bestellung</code> mit <code>Kunde</code>?</div>
+      <div class="options">
+        <button class="option" onclick="answerMC('q1', this, false)"><span class="opt-key">A</span> Bestellung.BestellNr = Kunde.BestellNr</button>
+        <button class="option" onclick="answerMC('q1', this, false)"><span class="opt-key">B</span> Bestellung.CourierID = Kunde.Kd_TelefonNr</button>
+        <button class="option" onclick="answerMC('q1', this, true)"><span class="opt-key">C</span> Bestellung.Kunde = Kunde.Kd_TelefonNr</button>
+        <button class="option" onclick="answerMC('q1', this, false)"><span class="opt-key">D</span> Bestellung.Datum = Kunde.Kd_Vorname</button>
+      </div>
+      <div class="feedback" id="q1-fb"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- AUFGABE A -->
+  <section class="section" id="aufgabe-a">
+    <div class="section-header">
+      <span class="section-num">3a</span>
+      <h2>Preise um 5 % erhöhen</h2>
+    </div>
+
+    <div class="task-box">
+      <div class="task-label">📋 Prüfungsaufgabe 3a – Originaltext</div>
+      <p>Schreiben Sie ein SQL-Statement, welches die Preise in der Tabelle <strong>SpeiseGetränk</strong> um 5 % erhöht.</p>
+      <span class="points">3 Punkte</span>
+    </div>
+
+    <div class="section-header" style="margin-top:24px;margin-bottom:12px;">
+      <span class="section-num" style="background:rgba(210,153,34,0.1);border-color:rgba(210,153,34,0.3);color:var(--yellow)">Betroffene Tabelle</span>
+      <h2 style="font-size:16px;color:var(--muted)">Wo passiert die Änderung?</h2>
+    </div>
+    <div class="schema-wrap" style="margin-bottom:0">
+      <div class="schema-table" style="border-color:var(--yellow)">
+        <div class="tname" style="color:var(--yellow)">SpeiseGetränk ← hier</div>
+        <ul>
+          <li><span class="pk">PK MenuNr</span></li>
+          <li><span class="field">Name</span></li>
+          <li style="background:rgba(210,153,34,0.08);margin: 0 -14px;padding: 2px 14px;border-radius:4px"><span class="field" style="color:var(--yellow);font-weight:700">PreisAktuell ← dieser Wert wird geändert</span></li>
+          <li><span class="field">Beschreibung</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-top:16px">
+      <strong>Was musst du tun?</strong><br><br>
+      Du sollst <em>alle</em> Preise in der Tabelle verändern – nicht nur einen bestimmten. Das bedeutet:<br><br>
+      ① <strong>UPDATE</strong> – sagt SQL, dass wir Daten verändern wollen (nicht lesen!)<br>
+      ② <strong>SET PreisAktuell = PreisAktuell * 1.05</strong> – der neue Wert ergibt sich aus dem alten mal 1,05<br>
+      ③ <strong>Kein WHERE</strong> – wir wollen <em>alle</em> Zeilen ändern, daher keine Einschränkung nötig<br><br>
+      Merke: <code>+5 % = * 1.05</code> &nbsp;|&nbsp; <code>-10 % = * 0.90</code> &nbsp;|&nbsp; <code>+20 % = * 1.20</code>
+    </div>
+
+    <!-- Fill-in quiz -->
+    <div class="fill-block" id="q2">
+      <div class="q-label">✦ Lückentext · Aufgabe 3a</div>
+      <div class="q-text">Setze die richtigen SQL-Schlüsselwörter ein:</div>
+      <div class="fill-code">
+        <span id="blank-a1" class="fill-blank">___</span> SpeiseGetränk<br>
+        <span id="blank-a2" class="fill-blank">___</span> PreisAktuell = PreisAktuell * <span style="color:var(--cyan)">1.05</span>;
+      </div>
+      <div class="select-group">
+        <div class="select-row">
+          <label>①</label>
+          <select id="sel-a1" onchange="previewBlank('a1', 'sel-a1')">
+            <option value="">– wählen –</option>
+            <option value="SELECT">SELECT</option>
+            <option value="UPDATE">UPDATE</option>
+            <option value="INSERT INTO">INSERT INTO</option>
+            <option value="DELETE FROM">DELETE FROM</option>
+          </select>
+        </div>
+        <div class="select-row">
+          <label>②</label>
+          <select id="sel-a2" onchange="previewBlank('a2', 'sel-a2')">
+            <option value="">– wählen –</option>
+            <option value="WHERE">WHERE</option>
+            <option value="FROM">FROM</option>
+            <option value="SET">SET</option>
+            <option value="VALUES">VALUES</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="checkFill('q2', ['UPDATE','SET'], ['sel-a1','sel-a2'], '✓ Korrekt! UPDATE SpeiseGetränk SET PreisAktuell = PreisAktuell * 1.05; – alle Preise werden um 5 % erhöht.', '✗ Nicht ganz. Denk daran: UPDATE verändert Zeilen, SET gibt an welches Feld geändert wird.')">Prüfen</button>
+      <div class="feedback" id="q2-fb"></div>
+    </div>
+
+    <p style="color:var(--muted);font-size:13px;margin: 8px 0 4px;">Musterlösung:</p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-dot" style="background:#f85149"></span><span class="code-dot" style="background:#d29922"></span><span class="code-dot" style="background:#3fb950"></span> aufgabe_3a.sql</div>
+      <pre><span class="kw">UPDATE</span> <span class="tbl">SpeiseGetränk</span>
+<span class="kw">SET</span> <span class="col">PreisAktuell</span> = <span class="col">PreisAktuell</span> * <span class="num">1.05</span>;</pre>
+    </div>
+
+    <div class="quiz-block" id="q3">
+      <div class="q-label">✦ Verständnis-Check · 3a</div>
+      <div class="q-text">Was würde passieren, wenn man eine <code>WHERE</code>-Klausel ergänzt, z.&nbsp;B. <code>WHERE Name = 'Pizza'</code>?</div>
+      <div class="options">
+        <button class="option" onclick="answerMC('q3', this, false)"><span class="opt-key">A</span> Es entsteht ein Syntaxfehler, weil UPDATE kein WHERE erlaubt</button>
+        <button class="option" onclick="answerMC('q3', this, true)"><span class="opt-key">B</span> Nur Einträge mit Name = 'Pizza' werden aktualisiert</button>
+        <button class="option" onclick="answerMC('q3', this, false)"><span class="opt-key">C</span> Alle Preise werden gelöscht und nur Pizza bleibt übrig</button>
+        <button class="option" onclick="answerMC('q3', this, false)"><span class="opt-key">D</span> Die WHERE-Klausel wird bei UPDATE ignoriert</button>
+      </div>
+      <div class="feedback" id="q3-fb"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- AUFGABE B -->
+  <section class="section" id="aufgabe-b">
+    <div class="section-header">
+      <span class="section-num">3b</span>
+      <h2>Kunden eines bestimmten Kuriers im November 2025</h2>
+    </div>
+
+    <div class="task-box">
+      <div class="task-label">📋 Prüfungsaufgabe 3b – Originaltext</div>
+      <p>Aufgrund von Beschwerden über den Kurier <strong>David Scholz</strong> sollen alle von ihm belieferten Kunden zwecks einer Befragung ermittelt werden.<br><br>
+      Schreiben Sie ein SQL-Statement, welches alle Kunden und die BestellNr heraussucht, die von Herrn Scholz im <strong>November 2025</strong> beliefert wurden.</p>
+      <span class="points">7 Punkte</span>
+    </div>
+
+    <div class="section-header" style="margin-top:24px;margin-bottom:12px;">
+      <span class="section-num" style="background:rgba(57,208,216,0.1);border-color:rgba(57,208,216,0.3);color:var(--cyan)">Beteiligte Tabellen</span>
+      <h2 style="font-size:16px;color:var(--muted)">Welche Tabellen brauchst du und wie hängen sie zusammen?</h2>
+    </div>
+    <div class="schema-wrap" style="margin-bottom:0">
+      <div class="schema-table" style="border-color:var(--cyan)">
+        <div class="tname" style="color:var(--cyan)">Kunde ← Ziel-Ausgabe</div>
+        <ul>
+          <li><span class="pk">PK Kd_TelefonNr</span></li>
+          <li><span class="field" style="color:var(--cyan)">Kd_Vorname</span></li>
+          <li><span class="field" style="color:var(--cyan)">Kd_Nachname</span></li>
+          <li><span class="field" style="color:var(--cyan)">Str_HsNr</span></li>
+          <li><span class="field" style="color:var(--cyan)">PLZ</span></li>
+          <li><span class="field" style="color:var(--cyan)">Ort</span></li>
+        </ul>
+      </div>
+      <div style="display:flex;align-items:center;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px;padding:0 4px">
+        Kd_TelefonNr<br>= b.Kunde<br>→ JOIN ①
+      </div>
+      <div class="schema-table" style="border-color:var(--yellow)">
+        <div class="tname" style="color:var(--yellow)">Bestellung ← Verbindung</div>
+        <ul>
+          <li><span class="pk">PK BestellNr</span></li>
+          <li><span class="fk" style="color:var(--cyan)">FK1 Kunde → Kd_TelefonNr</span></li>
+          <li><span class="fk" style="color:var(--green)">FK2 CourierID → CourierID</span></li>
+          <li><span class="field" style="color:var(--yellow)">Datum ← WHERE filtern</span></li>
+          <li><span class="field">Bestell_Uhrzeit</span></li>
+          <li><span class="field">…</span></li>
+        </ul>
+      </div>
+      <div style="display:flex;align-items:center;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px;padding:0 4px">
+        CourierID<br>= c.CourierID<br>→ JOIN ②
+      </div>
+      <div class="schema-table" style="border-color:var(--green)">
+        <div class="tname" style="color:var(--green)">Kurier ← Filter</div>
+        <ul>
+          <li><span class="pk">PK CourierID</span></li>
+          <li><span class="field" style="color:var(--green)">Vorname = 'David'</span></li>
+          <li><span class="field" style="color:var(--green)">Nachname = 'Scholz'</span></li>
+          <li><span class="field">Fahrzeug</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-top:16px">
+      <strong>Was musst du tun?</strong><br><br>
+      ① <strong>SELECT k.*, b.BestellNr</strong> – alle Kundenspalten plus die BestellNr ausgeben<br>
+      ② <strong>FROM Kunde k INNER JOIN Bestellung b</strong> – Kunde mit Bestellung verbinden (über Kd_TelefonNr = Kunde)<br>
+      ③ <strong>INNER JOIN Kurier c</strong> – Bestellung auch mit Kurier verbinden (über CourierID)<br>
+      ④ <strong>WHERE MONTH(Datum) = 11 AND YEAR(Datum) = 2025</strong> – nur November 2025<br>
+      ⑤ <strong>AND c.Vorname = 'David' AND c.Nachname = 'Scholz'</strong> – nur dieser Kurier
+    </div>
+    <table class="data-table">
+      <tr><th>Kd_TelefonNr</th><th>Kd_Vorname</th><th>Kd_Nachname</th><th>Str_HsNr</th><th>PLZ</th><th>Ort</th><th>BestellNr</th></tr>
+      <tr><td>1511234567</td><td>Laura</td><td>Schmidt</td><td>Kaiserstr. 12</td><td>52062</td><td>Aachen</td><td>3</td></tr>
+      <tr><td>1601234567</td><td>Anna</td><td>Weber</td><td>Königstr. 4</td><td>52070</td><td>Aachen</td><td>6</td></tr>
+    </table>
+
+    <div class="info-box">
+      <strong>Strategie:</strong> Wir brauchen Daten aus drei Tabellen: <strong>Kunde</strong> (Name, Adresse), <strong>Bestellung</strong> (BestellNr, Datum, Kurier-FK) und <strong>Kurier</strong> (Name). Zwei JOINs sind nötig. Den Monat filtert man mit <code>MONTH(Datum) = 11</code> und das Jahr mit <code>YEAR(Datum) = 2025</code>.
+    </div>
+
+    <div class="quiz-block" id="q4">
+      <div class="q-label">✦ Wissens-Check · JOIN</div>
+      <div class="q-text">Wie viele JOINs werden benötigt, um Kunde, Bestellung und Kurier gleichzeitig abzufragen?</div>
+      <div class="options">
+        <button class="option" onclick="answerMC('q4', this, false)"><span class="opt-key">A</span> Keinen – alle Daten stehen schon in der Bestellungstabelle</button>
+        <button class="option" onclick="answerMC('q4', this, false)"><span class="opt-key">B</span> Genau einen JOIN reicht aus für drei Tabellen</button>
+        <button class="option" onclick="answerMC('q4', this, true)"><span class="opt-key">C</span> Zwei JOINs – einmal Kunde, einmal Kurier an Bestellung</button>
+        <button class="option" onclick="answerMC('q4', this, false)"><span class="opt-key">D</span> Drei JOINs, weil es drei Tabellen gibt</button>
+      </div>
+      <div class="feedback" id="q4-fb"></div>
+    </div>
+
+    <!-- Fill-in 3b -->
+    <div class="fill-block" id="q5">
+      <div class="q-label">✦ Lückentext · Aufgabe 3b – JOIN-Bedingungen</div>
+      <div class="q-text">Vervollständige die JOIN-Klauseln:</div>
+      <div class="fill-code">
+        <span class="kw">SELECT</span> k.*, b.BestellNr<br>
+        <span class="kw">FROM</span> Kunde k <span class="kw">INNER JOIN</span> Bestellung b<br>
+        &nbsp;&nbsp;<span class="kw">ON</span> k.Kd_TelefonNr = <span id="blank-b1" class="fill-blank" style="border-color:var(--cyan)">___</span><br>
+        <span class="kw">INNER JOIN</span> Kurier c<br>
+        &nbsp;&nbsp;<span class="kw">ON</span> b.CourierID = <span id="blank-b2" class="fill-blank" style="border-color:var(--cyan)">___</span>
+      </div>
+      <div class="select-group">
+        <div class="select-row">
+          <label>①</label>
+          <select id="sel-b1" onchange="previewBlank('b1', 'sel-b1')">
+            <option value="">– ON-Bedingung wählen –</option>
+            <option value="b.Kunde">b.Kunde</option>
+            <option value="b.BestellNr">b.BestellNr</option>
+            <option value="b.CourierID">b.CourierID</option>
+            <option value="c.CourierID">c.CourierID</option>
+          </select>
+        </div>
+        <div class="select-row">
+          <label>②</label>
+          <select id="sel-b2" onchange="previewBlank('b2', 'sel-b2')">
+            <option value="">– ON-Bedingung wählen –</option>
+            <option value="k.Kd_TelefonNr">k.Kd_TelefonNr</option>
+            <option value="c.CourierID">c.CourierID</option>
+            <option value="b.BestellNr">b.BestellNr</option>
+            <option value="k.Kd_Nachname">k.Kd_Nachname</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="checkFill('q5', ['b.Kunde','c.CourierID'], ['sel-b1','sel-b2'], '✓ Perfekt! k.Kd_TelefonNr = b.Kunde verbindet Kunde mit Bestellung, b.CourierID = c.CourierID verbindet Bestellung mit Kurier.', '✗ Nicht ganz. Überlege: Welches Feld in Bestellung zeigt auf den Kunden? Welches auf den Kurier?')">Prüfen</button>
+      <div class="feedback" id="q5-fb"></div>
+    </div>
+
+    <div class="quiz-block" id="q6">
+      <div class="q-label">✦ Wissens-Check · Datumsfunktionen</div>
+      <div class="q-text">Welche WHERE-Bedingung filtert korrekt auf November 2025?</div>
+      <div class="options">
+        <button class="option" onclick="answerMC('q6', this, false)"><span class="opt-key">A</span> WHERE Datum LIKE '11-2025'</button>
+        <button class="option" onclick="answerMC('q6', this, true)"><span class="opt-key">B</span> WHERE MONTH(Datum) = 11 AND YEAR(Datum) = 2025</button>
+        <button class="option" onclick="answerMC('q6', this, false)"><span class="opt-key">C</span> WHERE Datum = MONTH(11) AND YEAR(2025)</button>
+        <button class="option" onclick="answerMC('q6', this, false)"><span class="opt-key">D</span> WHERE DAY(Datum) = 11 AND YEAR(Datum) = 2025</button>
+      </div>
+      <div class="feedback" id="q6-fb"></div>
+    </div>
+
+    <p style="color:var(--muted);font-size:13px;margin: 8px 0 4px;">Musterlösung:</p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-dot" style="background:#f85149"></span><span class="code-dot" style="background:#d29922"></span><span class="code-dot" style="background:#3fb950"></span> aufgabe_3b.sql</div>
+      <pre><span class="kw">SELECT</span> k.*, b.<span class="col">BestellNr</span>
+<span class="kw">FROM</span> <span class="tbl">Kunde</span> k
+  <span class="kw">INNER JOIN</span> <span class="tbl">Bestellung</span> b
+    <span class="kw">ON</span> k.<span class="col">Kd_TelefonNr</span> = b.<span class="col">Kunde</span>
+  <span class="kw">INNER JOIN</span> <span class="tbl">Kurier</span> c
+    <span class="kw">ON</span> b.<span class="col">CourierID</span> = c.<span class="col">CourierID</span>
+<span class="kw">WHERE</span> <span class="fn">MONTH</span>(b.<span class="col">Datum</span>) = <span class="num">11</span>
+  <span class="kw">AND</span> <span class="fn">YEAR</span>(b.<span class="col">Datum</span>) = <span class="num">2025</span>
+  <span class="kw">AND</span> c.<span class="col">Vorname</span> = <span class="str">'David'</span>
+  <span class="kw">AND</span> c.<span class="col">Nachname</span> = <span class="str">'Scholz'</span>;</pre>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- AUFGABE C -->
+  <section class="section" id="aufgabe-c">
+    <div class="section-header">
+      <span class="section-num">3c</span>
+      <h2>Kunden mit mehr als 2 Bestellungen</h2>
+    </div>
+
+    <div class="task-box">
+      <div class="task-label">📋 Prüfungsaufgabe 3c – Originaltext</div>
+      <p>Schreiben Sie ein SQL-Statement, welches alle Kunden mit <strong>mehr als zwei Bestellungen</strong> ermittelt. Die Ausgabe soll zuerst nach <strong>Nachname</strong> des Kunden und dann nach <strong>Vorname</strong> sortiert sein.</p>
+      <span class="points">9 Punkte</span>
+    </div>
+
+    <div class="section-header" style="margin-top:24px;margin-bottom:12px;">
+      <span class="section-num" style="background:rgba(188,140,255,0.1);border-color:rgba(188,140,255,0.3);color:var(--purple)">Beteiligte Tabellen</span>
+      <h2 style="font-size:16px;color:var(--muted)">Was zählst du, und wo stehen die Infos?</h2>
+    </div>
+    <div class="schema-wrap" style="margin-bottom:0">
+      <div class="schema-table" style="border-color:var(--cyan)">
+        <div class="tname" style="color:var(--cyan)">Kunde ← Ausgabe</div>
+        <ul>
+          <li><span class="pk">PK Kd_TelefonNr</span></li>
+          <li><span class="field" style="color:var(--cyan)">Kd_Vorname ← sortieren</span></li>
+          <li><span class="field" style="color:var(--cyan)">Kd_Nachname ← sortieren</span></li>
+          <li><span class="field">Str_HsNr</span></li>
+          <li><span class="field">PLZ / Ort</span></li>
+        </ul>
+      </div>
+      <div style="display:flex;align-items:center;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px;padding:0 4px">
+        Kd_TelefonNr<br>= b.Kunde<br>→ JOIN
+      </div>
+      <div class="schema-table" style="border-color:var(--purple)">
+        <div class="tname" style="color:var(--purple)">Bestellung ← zählen</div>
+        <ul>
+          <li><span class="pk">PK BestellNr</span></li>
+          <li><span class="fk" style="color:var(--cyan)">FK1 Kunde</span></li>
+          <li><span class="field" style="color:var(--purple)">COUNT(*) → Anzahl</span></li>
+          <li><span class="field">…</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-top:16px">
+      <strong>Was musst du tun?</strong><br><br>
+      ① <strong>JOIN</strong> – Kunde mit Bestellung verknüpfen, damit du weißt, welcher Kunde wie viele Bestellungen hat<br>
+      ② <strong>GROUP BY Kd_TelefonNr</strong> – alle Bestellungen pro Kunde zusammenfassen<br>
+      ③ <strong>COUNT(*)</strong> – die Anzahl der Bestellungen je Kunde zählen<br>
+      ④ <strong>HAVING COUNT(*) &gt; 2</strong> – nur Kunden behalten, die mehr als 2 Bestellungen haben<br>
+      ⑤ <strong>ORDER BY Kd_Nachname, Kd_Vorname</strong> – erst nach Nachname, bei Gleichstand nach Vorname sortieren<br><br>
+      <strong style="color:var(--purple)">Warum HAVING und nicht WHERE?</strong> WHERE filtert <em>einzelne Zeilen</em> bevor gruppiert wird. HAVING filtert <em>ganze Gruppen</em> nach der Gruppierung. Da <code>COUNT(*) &gt; 2</code> eine Bedingung auf eine Gruppe ist, muss HAVING verwendet werden.
+    </div>
+
+    <div class="quiz-block" id="q7">
+      <div class="q-label">✦ Wissens-Check · GROUP BY / HAVING</div>
+      <div class="q-text">Welches vollständige Statement liefert korrekt alle Kunden mit mehr als 2 Bestellungen?</div>
+      <div class="options">
+        <button class="option" onclick="answerMC('q7', this, false)">
+          <span class="opt-key">A</span>
+          <span><code>SELECT Kd_TelefonNr, COUNT(*) FROM Kunde JOIN Bestellung ON Kd_TelefonNr = Kunde WHERE COUNT(*) &gt; 2</code></span>
+        </button>
+        <button class="option" onclick="answerMC('q7', this, true)">
+          <span class="opt-key">B</span>
+          <span><code>SELECT Kd_TelefonNr, COUNT(*) FROM Kunde JOIN Bestellung ON Kd_TelefonNr = Kunde GROUP BY Kd_TelefonNr HAVING COUNT(*) &gt; 2</code></span>
+        </button>
+        <button class="option" onclick="answerMC('q7', this, false)">
+          <span class="opt-key">C</span>
+          <span><code>SELECT Kd_TelefonNr, COUNT(*) FROM Kunde JOIN Bestellung ON Kd_TelefonNr = Kunde GROUP BY Kd_TelefonNr WHERE COUNT(*) &gt; 2</code></span>
+        </button>
+        <button class="option" onclick="answerMC('q7', this, false)">
+          <span class="opt-key">D</span>
+          <span><code>SELECT Kd_TelefonNr, COUNT(*) FROM Kunde JOIN Bestellung ON Kd_TelefonNr = Kunde HAVING COUNT(*) &gt; 2 ORDER BY Kd_TelefonNr</code></span>
+        </button>
+      </div>
+      <div class="feedback" id="q7-fb"></div>
+    </div>
+
+    <!-- Fill-in 3c -->
+    <div class="fill-block" id="q8">
+      <div class="q-label">✦ Lückentext · Aufgabe 3c – Reihenfolge der Klauseln</div>
+      <div class="q-text">Bringe die SQL-Klauseln in die richtige Reihenfolge (wähle für jede Lücke die passende Klausel):</div>
+      <div class="fill-code">
+        <span class="kw">SELECT</span> k.Kd_TelefonNr, Kd_Vorname, Kd_Nachname, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> <span class="str">"Anzahl Bestellungen"</span><br>
+        <span class="kw">FROM</span> Kunde k <span class="kw">INNER JOIN</span> Bestellung b <span class="kw">ON</span> k.Kd_TelefonNr = b.Kunde<br>
+        <span id="blank-c1" class="fill-blank" style="border-color:var(--purple)">___</span> Kd_TelefonNr<br>
+        <span id="blank-c2" class="fill-blank" style="border-color:var(--purple)">___</span> <span class="fn">COUNT</span>(*) &gt; <span class="num">2</span><br>
+        <span id="blank-c3" class="fill-blank" style="border-color:var(--purple)">___</span> Kd_Nachname, Kd_Vorname;
+      </div>
+      <div class="select-group">
+        <div class="select-row">
+          <label>①</label>
+          <select id="sel-c1" onchange="previewBlank('c1', 'sel-c1')">
+            <option value="">– wählen –</option>
+            <option value="ORDER BY">ORDER BY</option>
+            <option value="HAVING">HAVING</option>
+            <option value="GROUP BY">GROUP BY</option>
+            <option value="WHERE">WHERE</option>
+          </select>
+        </div>
+        <div class="select-row">
+          <label>②</label>
+          <select id="sel-c2" onchange="previewBlank('c2', 'sel-c2')">
+            <option value="">– wählen –</option>
+            <option value="WHERE">WHERE</option>
+            <option value="GROUP BY">GROUP BY</option>
+            <option value="HAVING">HAVING</option>
+            <option value="ORDER BY">ORDER BY</option>
+          </select>
+        </div>
+        <div class="select-row">
+          <label>③</label>
+          <select id="sel-c3" onchange="previewBlank('c3', 'sel-c3')">
+            <option value="">– wählen –</option>
+            <option value="HAVING">HAVING</option>
+            <option value="WHERE">WHERE</option>
+            <option value="GROUP BY">GROUP BY</option>
+            <option value="ORDER BY">ORDER BY</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="checkFill('q8', ['GROUP BY','HAVING','ORDER BY'], ['sel-c1','sel-c2','sel-c3'], '✓ Richtig! GROUP BY → HAVING → ORDER BY ist die korrekte Reihenfolge. HAVING filtert nach der Aggregation, ORDER BY sortiert die Ausgabe.', '✗ Nicht ganz. Erinnere dich: GROUP BY kommt vor HAVING, und ORDER BY steht immer am Ende.')">Prüfen</button>
+      <div class="feedback" id="q8-fb"></div>
+    </div>
+
+    <p style="color:var(--muted);font-size:13px;margin: 8px 0 4px;">Musterlösung:</p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-dot" style="background:#f85149"></span><span class="code-dot" style="background:#d29922"></span><span class="code-dot" style="background:#3fb950"></span> aufgabe_3c.sql</div>
+      <pre><span class="kw">SELECT</span> k.<span class="col">Kd_TelefonNr</span>, <span class="col">Kd_Vorname</span>, <span class="col">Kd_Nachname</span>,
+       <span class="fn">COUNT</span>(*) <span class="kw">AS</span> <span class="str">"Anzahl Bestellungen"</span>
+<span class="kw">FROM</span> <span class="tbl">Kunde</span> k
+  <span class="kw">INNER JOIN</span> <span class="tbl">Bestellung</span> b
+    <span class="kw">ON</span> k.<span class="col">Kd_TelefonNr</span> = b.<span class="col">Kunde</span>
+<span class="kw">GROUP BY</span> <span class="col">Kd_TelefonNr</span>
+<span class="kw">HAVING</span> <span class="fn">COUNT</span>(*) &gt; <span class="num">2</span>
+<span class="kw">ORDER BY</span> <span class="col">Kd_Nachname</span>, <span class="col">Kd_Vorname</span>;</pre>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- AUFGABE D -->
+  <section class="section" id="aufgabe-d">
+    <div class="section-header">
+      <span class="section-num">3d</span>
+      <h2>Durchschnittliche Lieferzeiten je Kurier</h2>
+    </div>
+
+    <div class="task-box">
+      <div class="task-label">📋 Prüfungsaufgabe 3d – Originaltext</div>
+      <p>Schreiben Sie ein SQL-Statement, welches die <strong>durchschnittlichen Lieferzeiten</strong> (Zeit zwischen Übergabe an den Kurier und der Übergabe an den Kunden) für jeden Kurier ermittelt. Es soll nach <strong>Nachnamen der Kuriere</strong> sortiert werden.</p>
+      <div class="note" style="margin-top:12px">
+        <span class="note-icon">ℹ</span>
+        <span>Hinweis der Prüfung: <em>Sie können einfache arithmetische Rechenoperationen mit Datumswerten nutzen.</em></span>
+      </div>
+      <span class="points">8 Punkte</span>
+    </div>
+
+    <div class="section-header" style="margin-top:24px;margin-bottom:12px;">
+      <span class="section-num" style="background:rgba(63,185,80,0.1);border-color:rgba(63,185,80,0.3);color:var(--green)">Beteiligte Tabellen</span>
+      <h2 style="font-size:16px;color:var(--muted)">Wo stehen die Uhrzeiten – und wo der Kuriername?</h2>
+    </div>
+    <div class="schema-wrap" style="margin-bottom:0">
+      <div class="schema-table" style="border-color:var(--yellow)">
+        <div class="tname" style="color:var(--yellow)">Bestellung ← Zeitdaten</div>
+        <ul>
+          <li><span class="pk">PK BestellNr</span></li>
+          <li><span class="fk" style="color:var(--green)">FK2 CourierID</span></li>
+          <li><span class="field">Datum</span></li>
+          <li><span class="field">Bestell_Uhrzeit</span></li>
+          <li><span class="field" style="color:var(--yellow);font-weight:700">UebergabeAnCourier_Uhrzeit ← Start</span></li>
+          <li><span class="field" style="color:var(--yellow);font-weight:700">ZustellungsUhrzeit ← Ende</span></li>
+          <li><span class="field">Rabattbetrag</span></li>
+        </ul>
+      </div>
+      <div style="display:flex;align-items:center;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px;padding:0 8px">
+        CourierID<br>= c.CourierID<br>→ JOIN
+      </div>
+      <div class="schema-table" style="border-color:var(--green)">
+        <div class="tname" style="color:var(--green)">Kurier ← Name für Ausgabe</div>
+        <ul>
+          <li><span class="pk">PK CourierID</span></li>
+          <li><span class="field" style="color:var(--green)">Vorname ← ausgeben</span></li>
+          <li><span class="field" style="color:var(--green)">Nachname ← ausgeben + sortieren</span></li>
+          <li><span class="field">Fahrzeug</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-top:16px">
+      <strong>Was musst du tun?</strong><br><br>
+      ① <strong>Lieferdauer berechnen:</strong> <code>ZustellungsUhrzeit − UebergabeAnCourier_Uhrzeit</code> ergibt die Dauer je Bestellung<br>
+      ② <strong>Durchschnitt bilden:</strong> <code>AVG(...)</code> über alle Bestellungen eines Kuriers<br>
+      ③ <strong>JOIN</strong> – Bestellung mit Kurier verbinden, damit du den Namen des Kuriers ausgeben kannst<br>
+      ④ <strong>GROUP BY c.CourierID</strong> – alle Bestellungen desselben Kuriers zusammenfassen<br>
+      ⑤ <strong>ORDER BY c.Nachname</strong> – alphabetisch nach Nachnamen sortieren<br><br>
+      <strong style="color:var(--green)">Warum GROUP BY CourierID und nicht Nachname?</strong> Zwei Kuriere könnten zufällig denselben Nachnamen haben. Die CourierID ist der eindeutige Schlüssel und verhindert fehlerhafte Gruppierungen.
+    </div>
+
+    <p style="color:var(--muted);font-size:14px;margin-bottom:12px;">Erwartete Ausgabe (Beispiel):</p>
+    <table class="data-table">
+      <tr><th>Vorname</th><th>Nachname</th><th>Durchschnittliche Lieferdauer</th></tr>
+      <tr><td>Jürgen</td><td>Braun</td><td>00:27:30</td></tr>
+      <tr><td>Sandra</td><td>Klein</td><td>00:28:20</td></tr>
+      <tr><td>Florian</td><td>Weber</td><td>00:27:30</td></tr>
+    </table>
+
+    <div class="quiz-block" id="q9">
+      <div class="q-label">✦ Wissens-Check · AVG mit Zeitwerten</div>
+      <div class="q-text">Wie berechnet man die Lieferdauer (Differenz zweier Zeitfelder) korrekt?</div>
+      <div class="options">
+        <button class="option" onclick="answerMC('q9', this, false)"><span class="opt-key">A</span> COUNT(ZustellungsUhrzeit) − COUNT(UebergabeAnCourier_Uhrzeit)</button>
+        <button class="option" onclick="answerMC('q9', this, true)"><span class="opt-key">B</span> AVG(ZustellungsUhrzeit − UebergabeAnCourier_Uhrzeit)</button>
+        <button class="option" onclick="answerMC('q9', this, false)"><span class="opt-key">C</span> SUM(ZustellungsUhrzeit) / MAX(UebergabeAnCourier_Uhrzeit)</button>
+        <button class="option" onclick="answerMC('q9', this, false)"><span class="opt-key">D</span> MIN(ZustellungsUhrzeit − UebergabeAnCourier_Uhrzeit)</button>
+      </div>
+      <div class="feedback" id="q9-fb"></div>
+    </div>
+
+    <div class="quiz-block" id="q10">
+      <div class="q-label">✦ Wissens-Check · GROUP BY Kurier</div>
+      <div class="q-text">Warum muss nach <code>c.CourierID</code> (und nicht nach <code>c.Nachname</code>) gruppiert werden?</div>
+      <div class="options">
+        <button class="option" onclick="answerMC('q10', this, false)"><span class="opt-key">A</span> GROUP BY funktioniert nur mit numerischen IDs, nicht mit Texten</button>
+        <button class="option" onclick="answerMC('q10', this, false)"><span class="opt-key">B</span> Der Nachname wird nicht in der SELECT-Liste aufgeführt</button>
+        <button class="option" onclick="answerMC('q10', this, true)"><span class="opt-key">C</span> Zwei Kuriere könnten denselben Nachnamen haben; die ID ist eindeutig</button>
+        <button class="option" onclick="answerMC('q10', this, false)"><span class="opt-key">D</span> ORDER BY und GROUP BY dürfen nicht dasselbe Feld verwenden</button>
+      </div>
+      <div class="feedback" id="q10-fb"></div>
+    </div>
+
+    <p style="color:var(--muted);font-size:13px;margin: 8px 0 4px;">Musterlösung:</p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-dot" style="background:#f85149"></span><span class="code-dot" style="background:#d29922"></span><span class="code-dot" style="background:#3fb950"></span> aufgabe_3d.sql</div>
+      <pre><span class="kw">SELECT</span> c.<span class="col">Vorname</span>, c.<span class="col">Nachname</span>,
+       <span class="fn">AVG</span>(b.<span class="col">ZustellungsUhrzeit</span> - b.<span class="col">UebergabeAnCourier_Uhrzeit</span>)
+         <span class="kw">AS</span> <span class="str">"Durchschnittliche Lieferdauer"</span>
+<span class="kw">FROM</span> <span class="tbl">Bestellung</span> b
+  <span class="kw">JOIN</span> <span class="tbl">Kurier</span> c
+    <span class="kw">ON</span> b.<span class="col">CourierID</span> = c.<span class="col">CourierID</span>
+<span class="kw">GROUP BY</span> c.<span class="col">CourierID</span>
+<span class="kw">ORDER BY</span> c.<span class="col">Nachname</span>;</pre>
+    </div>
+
+    <div class="note">
+      <span class="note-icon">★</span>
+      <span><strong style="color:var(--purple)">Bonus-Info:</strong> In MariaDB/MySQL liefert die einfache Subtraktion von TIME-Werten eine Dezimalzahl. Für eine formatierte Ausgabe wie <code>00:27:30</code> wäre <code>SEC_TO_TIME(AVG(TIME_TO_SEC(...)))</code> nötig – das wird in der Prüfung aber nicht verlangt.</span>
+    </div>
+
+    <!-- Abschlussfrage -->
+    <div class="quiz-block" id="q11">
+      <div class="q-label">✦ Abschluss-Check · Gesamtüberblick</div>
+      <div class="q-text">Welche der folgenden SQL-Strukturen ist für Aufgabe 3d vollständig korrekt?</div>
+      <div class="options">
+        <button class="option" onclick="answerMC('q11', this, false)">
+          <span class="opt-key">A</span>
+          <span>SELECT … FROM Kurier JOIN Bestellung … GROUP BY Nachname ORDER BY CourierID</span>
+        </button>
+        <button class="option" onclick="answerMC('q11', this, true)">
+          <span class="opt-key">B</span>
+          <span>SELECT … FROM Bestellung JOIN Kurier ON CourierID … GROUP BY c.CourierID ORDER BY c.Nachname</span>
+        </button>
+        <button class="option" onclick="answerMC('q11', this, false)">
+          <span class="opt-key">C</span>
+          <span>SELECT … FROM Bestellung WHERE CourierID = Kurier GROUP BY Nachname HAVING AVG &gt; 0</span>
+        </button>
+        <button class="option" onclick="answerMC('q11', this, false)">
+          <span class="opt-key">D</span>
+          <span>SELECT … FROM Bestellung, Kurier GROUP BY AVG(ZustellungsUhrzeit) ORDER BY Nachname</span>
+        </button>
+      </div>
+      <div class="feedback" id="q11-fb"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ABSCHLUSS -->
+  <section class="section" id="abschluss">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Dein Ergebnis</h2>
+    </div>
+
+    <div class="score-display" id="scoreDisplay">
+      <div class="score-big" id="scoreBig">–</div>
+      <div class="score-label" id="scoreLabel">von 10 Fragen richtig beantwortet</div>
+      <div id="scoreMsg" style="margin-top:16px;color:var(--muted);font-size:14px;"></div>
+      <button class="btn btn-ghost" style="margin-top:24px" onclick="restartQuiz()">↺ Neu starten</button>
+    </div>
+
+    <div id="scoreHint" style="color:var(--muted);font-size:14px;padding:20px;text-align:center;">
+      Beantworte alle 10 Fragen, um dein Ergebnis zu sehen.
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const state = {
+    answered: {},
+    total: 10, // q0..q11 aber q2, q5, q8 sind fill-ins (3 fill-ins + 8 MC = 11 Fragen... count separately)
+    totalMC: 8,   // q0,q1,q3,q4,q6,q7,q9,q10,q11 = 9 MC
+    totalFill: 3, // q2, q5, q8
+    allIds: ['q0','q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11'],
+    score: 0
+  };
+
+  function answerMC(qid, btn, correct) {
+    if (state.answered[qid]) return;
+    state.answered[qid] = correct ? 'correct' : 'wrong';
+
+    const block = document.getElementById(qid);
+    const btns = block.querySelectorAll('.option');
+    btns.forEach(b => { b.disabled = true; });
+
+    if (correct) {
+      btn.classList.add('correct');
+    } else {
+      btn.classList.add('wrong');
+      // highlight correct
+      btns.forEach(b => {
+        if (b.onclick && b.onclick.toString().includes('true')) b.classList.add('correct');
+      });
+    }
+
+    const fb = document.getElementById(qid + '-fb');
+    fb.classList.add('show');
+    if (correct) {
+      fb.classList.add('ok');
+      fb.textContent = '✓ Richtig! Gut gemacht.';
+      state.score++;
+    } else {
+      fb.classList.add('err');
+      fb.textContent = '✗ Leider falsch. Die grün markierte Antwort ist korrekt.';
+    }
+
+    updateProgress();
+    checkAllDone();
+  }
+
+  function checkFill(qid, correctVals, selIds, msgOk, msgErr) {
+    if (state.answered[qid]) return;
+
+    const vals = selIds.map(id => document.getElementById(id).value);
+    const correct = correctVals.every((v, i) => vals[i] === v);
+
+    state.answered[qid] = correct ? 'correct' : 'wrong';
+    if (correct) state.score++;
+
+    const fb = document.getElementById(qid + '-fb');
+    fb.classList.add('show');
+    if (correct) {
+      fb.classList.add('ok');
+      fb.textContent = msgOk;
+    } else {
+      fb.classList.add('err');
+      fb.textContent = msgErr;
+    }
+
+    // disable selects
+    selIds.forEach(id => document.getElementById(id).disabled = true);
+    // disable button
+    const btn = document.querySelector(`#${qid} .btn-primary`);
+    if (btn) btn.disabled = true;
+
+    updateProgress();
+    checkAllDone();
+  }
+
+  function previewBlank(blankSuffix, selId) {
+    const val = document.getElementById(selId).value;
+    const el = document.getElementById('blank-' + blankSuffix);
+    if (el) el.textContent = val || '___';
+  }
+
+  function updateProgress() {
+    const done = Object.keys(state.answered).length;
+    const total = state.allIds.length;
+    const pct = Math.round(done / total * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + ' %';
+  }
+
+  function checkAllDone() {
+    const done = Object.keys(state.answered).length;
+    if (done >= state.allIds.length) {
+      showScore();
+    }
+  }
+
+  function showScore() {
+    const total = state.allIds.length;
+    const s = state.score;
+    document.getElementById('scoreBig').textContent = s + ' / ' + total;
+    document.getElementById('scoreLabel').textContent = 'Fragen richtig beantwortet';
+    const pct = Math.round(s / total * 100);
+    let msg = '';
+    if (pct >= 90) msg = '🏆 Ausgezeichnet – du bist bestens auf die Prüfung vorbereitet!';
+    else if (pct >= 70) msg = '👍 Gut! Noch ein paar Durchläufe und die Prüfung wird ein Erfolg.';
+    else if (pct >= 50) msg = '📚 Solide Basis. Übe besonders die JOIN- und GROUP BY-Konzepte.';
+    else msg = '💪 Nochmal von vorne – mit etwas Übung wirst du das meistern!';
+    document.getElementById('scoreMsg').textContent = msg;
+    document.getElementById('scoreDisplay').classList.add('show');
+    document.getElementById('scoreHint').style.display = 'none';
+    document.getElementById('abschluss').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function restartQuiz() {
+    location.reload();
+  }
+
+  // Nav active highlight on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navChips = document.querySelectorAll('.nav-chip');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 80) current = s.id;
+    });
+    navChips.forEach(c => {
+      c.classList.toggle('active', c.getAttribute('href') === '#' + current);
+    });
+  });
+</script>
+</body>
+</html>

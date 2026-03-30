@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ishikawa-Diagramm – Interaktive Übung | FDPA 2023</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f0f13; --surface:#18181f; --surface2:#22222c; --border:#2e2e3a;
+  --accent:#ff6b35; --accent2:#4ecdc4; --accent3:#ffe66d;
+  --text:#f0eee8; --muted:#8a8898; --success:#4ecdc4; --error:#ff4757;
+  --c-mensch:#ff6b9d; --c-material:#c77dff; --c-maschine:#4cc9f0;
+  --c-management:#f77f00; --c-methode:#4ecdc4; --c-mitwelt:#95d44a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5}
+
+.header{padding:2rem 2.5rem 1.75rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:2rem;background:linear-gradient(135deg,var(--surface) 0%,var(--bg) 100%);position:relative;overflow:hidden}
+.header::after{content:'🐟';position:absolute;right:1.5rem;top:50%;transform:translateY(-50%);font-size:7rem;opacity:.04;pointer-events:none}
+.badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--accent);color:#000;font-family:'Syne',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:.3rem .75rem;border-radius:2px;margin-bottom:.6rem}
+h1{font-family:'Syne',sans-serif;font-size:clamp(1.5rem,2.8vw,2.2rem);font-weight:800;line-height:1.1;letter-spacing:-.02em}
+h1 span{color:var(--accent)}
+.header-meta{font-size:.82rem;color:var(--muted);margin-top:.4rem;font-weight:300}
+.prog-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;min-width:190px;text-align:center;flex-shrink:0}
+.prog-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.35rem;font-family:'Syne',sans-serif;font-weight:600}
+.prog-track{background:var(--border);border-radius:100px;height:5px;overflow:hidden;margin-bottom:.35rem}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:100px;transition:width .6s cubic-bezier(.4,0,.2,1);width:0%}
+.prog-count{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;color:var(--accent2)}
+
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 2.5rem;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:.9rem 1.1rem;font-family:'Syne',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:.4rem}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-num{background:var(--surface2);color:var(--muted);border-radius:50%;width:1.2rem;height:1.2rem;font-size:.6rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.tab.active .tab-num{background:var(--accent);color:#000}
+.tab.done .tab-num{background:var(--success);color:#000}
+
+.main{padding:2rem 2.5rem;max-width:1400px}
+.section{display:none}
+.section.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.4rem;margin-bottom:1.4rem;position:relative}
+.card-accent{border-top:3px solid var(--accent)}
+.card-accent2{border-top:3px solid var(--accent2)}
+.card-accent3{border-top:3px solid var(--accent3)}
+.card h3{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;margin-bottom:.65rem;display:flex;align-items:center;gap:.5rem}
+.card p,.card li{font-size:.85rem;color:#c8c6be;line-height:1.7}
+.card ul{list-style:none;padding:0}
+.card li{padding:.18rem 0;display:flex;gap:.45rem;align-items:flex-start}
+.card li::before{content:'→';color:var(--accent);flex-shrink:0}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.4rem}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}.header{flex-direction:column}.tabs{padding:0 1rem}.main{padding:1.25rem}}
+
+.sec-head{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;margin-bottom:.3rem;display:flex;align-items:center;gap:.6rem}
+.sec-head .pill{font-size:.6rem;background:var(--surface2);border:1px solid var(--border);padding:.15rem .5rem;border-radius:3px;color:var(--muted);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.sec-sub{color:var(--muted);font-size:.82rem;margin-bottom:1.4rem;line-height:1.5}
+
+.tip{background:rgba(255,107,53,.07);border:1px solid rgba(255,107,53,.2);border-radius:8px;padding:.85rem 1.05rem;font-size:.82rem;color:#d0cec6;line-height:1.6;margin-bottom:1.2rem;display:flex;gap:.65rem;align-items:flex-start}
+.tip-i{font-size:1rem;flex-shrink:0}
+.tip2{background:rgba(78,205,196,.06);border-color:rgba(78,205,196,.2)}
+.tip3{background:rgba(255,230,109,.06);border-color:rgba(255,230,109,.2)}
+
+.btn-row{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin-top:1.4rem}
+.btn{padding:.65rem 1.4rem;border-radius:6px;font-family:'Syne',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:.4rem}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:#ff8055;transform:translateY(-1px);box-shadow:0 4px 16px rgba(255,107,53,.3)}
+.btn-secondary{background:transparent;border:1.5px solid var(--border);color:var(--muted)}
+.btn-secondary:hover{border-color:var(--muted);color:var(--text)}
+.btn-success{background:var(--success);color:#000}
+.btn-success:hover{background:#5edcd3;transform:translateY(-1px)}
+
+.feedback{border-radius:8px;padding:1.05rem 1.3rem;margin-top:1.2rem;display:none;animation:fadeUp .35s ease}
+.feedback.show{display:block}
+.feedback.ok{background:rgba(78,205,196,.1);border:1px solid rgba(78,205,196,.3)}
+.feedback.partial{background:rgba(255,230,109,.08);border:1px solid rgba(255,230,109,.25)}
+.feedback.bad{background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.25)}
+.fb-title{font-family:'Syne',sans-serif;font-size:.86rem;font-weight:700;margin-bottom:.38rem;display:flex;align-items:center;gap:.4rem}
+.feedback.ok .fb-title{color:var(--success)}
+.feedback.partial .fb-title{color:var(--accent3)}
+.feedback.bad .fb-title{color:var(--error)}
+.fb-body{font-size:.83rem;line-height:1.65;color:#c8c6be}
+.reveal{background:var(--surface2);border-radius:6px;padding:.85rem;margin-top:.7rem}
+.reveal h5{font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem}
+.chips{display:flex;flex-wrap:wrap;gap:.32rem;margin-bottom:.45rem}
+.chip{padding:.25rem .65rem;border-radius:4px;font-size:.76rem;background:rgba(78,205,196,.15);border:1px solid rgba(78,205,196,.3);color:var(--accent2)}
+.chip-or{background:rgba(255,107,53,.12);border-color:rgba(255,107,53,.3);color:var(--accent)}
+
+/* FISHBONE */
+.fish-wrap{overflow-x:auto;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.4rem;margin-bottom:1.4rem}
+.fish-wrap h4{font-family:'Syne',sans-serif;font-size:.76rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem}
+
+/* AUFGABE A */
+.branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.4rem}
+@media(max-width:700px){.branch-grid{grid-template-columns:1fr}}
+.branch-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.15rem}
+.branch-card h4{font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem;display:flex;align-items:center;gap:.4rem}
+.branch-desc{font-size:.75rem;color:var(--muted);margin-bottom:.8rem;font-style:italic}
+.exist-tags{display:flex;flex-wrap:wrap;gap:.32rem;margin-bottom:.7rem}
+.exist-tag{padding:.25rem .6rem;border-radius:4px;font-size:.73rem;font-weight:500;border:1px solid;opacity:.6}
+.input-row{display:flex;gap:.38rem;margin-bottom:.42rem}
+.u-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.48rem .68rem;font-family:'DM Sans',sans-serif;font-size:.81rem;color:var(--text);outline:none;transition:border-color .2s}
+.u-input:focus{border-color:var(--accent)}
+.u-input::placeholder{color:var(--muted)}
+.add-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.48rem .75rem;color:var(--muted);cursor:pointer;font-size:.9rem;transition:all .2s}
+.add-btn:hover{border-color:var(--accent);color:var(--accent)}
+.user-list{display:flex;flex-wrap:wrap;gap:.32rem;min-height:1.7rem}
+.u-tag{padding:.25rem .6rem;border-radius:4px;font-size:.74rem;font-weight:500;background:var(--surface2);border:1px dashed var(--border);color:var(--text);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.28rem}
+.u-tag:hover{border-color:var(--error);color:var(--error)}
+
+/* AUFGABE B */
+.gm-table{width:100%;border-collapse:collapse;margin-bottom:1.2rem}
+.gm-table th{background:var(--surface2);padding:.7rem .9rem;text-align:left;font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;border:1px solid var(--border);color:var(--muted)}
+.gm-table td{padding:.6rem .85rem;border:1px solid var(--border);vertical-align:top}
+.prob-cell{background:var(--surface);font-weight:600;font-size:.84rem;width:30%}
+.prob-cat{font-size:.66rem;color:var(--muted);font-weight:400;margin-top:.15rem;font-style:italic}
+.ans-cell{background:var(--bg)}
+.m-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:.52rem .78rem;font-family:'DM Sans',sans-serif;font-size:.81rem;color:var(--text);outline:none;transition:border-color .2s;margin-bottom:.32rem}
+.m-input:focus{border-color:var(--accent2)}
+.m-input::placeholder{color:var(--muted)}
+
+/* URSACHENFINDUNG */
+.method-step{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem 1.15rem;margin-bottom:.7rem;display:flex;gap:.9rem;align-items:flex-start}
+.step-num{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--accent);line-height:1;flex-shrink:0;width:1.8rem;text-align:center}
+.step-content h5{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;margin-bottom:.22rem}
+.step-content p{font-size:.81rem;color:#c8c6be;line-height:1.6}
+.step-content .ex{font-size:.77rem;color:var(--accent2);font-style:italic;margin-top:.28rem;background:rgba(78,205,196,.07);border-radius:4px;padding:.22rem .5rem;display:inline-block}
+.w5h-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin-top:.8rem}
+.w5h-card{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.7rem .85rem;text-align:center}
+.w5h-q{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:var(--accent);margin-bottom:.18rem}
+.w5h-label{font-size:.7rem;color:var(--muted)}
+.cat-explain{display:flex;flex-direction:column;gap:.45rem;margin-top:.8rem}
+.cat-row{display:flex;gap:.7rem;align-items:flex-start;padding:.6rem .85rem;background:var(--bg);border:1px solid var(--border);border-radius:6px}
+.cat-badge{font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;padding:.18rem .55rem;border-radius:3px;white-space:nowrap;flex-shrink:0;margin-top:.03rem;border:1px solid}
+.cat-questions{font-size:.78rem;color:#c8c6be;line-height:1.5}
+
+/* BUILD TASK */
+.pool-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:1.2rem}
+.pool-wrap h3{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:.65rem;display:flex;align-items:center;gap:.5rem}
+.pool-label{font-family:'Syne',sans-serif;font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem}
+.pool{display:flex;flex-wrap:wrap;gap:.45rem;background:var(--bg);border:1px dashed var(--border);border-radius:8px;padding:.9rem;min-height:3.2rem}
+.drag-card{padding:.32rem .75rem;border-radius:5px;font-size:.77rem;font-weight:600;cursor:pointer;user-select:none;transition:all .15s;border:1.5px solid;white-space:nowrap}
+.drag-card:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.3)}
+.drag-card.selected-card{outline:2px solid var(--accent2);outline-offset:2px;transform:translateY(-2px)}
+
+.build-slots{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+@media(max-width:700px){.build-slots{grid-template-columns:1fr}}
+.build-branch{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.95rem}
+.build-branch h5{font-family:'Syne',sans-serif;font-size:.76rem;font-weight:700;margin-bottom:.6rem;display:flex;align-items:center;gap:.38rem}
+.drop-zone{min-height:4.2rem;background:var(--surface2);border:1.5px dashed var(--border);border-radius:6px;padding:.45rem;display:flex;flex-wrap:wrap;gap:.32rem;align-content:flex-start;transition:border-color .2s,background .2s;cursor:pointer}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent2);background:rgba(78,205,196,.06)}
+.drop-zone .drag-card{cursor:default}
+.drop-zone .drag-card:hover{transform:none;box-shadow:none}
+.dz-placeholder{font-size:.73rem;color:var(--muted);padding:.25rem .45rem;font-style:italic}
+
+/* QUIZ */
+.quiz-q{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.4rem;margin-bottom:1.15rem;transition:border-color .3s}
+.quiz-q.ok{border-color:rgba(78,205,196,.4)}
+.quiz-q.bad{border-color:rgba(255,71,87,.4)}
+.q-meta{font-family:'Syne',sans-serif;font-size:.63rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.52rem;display:flex;align-items:center;gap:.42rem}
+.q-pts{background:var(--surface2);border-radius:3px;padding:.07rem .42rem;font-size:.6rem;color:var(--accent)}
+.q-text{font-size:.9rem;line-height:1.6;margin-bottom:1.05rem;font-weight:500}
+.q-opts{display:flex;flex-direction:column;gap:.48rem}
+.q-opt{display:flex;align-items:flex-start;gap:.68rem;padding:.72rem .88rem;background:var(--surface2);border:1.5px solid var(--border);border-radius:7px;cursor:pointer;transition:all .15s;font-size:.83rem;line-height:1.5}
+.q-opt:hover:not(.disabled){border-color:var(--accent);background:rgba(255,107,53,.06)}
+.q-opt.sel{border-color:var(--accent);background:rgba(255,107,53,.1)}
+.q-opt.cor{border-color:var(--success)!important;background:rgba(78,205,196,.1)!important;color:var(--success)}
+.q-opt.wrng{border-color:var(--error)!important;background:rgba(255,71,87,.08)!important;color:var(--error)}
+.q-opt.disabled{cursor:default}
+.opt-l{font-family:'Syne',sans-serif;font-size:.66rem;font-weight:700;width:19px;height:19px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s}
+.q-opt.sel .opt-l{background:var(--accent);color:#000}
+.q-opt.cor .opt-l{background:var(--success);color:#000}
+.q-opt.wrng .opt-l{background:var(--error);color:#fff}
+.q-fb{margin-top:.8rem;padding:.62rem .88rem;border-radius:6px;font-size:.8rem;line-height:1.6;display:none}
+.q-fb.show{display:block;animation:fadeUp .3s ease}
+.q-fb.ok{background:rgba(78,205,196,.1);color:var(--success)}
+.q-fb.bad{background:rgba(255,71,87,.08);color:#ff6b75}
+
+.score-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2.3rem;text-align:center;max-width:460px;margin:1.4rem auto;display:none;animation:fadeUp .5s ease}
+.score-card.show{display:block}
+.score-big{font-family:'Syne',sans-serif;font-size:4.2rem;font-weight:800;line-height:1;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.2rem}
+.score-lbl{color:var(--muted);font-size:.8rem;margin-bottom:1.15rem}
+.score-grade{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;padding:.42rem 1.3rem;border-radius:6px;display:inline-block;margin-bottom:.8rem}
+
+/* COLOR HELPERS */
+.c-mensch{color:var(--c-mensch);border-color:var(--c-mensch)}
+.c-material{color:var(--c-material);border-color:var(--c-material)}
+.c-maschine{color:var(--c-maschine);border-color:var(--c-maschine)}
+.c-management{color:var(--c-management);border-color:var(--c-management)}
+.c-methode{color:var(--c-methode);border-color:var(--c-methode)}
+.c-mitwelt{color:var(--c-mitwelt);border-color:var(--c-mitwelt)}
+.bg-mensch{background:rgba(255,107,157,.12)}
+.bg-material{background:rgba(199,125,255,.12)}
+.bg-maschine{background:rgba(76,201,240,.12)}
+.bg-management{background:rgba(247,127,0,.12)}
+.bg-methode{background:rgba(78,205,196,.12)}
+.bg-mitwelt{background:rgba(149,212,74,.12)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-mensch{background:var(--c-mensch)}.dot-material{background:var(--c-material)}
+.dot-maschine{background:var(--c-maschine)}.dot-management{background:var(--c-management)}
+.dot-methode{background:var(--c-methode)}.dot-mitwelt{background:var(--c-mitwelt)}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="badge">🐟 FDPA Prüfungsvorbereitung · Abschlussprüfung Sommer 2023</div>
+    <h1>Ishikawa <span>Ursache-Wirkungs</span>-Diagramm</h1>
+    <div class="header-meta">Aufgabe 3 · 21 Punkte · Fitnessstudio Smartfit</div>
+  </div>
+  <div class="prog-wrap">
+    <div class="prog-label">Lernfortschritt</div>
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-count" id="progCount">0 / 6 abgeschlossen</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="goTab(0)" id="tab0"><span class="tab-num" id="tn0">1</span> Theorie &amp; Aufbau</button>
+  <button class="tab" onclick="goTab(1)" id="tab1"><span class="tab-num" id="tn1">2</span> Ursachen finden</button>
+  <button class="tab" onclick="goTab(2)" id="tab2"><span class="tab-num" id="tn2">3</span> Aufg. a) Ursachen</button>
+  <button class="tab" onclick="goTab(3)" id="tab3"><span class="tab-num" id="tn3">4</span> Aufg. b) Gegenmaßn.</button>
+  <button class="tab" onclick="goTab(4)" id="tab4"><span class="tab-num" id="tn4">5</span> Diagramm bauen</button>
+  <button class="tab" onclick="goTab(5)" id="tab5"><span class="tab-num" id="tn5">6</span> Quiz</button>
+</div>
+
+<div class="main">
+
+<!-- ============================================================ TAB 0 ============================================================ -->
+<div class="section active" id="s0">
+  <div class="sec-head">📖 Theorie: Das Ishikawa-Diagramm <span class="pill">Grundlagen</span></div>
+  <div class="sec-sub">Verstehe den Aufbau, bevor du die Prüfungsaufgaben bearbeitest.</div>
+
+  <div class="grid2">
+    <div class="card card-accent">
+      <h3>🎯 Was ist das Ishikawa-Diagramm?</h3>
+      <p>Das <strong>Ishikawa-Diagramm</strong> (auch: <em>Fischgräten-</em> oder <em>Ursache-Wirkungs-Diagramm</em>) ist ein Werkzeug zur strukturierten Problemanalyse im Qualitätsmanagement, entwickelt von <strong>Kaoru Ishikawa</strong>.</p>
+      <ul style="margin-top:.6rem">
+        <li>Zeigt alle möglichen Ursachen eines Problems</li>
+        <li>Strukturiert nach thematischen Kategorien (die „Gräten")</li>
+        <li>Problem steht rechts – Ursachen kommen von links</li>
+        <li>Fördert strukturiertes Teamdenken bei der Analyse</li>
+        <li>Ergebnis: Priorisierung der wahrscheinlichsten Ursachen</li>
+      </ul>
+    </div>
+    <div class="card card-accent2">
+      <h3>🏗️ Die 6M-Kategorien im Überblick</h3>
+      <div class="cat-explain">
+        <div class="cat-row"><span class="cat-badge bg-mensch c-mensch">👤 Mensch</span><span class="cat-questions">Mitarbeiter, Trainer – Verhalten, Kompetenz, Motivation</span></div>
+        <div class="cat-row"><span class="cat-badge bg-material c-material">📦 Material</span><span class="cat-questions">Werbung, Verträge, Formulare, Arbeitsmittel</span></div>
+        <div class="cat-row"><span class="cat-badge bg-maschine c-maschine">⚙️ Maschine</span><span class="cat-questions">Geräte, Technik, Anlagen, Software</span></div>
+        <div class="cat-row"><span class="cat-badge bg-management c-management">📋 Management</span><span class="cat-questions">Führung, Entscheidungen, Organisation</span></div>
+        <div class="cat-row"><span class="cat-badge bg-methode c-methode">🔧 Methode</span><span class="cat-questions">Prozesse, Abläufe, Vorgehensweisen</span></div>
+        <div class="cat-row"><span class="cat-badge bg-mitwelt c-mitwelt">🌍 Mitwelt</span><span class="cat-questions">Standort, Ruf, Wettbewerb, externe Faktoren</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROPER FISHBONE SVG -->
+  <div class="fish-wrap">
+    <h4>🐟 Das Fischgrätendiagramm – Smartfit: Problem „Desinteresse"</h4>
+    <div style="overflow-x:auto">
+      <svg viewBox="0 0 960 430" width="960" style="max-width:100%;display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="sp" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#ff6b35"/></marker>
+          <marker id="sub" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#555"/></marker>
+        </defs>
+
+        <!-- === SPINE / WIRBELSÄULE === -->
+        <line x1="70" y1="215" x2="840" y2="215" stroke="#ff6b35" stroke-width="3.5" marker-end="url(#sp)"/>
+        <!-- Fish tail -->
+        <polygon points="70,215 105,188 105,242" fill="rgba(255,107,53,.15)" stroke="#ff6b35" stroke-width="1.8"/>
+
+        <!-- === PROBLEM BOX === -->
+        <rect x="848" y="184" width="100" height="62" rx="7" fill="rgba(255,107,53,.18)" stroke="#ff6b35" stroke-width="2"/>
+        <text x="898" y="207" text-anchor="middle" fill="#ff6b35" font-family="Syne,sans-serif" font-size="12" font-weight="800">Desin-</text>
+        <text x="898" y="222" text-anchor="middle" fill="#ff6b35" font-family="Syne,sans-serif" font-size="12" font-weight="800">teresse</text>
+        <text x="898" y="237" text-anchor="middle" fill="#ff6b35" font-family="DM Sans,sans-serif" font-size="9" opacity=".65">← Wirkung</text>
+
+        <!-- ========= TOP BRANCHES (oben schräg nach rechts) ========= -->
+        <!-- TOP-1: MENSCH — anchor x=200 -->
+        <line x1="200" y1="215" x2="140" y2="85" stroke="#ff6b9d" stroke-width="3"/>
+        <rect x="65" y="60" width="98" height="28" rx="6" fill="rgba(255,107,157,.22)" stroke="#ff6b9d" stroke-width="1.8"/>
+        <text x="114" y="79" text-anchor="middle" fill="#ff6b9d" font-family="Syne,sans-serif" font-size="12" font-weight="700">Mensch</text>
+        <!-- sub: Unmotiv. Trainer -->
+        <line x1="186" y1="196" x2="158" y2="136" stroke="#ff6b9d" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="152" y="132" text-anchor="end" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Unmotiv. Trainer</text>
+        <!-- sub: Abomodell kompl. -->
+        <line x1="177" y1="203" x2="148" y2="160" stroke="#ff6b9d" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="142" y="156" text-anchor="end" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Abomodell kompl.</text>
+        <!-- sub: Kein Nachhaken -->
+        <line x1="168" y1="209" x2="145" y2="182" stroke="#ff6b9d" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="138" y="178" text-anchor="end" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Kein Nachhaken</text>
+        <!-- musterlösung hints -->
+        <text x="212" y="128" fill="#ff6b9d" font-family="DM Sans,sans-serif" font-size="9" opacity=".5" font-style="italic">+ Wenig Information</text>
+        <text x="212" y="144" fill="#ff6b9d" font-family="DM Sans,sans-serif" font-size="9" opacity=".5" font-style="italic">+ Zeitdruck / Stress</text>
+        <text x="212" y="160" fill="#ff6b9d" font-family="DM Sans,sans-serif" font-size="9" opacity=".5" font-style="italic">+ Konflikte</text>
+
+        <!-- TOP-2: MATERIAL — anchor x=430 -->
+        <line x1="430" y1="215" x2="388" y2="85" stroke="#c77dff" stroke-width="3"/>
+        <rect x="330" y="60" width="98" height="28" rx="6" fill="rgba(199,125,255,.22)" stroke="#c77dff" stroke-width="1.8"/>
+        <text x="379" y="79" text-anchor="middle" fill="#c77dff" font-family="Syne,sans-serif" font-size="12" font-weight="700">Material</text>
+        <!-- sub: Schlechte Flyer -->
+        <line x1="419" y1="196" x2="398" y2="136" stroke="#c77dff" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="392" y="132" text-anchor="end" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Schlechte Flyer</text>
+        <!-- sub: Vertragsbindung -->
+        <line x1="410" y1="204" x2="394" y2="163" stroke="#c77dff" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="388" y="159" text-anchor="end" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Vertragsbindung</text>
+
+        <!-- TOP-3: MASCHINE — anchor x=650 -->
+        <line x1="650" y1="215" x2="628" y2="85" stroke="#4cc9f0" stroke-width="3"/>
+        <rect x="575" y="60" width="100" height="28" rx="6" fill="rgba(76,201,240,.22)" stroke="#4cc9f0" stroke-width="1.8"/>
+        <text x="625" y="79" text-anchor="middle" fill="#4cc9f0" font-family="Syne,sans-serif" font-size="12" font-weight="700">Maschine</text>
+        <!-- sub: Geräte im schl. Zust. -->
+        <line x1="643" y1="196" x2="634" y2="136" stroke="#4cc9f0" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="628" y="132" text-anchor="end" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Geräte schl. Zust.</text>
+        <!-- sub: Alte Geräte -->
+        <line x1="646" y1="204" x2="636" y2="160" stroke="#4cc9f0" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="630" y="156" text-anchor="end" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Alte Geräte</text>
+        <!-- sub: Verschleiß -->
+        <line x1="648" y1="209" x2="637" y2="178" stroke="#4cc9f0" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="631" y="175" text-anchor="end" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Verschleiß</text>
+
+        <!-- ========= BOTTOM BRANCHES (unten schräg nach rechts) ========= -->
+        <!-- BOTTOM-1: MANAGEMENT — anchor x=310 -->
+        <line x1="310" y1="215" x2="262" y2="345" stroke="#f77f00" stroke-width="3"/>
+        <rect x="178" y="336" width="118" height="28" rx="6" fill="rgba(247,127,0,.22)" stroke="#f77f00" stroke-width="1.8"/>
+        <text x="237" y="355" text-anchor="middle" fill="#f77f00" font-family="Syne,sans-serif" font-size="12" font-weight="700">Management</text>
+        <!-- sub: Fehlende Komm. -->
+        <line x1="295" y1="232" x2="272" y2="298" stroke="#f77f00" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="280" y="295" text-anchor="start" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Fehl. Kommunikation</text>
+        <!-- sub: Kein Nachhaken -->
+        <line x1="299" y1="225" x2="279" y2="270" stroke="#f77f00" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="287" y="267" text-anchor="start" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Kein Nachhaken</text>
+        <!-- sub: Abomodell -->
+        <line x1="302" y1="220" x2="284" y2="248" stroke="#f77f00" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="292" y="245" text-anchor="start" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Abomodell kompl.</text>
+
+        <!-- BOTTOM-2: METHODE — anchor x=530 -->
+        <line x1="530" y1="215" x2="498" y2="345" stroke="#4ecdc4" stroke-width="3"/>
+        <rect x="432" y="336" width="98" height="28" rx="6" fill="rgba(78,205,196,.22)" stroke="#4ecdc4" stroke-width="1.8"/>
+        <text x="481" y="355" text-anchor="middle" fill="#4ecdc4" font-family="Syne,sans-serif" font-size="12" font-weight="700">Methode</text>
+        <!-- sub: Fehlende Prozesse -->
+        <line x1="517" y1="232" x2="503" y2="298" stroke="#4ecdc4" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="510" y="295" text-anchor="start" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Fehlende Prozesse</text>
+        <!-- sub: Probetraining verf. -->
+        <line x1="521" y1="225" x2="507" y2="266" stroke="#4ecdc4" stroke-width="1.3" stroke-dasharray="5,2.5" marker-end="url(#sub)"/>
+        <text x="514" y="263" text-anchor="start" fill="#ccc" font-family="DM Sans,sans-serif" font-size="9.5">Probetraining vergessen</text>
+
+        <!-- BOTTOM-3: MITWELT — anchor x=750 -->
+        <line x1="750" y1="215" x2="728" y2="345" stroke="#95d44a" stroke-width="3"/>
+        <rect x="672" y="336" width="98" height="28" rx="6" fill="rgba(149,212,74,.22)" stroke="#95d44a" stroke-width="1.8"/>
+        <text x="721" y="355" text-anchor="middle" fill="#95d44a" font-family="Syne,sans-serif" font-size="12" font-weight="700">Mitwelt</text>
+        <!-- musterlösung hints -->
+        <text x="756" y="305" fill="#95d44a" font-family="DM Sans,sans-serif" font-size="9" opacity=".5" font-style="italic">+ Standort</text>
+        <text x="756" y="290" fill="#95d44a" font-family="DM Sans,sans-serif" font-size="9" opacity=".5" font-style="italic">+ Schlechter Ruf</text>
+        <text x="756" y="275" fill="#95d44a" font-family="DM Sans,sans-serif" font-size="9" opacity=".5" font-style="italic">+ Schlechtes Logo</text>
+
+        <!-- LEGEND bar -->
+        <rect x="0" y="400" width="960" height="1" fill="#2a2a35"/>
+        <circle cx="30" cy="416" r="4" fill="#ff6b9d"/><text x="40" y="420" fill="#555" font-family="DM Sans,sans-serif" font-size="9">Mensch</text>
+        <circle cx="110" cy="416" r="4" fill="#c77dff"/><text x="120" y="420" fill="#555" font-family="DM Sans,sans-serif" font-size="9">Material</text>
+        <circle cx="190" cy="416" r="4" fill="#4cc9f0"/><text x="200" y="420" fill="#555" font-family="DM Sans,sans-serif" font-size="9">Maschine</text>
+        <circle cx="278" cy="416" r="4" fill="#f77f00"/><text x="288" y="420" fill="#555" font-family="DM Sans,sans-serif" font-size="9">Management</text>
+        <circle cx="385" cy="416" r="4" fill="#4ecdc4"/><text x="395" y="420" fill="#555" font-family="DM Sans,sans-serif" font-size="9">Methode</text>
+        <circle cx="460" cy="416" r="4" fill="#95d44a"/><text x="470" y="420" fill="#555" font-family="DM Sans,sans-serif" font-size="9">Mitwelt</text>
+        <text x="580" y="420" fill="#444" font-family="DM Sans,sans-serif" font-size="9" font-style="italic">Blass/kursiv = Musterlösung-Ergänzungen · Gestrichelt = Nebenäste</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="tip tip2">
+    <span class="tip-i">📐</span>
+    <span><strong>Fischgräten-Aufbau erklärt:</strong> Der horizontale Hauptpfeil (Wirbelsäule) zeigt auf das Problem rechts (Fischkopf). Oben und unten gehen dicke schräge Linien ab – die Hauptgräten (Kategorien). Von jeder Hauptgräte gehen dünne gestrichelte Nebenäste ab – das sind die konkreten Ursachen. Genau wie ein echtes Fischskelett!</span>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="goTab(1);done(0)">Weiter: Ursachen finden →</button>
+  </div>
+</div>
+
+<!-- ============================================================ TAB 1 ============================================================ -->
+<div class="section" id="s1">
+  <div class="sec-head">🔎 Wie findet man die richtigen Ursachen? <span class="pill">Methodik</span></div>
+  <div class="sec-sub">Lerne die systematische Vorgehensweise – damit du bei jeder Prüfungsaufgabe strukturiert vorgehst.</div>
+
+  <div class="tip tip3">
+    <span class="tip-i">💡</span>
+    <span>Das Diagramm allein findet keine Ursachen – du musst aktiv und strukturiert danach suchen. Diese Methoden helfen dir dabei.</span>
+  </div>
+
+  <div class="card card-accent" style="margin-bottom:1.2rem">
+    <h3>🪜 Schritt-für-Schritt: Die 5 Schritte zur Ursachenfindung</h3>
+    <div class="method-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h5>Problem präzise definieren</h5>
+        <p>Formuliere das Problem als konkretes, messbares Ergebnis. Je schärfer, desto gezielter die Ursachensuche.</p>
+        <span class="ex">✓ „Potenzielle Neukunden zeigen Desinteresse am Fitnessstudio Smartfit"</span>
+      </div>
+    </div>
+    <div class="method-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h5>Kategorien als Suchrahmen nutzen</h5>
+        <p>Gehe jeden der 6 Äste (6M) systematisch durch. Frage für jede Kategorie: <em>„Welche Aspekte könnten zu unserem Problem beitragen?"</em></p>
+        <span class="ex">Für «Mensch»: Sind Mitarbeiter motiviert? Haben sie Zeit? Sind sie gut informiert?</span>
+      </div>
+    </div>
+    <div class="method-step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h5>Die 5-Why-Methode: Fünfmal „Warum?" fragen</h5>
+        <p>Frage immer weiter „Warum?", bis du zur Wurzelursache gelangst. Oberflächliche Ursachen sind oft nur Symptome!</p>
+        <span class="ex">Warum kein Probetraining? → Kunde vergessen. Warum? → Kein Erinnerungsprozess. Warum? → Fehlende Prozesse! ← echte Ursache</span>
+      </div>
+    </div>
+    <div class="method-step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h5>W-Fragen pro Kategorie stellen</h5>
+        <p>Diese Fragewörter helfen dir, Ursachen pro Kategorie aufzudecken:</p>
+        <div class="w5h-grid">
+          <div class="w5h-card"><div class="w5h-q">Wer?</div><div class="w5h-label">→ Mensch / Management</div></div>
+          <div class="w5h-card"><div class="w5h-q">Was?</div><div class="w5h-label">→ Material / Methode</div></div>
+          <div class="w5h-card"><div class="w5h-q">Womit?</div><div class="w5h-label">→ Maschine / Material</div></div>
+          <div class="w5h-card"><div class="w5h-q">Wo?</div><div class="w5h-label">→ Mitwelt / Maschine</div></div>
+          <div class="w5h-card"><div class="w5h-q">Wann?</div><div class="w5h-label">→ Methode / Mitwelt</div></div>
+          <div class="w5h-card"><div class="w5h-q">Wie?</div><div class="w5h-label">→ Methode / Management</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="method-step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h5>Ursachen korrekt zuordnen</h5>
+        <p>Wenn eine Ursache in mehrere Kategorien passen könnte: Frage „Wo liegt der Ursprung?" – bei einer Person, einem Prozess, einem Objekt oder einem externen Faktor?</p>
+        <span class="ex">„Fehlende Kommunikation" liegt im Management (nicht Mensch), weil es eine Führungsaufgabe ist, Kommunikationswege zu definieren.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-accent2">
+    <h3>🗂️ Leitfragen pro Kategorie – angewendet auf Smartfit</h3>
+    <div class="cat-explain">
+      <div class="cat-row"><span class="cat-badge bg-mensch c-mensch">👤 Mensch</span><span class="cat-questions"><strong>Leitfragen:</strong> Sind Trainer motiviert? Haben Mitarbeiter Zeit? Sind sie gut informiert? Gibt es Konflikte?<br><em style="color:var(--c-mensch)">→ Ursachen: Unmotivierte Trainer, Zeitdruck, Wenig Information, Konflikte, Stress</em></span></div>
+      <div class="cat-row"><span class="cat-badge bg-material c-material">📦 Material</span><span class="cat-questions"><strong>Leitfragen:</strong> Sind Flyer ansprechend? Schreckt der Vertrag ab? Ist die Werbung klar?<br><em style="color:var(--c-material)">→ Ursachen: Schlechte Flyer, Vertragsbindung</em></span></div>
+      <div class="cat-row"><span class="cat-badge bg-maschine c-maschine">⚙️ Maschine</span><span class="cat-questions"><strong>Leitfragen:</strong> Sind Geräte modern? Sind sie in gutem Zustand? Wirkt das Studio veraltet?<br><em style="color:var(--c-maschine)">→ Ursachen: Alte Geräte, Verschleiß, Geräte im schlechten Zustand</em></span></div>
+      <div class="cat-row"><span class="cat-badge bg-management c-management">📋 Management</span><span class="cat-questions"><strong>Leitfragen:</strong> Gibt es klare Prozesse? Werden Interessenten nachverfolgt? Kommuniziert das Team?<br><em style="color:var(--c-management)">→ Ursachen: Fehlende Kommunikation, Kein Nachhaken</em></span></div>
+      <div class="cat-row"><span class="cat-badge bg-methode c-methode">🔧 Methode</span><span class="cat-questions"><strong>Leitfragen:</strong> Ist der Ablauf Erstkontakt → Probetraining → Vertrag definiert? Wird er eingehalten?<br><em style="color:var(--c-methode)">→ Ursachen: Fehlende Prozesse, Probetraining vergessen</em></span></div>
+      <div class="cat-row"><span class="cat-badge bg-mitwelt c-mitwelt">🌍 Mitwelt</span><span class="cat-questions"><strong>Leitfragen:</strong> Ist der Standort gut? Wie ist der Ruf des Studios? Gibt es starke Konkurrenz?<br><em style="color:var(--c-mitwelt)">→ Ursachen: Schlechter Standort, schlechter Ruf, schlechtes Logo</em></span></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="goTab(2);done(1)">Weiter: Aufgabe a) →</button>
+    <button class="btn btn-secondary" onclick="goTab(0)">← Zurück zur Theorie</button>
+  </div>
+</div>
+
+<!-- ============================================================ TAB 2 ============================================================ -->
+<div class="section" id="s2">
+  <div class="sec-head">✏️ Aufgabe a) – Ursachen ergänzen <span class="pill">6 Punkte</span></div>
+  <div class="sec-sub">Ergänze jeweils drei Problemursachen für die Zweige «Mensch» und «Mitwelt».</div>
+  <div class="card" style="border-left:3px solid var(--accent3);border-radius:0 8px 8px 0;padding:1rem 1.15rem;margin-bottom:1.15rem">
+    <p style="font-size:.85rem;line-height:1.7;color:#d0cec6"><strong style="color:var(--accent3)">Aufgabenstellung (Original):</strong> Ergänzen Sie jeweils drei Problemursachen für die Zweige «Mensch» und «Mitwelt» in dem Ishikawa-Diagramm. <strong>6 Punkte</strong></p>
+  </div>
+  <div class="tip"><span class="tip-i">💡</span><span>Nutze die Leitfragen aus Tab 2! Für «Mensch»: Wie verhalten sich Mitarbeiter? Für «Mitwelt»: Was beeinflusst das Studio von außen? Klicke ein Tag an, um es zu löschen.</span></div>
+  <div class="branch-grid">
+    <div class="branch-card">
+      <h4><span class="dot dot-mensch"></span><span style="color:var(--c-mensch)">👤 Mensch</span></h4>
+      <div class="branch-desc">Mitarbeiter, Trainer, Kundenberater</div>
+      <div class="exist-tags">
+        <span class="exist-tag c-mensch">Unmotiv. Trainer ✓</span>
+        <span class="exist-tag c-mensch">Abomodell kompl. ✓</span>
+        <span class="exist-tag c-mensch">Kein Nachhaken ✓</span>
+      </div>
+      <p style="font-size:.73rem;color:var(--muted);margin-bottom:.52rem">↓ Deine 3 neuen Ursachen:</p>
+      <div class="input-row"><input class="u-input" id="inp-mensch" placeholder="z.B. Zeitdruck …" onkeydown="if(event.key==='Enter')addU('mensch')"><button class="add-btn" onclick="addU('mensch')">＋</button></div>
+      <div class="user-list" id="list-mensch"></div>
+    </div>
+    <div class="branch-card">
+      <h4><span class="dot dot-mitwelt"></span><span style="color:var(--c-mitwelt)">🌍 Mitwelt</span></h4>
+      <div class="branch-desc">Standort, Umfeld, Ruf, externe Faktoren</div>
+      <div class="exist-tags"><span class="exist-tag c-mitwelt">(noch leer im Diagramm)</span></div>
+      <p style="font-size:.73rem;color:var(--muted);margin-bottom:.52rem">↓ Deine 3 Ursachen:</p>
+      <div class="input-row"><input class="u-input" id="inp-mitwelt" placeholder="z.B. Schlechter Standort …" onkeydown="if(event.key==='Enter')addU('mitwelt')"><button class="add-btn" onclick="addU('mitwelt')">＋</button></div>
+      <div class="user-list" id="list-mitwelt"></div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="checkA()">🔍 Antworten prüfen</button>
+    <button class="btn btn-secondary" onclick="goTab(1)">← Zurück</button>
+  </div>
+  <div class="feedback" id="fbA">
+    <div class="fb-title" id="fbAT"></div>
+    <div class="fb-body" id="fbAB"></div>
+    <div class="reveal">
+      <h5>✅ Musterlösung (IHK-Lösungshinweise)</h5>
+      <p style="font-size:.77rem;color:var(--muted);margin-bottom:.42rem">Mensch:</p>
+      <div class="chips"><span class="chip">Wenig Information</span><span class="chip">Konflikte</span><span class="chip">Zeitdruck</span><span class="chip">Stress</span><span class="chip chip-or">+ weitere sinnvolle Antworten ✓</span></div>
+      <p style="font-size:.77rem;color:var(--muted);margin:.52rem 0 .42rem">Mitwelt:</p>
+      <div class="chips"><span class="chip">Standort</span><span class="chip">Schlechter Ruf</span><span class="chip">Zeitpunkt des Probetrainings</span><span class="chip">Schlechtes Logo</span><span class="chip chip-or">+ weitere sinnvolle Antworten ✓</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TAB 3 ============================================================ -->
+<div class="section" id="s3">
+  <div class="sec-head">🛡️ Aufgabe b) – Gegenmaßnahmen <span class="pill">4 Punkte</span></div>
+  <div class="sec-sub">Nenne je zwei Gegenmaßnahmen für die angegebenen Problemursachen.</div>
+  <div class="card" style="border-left:3px solid var(--accent3);border-radius:0 8px 8px 0;padding:1rem 1.15rem;margin-bottom:1.15rem">
+    <p style="font-size:.85rem;line-height:1.7;color:#d0cec6"><strong style="color:var(--accent3)">Aufgabenstellung (Original):</strong> Nennen Sie je zwei Gegenmaßnahmen für «Fehlende Kommunikation» (Zweig Management) und «Vertragsbindung» (Zweig Material). <strong>4 Punkte</strong></p>
+  </div>
+  <div class="tip tip2"><span class="tip-i">💡</span><span>Gegenmaßnahmen müssen <strong>direkt auf die Ursache wirken</strong>. Frage dich: „Was könnte die Ursache beseitigen oder abschwächen?" – nicht: „Was löst das Gesamtproblem?"</span></div>
+  <table class="gm-table">
+    <thead><tr><th>Problemursache</th><th>Gegenmaßnahme 1</th><th>Gegenmaßnahme 2</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prob-cell">«Fehlende Kommunikation»<div class="prob-cat">Zweig: Management 📋</div></td>
+        <td class="ans-cell"><input class="m-input" id="k1" placeholder="z.B. Transparenz schaffen …"></td>
+        <td class="ans-cell"><input class="m-input" id="k2" placeholder="z.B. Verbindliche Absprachen …"></td>
+      </tr>
+      <tr>
+        <td class="prob-cell">«Vertragsbindung»<div class="prob-cat">Zweig: Material 📦</div></td>
+        <td class="ans-cell"><input class="m-input" id="v1" placeholder="z.B. Flexibles Abomodell …"></td>
+        <td class="ans-cell"><input class="m-input" id="v2" placeholder="z.B. Monatlich kündbar …"></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="checkB()">🔍 Antworten prüfen</button>
+    <button class="btn btn-secondary" onclick="goTab(2)">← Zurück</button>
+  </div>
+  <div class="feedback" id="fbB">
+    <div class="fb-title" id="fbBT"></div>
+    <div class="fb-body" id="fbBB"></div>
+    <div class="reveal">
+      <h5>✅ Musterlösung (IHK)</h5>
+      <p style="font-size:.77rem;color:var(--muted);margin-bottom:.42rem">«Fehlende Kommunikation» (Management):</p>
+      <div class="chips"><span class="chip">Transparenz schaffen</span><span class="chip">Nachvollziehbarkeit von Entscheidungen</span><span class="chip">Verbindlichkeit</span></div>
+      <p style="font-size:.77rem;color:var(--muted);margin:.52rem 0 .42rem">«Vertragsbindung» (Material):</p>
+      <div class="chips"><span class="chip">Flexibles Abomodell</span><span class="chip">Monatliche Kündigung</span><span class="chip">Rabattmodelle</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TAB 4 – NEUE AUFGABE ============================================================ -->
+<div class="section" id="s4">
+  <div class="sec-head">🏗️ Diagramm selbst bauen <span class="pill">Neue Übungsaufgabe</span></div>
+  <div class="sec-sub">Ein neues Szenario – ordne die Ursachen den richtigen Kategorien zu!</div>
+
+  <div class="tip tip2">
+    <span class="tip-i">🛒</span>
+    <span><strong>Szenario: Online-Shop „QuickBuy"</strong> – Problem: <strong style="color:var(--accent)">„Hohe Abbruchrate beim Checkout"</strong>. Viele Kunden legen Produkte in den Warenkorb, kaufen aber nicht ab. Klicke eine Ursachenkarte an (sie leuchtet auf), dann klicke die passende Kategorie unten. Klicke eine Karte in einer Kategorie, um sie zurückzulegen.</span>
+  </div>
+
+  <!-- Mini fish diagram for this scenario -->
+  <div class="fish-wrap" style="padding:1rem 1.2rem">
+    <h4>🐟 Problem: „Hohe Abbruchrate beim Checkout" (Online-Shop QuickBuy)</h4>
+    <svg viewBox="0 0 760 95" width="760" style="max-width:100%;display:block" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="sp2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#ff6b35"/></marker></defs>
+      <line x1="45" y1="47" x2="648" y2="47" stroke="#ff6b35" stroke-width="3" marker-end="url(#sp2)"/>
+      <polygon points="45,47 74,30 74,64" fill="rgba(255,107,53,.15)" stroke="#ff6b35" stroke-width="1.5"/>
+      <rect x="655" y="22" width="100" height="50" rx="6" fill="rgba(255,107,53,.18)" stroke="#ff6b35" stroke-width="1.8"/>
+      <text x="705" y="43" text-anchor="middle" fill="#ff6b35" font-family="Syne,sans-serif" font-size="10" font-weight="800">Hohe</text>
+      <text x="705" y="57" text-anchor="middle" fill="#ff6b35" font-family="Syne,sans-serif" font-size="10" font-weight="800">Abbruchrate</text>
+      <!-- top stubs -->
+      <line x1="165" y1="47" x2="138" y2="14" stroke="#ff6b9d" stroke-width="2.2"/>
+      <text x="138" y="10" text-anchor="middle" fill="#ff6b9d" font-family="Syne,sans-serif" font-size="10" font-weight="700">Mensch</text>
+      <line x1="340" y1="47" x2="317" y2="14" stroke="#c77dff" stroke-width="2.2"/>
+      <text x="317" y="10" text-anchor="middle" fill="#c77dff" font-family="Syne,sans-serif" font-size="10" font-weight="700">Material</text>
+      <line x1="510" y1="47" x2="495" y2="14" stroke="#4cc9f0" stroke-width="2.2"/>
+      <text x="495" y="10" text-anchor="middle" fill="#4cc9f0" font-family="Syne,sans-serif" font-size="10" font-weight="700">Maschine</text>
+      <!-- bottom stubs -->
+      <line x1="240" y1="47" x2="214" y2="80" stroke="#f77f00" stroke-width="2.2"/>
+      <text x="214" y="90" text-anchor="middle" fill="#f77f00" font-family="Syne,sans-serif" font-size="10" font-weight="700">Management</text>
+      <line x1="420" y1="47" x2="398" y2="80" stroke="#4ecdc4" stroke-width="2.2"/>
+      <text x="398" y="90" text-anchor="middle" fill="#4ecdc4" font-family="Syne,sans-serif" font-size="10" font-weight="700">Methode</text>
+      <line x1="592" y1="47" x2="578" y2="80" stroke="#95d44a" stroke-width="2.2"/>
+      <text x="578" y="90" text-anchor="middle" fill="#95d44a" font-family="Syne,sans-serif" font-size="10" font-weight="700">Mitwelt</text>
+    </svg>
+  </div>
+
+  <div class="pool-wrap">
+    <h3>🃏 Ursachen-Karten <span style="font-size:.75rem;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400">– klicke eine Karte, dann klicke die Ziel-Kategorie</span></h3>
+    <div class="pool-label">Noch zuzuordnen:</div>
+    <div class="pool" id="pool"></div>
+    <p style="font-size:.73rem;color:var(--muted);margin-top:.45rem" id="poolHint">Wähle eine Karte aus, dann klicke auf die gewünschte Kategorie unten.</p>
+  </div>
+
+  <div class="build-slots">
+    <div class="build-branch">
+      <h5><span class="dot dot-mensch"></span><span style="color:var(--c-mensch)">👤 Mensch</span></h5>
+      <div class="drop-zone" id="dz-mensch" onclick="dropHere('mensch')"><span class="dz-placeholder">Klicke hier nach Kartenauswahl …</span></div>
+    </div>
+    <div class="build-branch">
+      <h5><span class="dot dot-material"></span><span style="color:var(--c-material)">📦 Material</span></h5>
+      <div class="drop-zone" id="dz-material" onclick="dropHere('material')"><span class="dz-placeholder">Klicke hier nach Kartenauswahl …</span></div>
+    </div>
+    <div class="build-branch">
+      <h5><span class="dot dot-maschine"></span><span style="color:var(--c-maschine)">⚙️ Maschine</span></h5>
+      <div class="drop-zone" id="dz-maschine" onclick="dropHere('maschine')"><span class="dz-placeholder">Klicke hier nach Kartenauswahl …</span></div>
+    </div>
+    <div class="build-branch">
+      <h5><span class="dot dot-management"></span><span style="color:var(--c-management)">📋 Management</span></h5>
+      <div class="drop-zone" id="dz-management" onclick="dropHere('management')"><span class="dz-placeholder">Klicke hier nach Kartenauswahl …</span></div>
+    </div>
+    <div class="build-branch">
+      <h5><span class="dot dot-methode"></span><span style="color:var(--c-methode)">🔧 Methode</span></h5>
+      <div class="drop-zone" id="dz-methode" onclick="dropHere('methode')"><span class="dz-placeholder">Klicke hier nach Kartenauswahl …</span></div>
+    </div>
+    <div class="build-branch">
+      <h5><span class="dot dot-mitwelt"></span><span style="color:var(--c-mitwelt)">🌍 Mitwelt</span></h5>
+      <div class="drop-zone" id="dz-mitwelt" onclick="dropHere('mitwelt')"><span class="dz-placeholder">Klicke hier nach Kartenauswahl …</span></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="checkBuild()">🔍 Zuordnung prüfen</button>
+    <button class="btn btn-secondary" onclick="resetBuild()">↺ Zurücksetzen</button>
+    <button class="btn btn-secondary" onclick="goTab(3)">← Zurück</button>
+  </div>
+
+  <div class="feedback" id="fbBuild">
+    <div class="fb-title" id="fbBuildT"></div>
+    <div class="fb-body" id="fbBuildB"></div>
+    <div class="reveal" id="fbBuildReveal" style="display:none">
+      <h5>✅ Musterlösung</h5>
+      <div id="buildSol"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TAB 5 ============================================================ -->
+<div class="section" id="s5">
+  <div class="sec-head">🧠 Wissens-Quiz <span class="pill">10 Fragen</span></div>
+  <div class="sec-sub">Teste dein Verständnis – sofortiges Feedback bei jeder Antwort!</div>
+  <div id="quizWrap"></div>
+  <div class="score-card" id="scoreCard">
+    <div style="font-size:1.9rem;margin-bottom:.4rem" id="scoreEmoji">🏆</div>
+    <div class="score-big" id="scoreNum">0/10</div>
+    <div class="score-lbl">Punkte erreicht</div>
+    <div class="score-grade" id="scoreGrade"></div>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:.8rem" id="scoreMsg"></p>
+    <div class="btn-row" style="justify-content:center;margin-top:1.1rem">
+      <button class="btn btn-primary" onclick="resetQuiz()">🔄 Nochmal üben</button>
+    </div>
+  </div>
+  <div class="btn-row" id="quizBtns">
+    <button class="btn btn-success" id="finishBtn" style="display:none" onclick="finishQuiz()">✅ Auswertung ansehen</button>
+    <button class="btn btn-secondary" onclick="goTab(4)">← Zurück</button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ======================== NAV ========================
+const TOTAL=6, doneArr=new Array(TOTAL).fill(false);
+function goTab(i){
+  document.querySelectorAll('.section').forEach((s,j)=>s.classList.toggle('active',j===i));
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+}
+function done(i){
+  if(doneArr[i]) return;
+  doneArr[i]=true;
+  const tn=document.getElementById('tn'+i);
+  if(tn){tn.textContent='✓';document.getElementById('tab'+i).classList.add('done');}
+  const c=doneArr.filter(Boolean).length;
+  document.getElementById('progFill').style.width=(c/TOTAL*100)+'%';
+  document.getElementById('progCount').textContent=c+' / '+TOTAL+' abgeschlossen';
+}
+
+// ======================== AUFGABE A ========================
+const uState={mensch:[],mitwelt:[]};
+function addU(b){
+  const inp=document.getElementById('inp-'+b), v=inp.value.trim();
+  if(!v||uState[b].length>=6) return;
+  uState[b].push(v); renderU(b); inp.value=''; inp.focus();
+}
+function removeU(b,i){uState[b].splice(i,1);renderU(b);}
+function renderU(b){
+  document.getElementById('list-'+b).innerHTML=uState[b].map((u,i)=>
+    `<span class="u-tag" onclick="removeU('${b}',${i})">${u} <span style="font-size:.62rem;opacity:.55">✕</span></span>`).join('');
+}
+function checkA(){
+  const mC=uState.mensch.length, miC=uState.mitwelt.length;
+  const fb=document.getElementById('fbA'), ft=document.getElementById('fbAT'), fb2=document.getElementById('fbAB');
+  fb.className='feedback show';
+  if(mC>=3&&miC>=3){
+    fb.classList.add('ok'); ft.textContent='🎉 Sehr gut! Genug Ursachen angegeben.';
+    fb2.innerHTML=`Du hast <strong>${mC}</strong> für «Mensch» und <strong>${miC}</strong> für «Mitwelt»! Vergleiche mit der Musterlösung.`;
+    done(2); setTimeout(()=>goTab(3),1800);
+  } else if(mC+miC>=3){
+    fb.classList.add('partial'); ft.textContent='⚠️ Nicht vollständig!';
+    fb2.innerHTML=`Du hast ${mC} für «Mensch» und ${miC} für «Mitwelt». Es werden jeweils <strong>mindestens 3</strong> gefragt.`;
+  } else {
+    fb.classList.add('bad'); ft.textContent='❌ Zu wenige Antworten';
+    fb2.innerHTML='Nutze die Leitfragen aus Tab 2 und trage für jeden Zweig mindestens 3 Ursachen ein.';
+  }
+}
+
+// ======================== AUFGABE B ========================
+function checkB(){
+  const vals=['k1','k2','v1','v2'].map(id=>document.getElementById(id).value.trim());
+  const filled=vals.filter(v=>v.length>0).length;
+  const fb=document.getElementById('fbB'), ft=document.getElementById('fbBT'), fb2=document.getElementById('fbBB');
+  fb.className='feedback show';
+  if(filled===4){
+    fb.classList.add('ok'); ft.textContent='✅ Alle Felder ausgefüllt!';
+    fb2.innerHTML='Gut gemacht! Vergleiche mit der Musterlösung. Sinnvolle Alternativen werden von Prüfern ebenfalls akzeptiert.';
+    done(3); setTimeout(()=>goTab(4),2000);
+  } else if(filled>=2){
+    fb.classList.add('partial'); ft.textContent='⚠️ Noch nicht vollständig';
+    fb2.innerHTML=`${filled} von 4 Feldern ausgefüllt. Bitte alle ausfüllen.`;
+  } else {
+    fb.classList.add('bad'); ft.textContent='❌ Bitte Felder ausfüllen';
+    fb2.innerHTML='Gib für jede Problemursache zwei konkrete Gegenmaßnahmen ein.';
+  }
+}
+
+// ======================== BUILD TASK ========================
+const causes=[
+  {id:'c1',text:'Kein Live-Chat-Support',cat:'mensch'},
+  {id:'c2',text:'Unfreundlicher Kundendienst',cat:'mensch'},
+  {id:'c3',text:'Versteckte Versandkosten',cat:'material'},
+  {id:'c4',text:'Zu wenig Zahlungsoptionen',cat:'material'},
+  {id:'c5',text:'Schlechte App-Performance',cat:'maschine'},
+  {id:'c6',text:'Server-Timeout beim Checkout',cat:'maschine'},
+  {id:'c7',text:'Kein Gastkauf möglich',cat:'methode'},
+  {id:'c8',text:'Zu komplizierter Bestellablauf',cat:'methode'},
+  {id:'c9',text:'Fehlende Schulung der Supportmitarbeiter',cat:'management'},
+  {id:'c10',text:'Keine klare Rückgaberichtlinie',cat:'management'},
+  {id:'c11',text:'Starke Konkurrenz mit Gratis-Versand',cat:'mitwelt'},
+  {id:'c12',text:'Negatives Presse-Echo',cat:'mitwelt'},
+];
+const catColors={mensch:'mensch',material:'material',maschine:'maschine',management:'management',methode:'methode',mitwelt:'mitwelt'};
+let buildState={mensch:[],material:[],maschine:[],management:[],methode:[],mitwelt:[]};
+let selectedCard=null;
+
+function initBuild(){
+  Object.keys(buildState).forEach(k=>buildState[k]=[]);
+  selectedCard=null;
+  renderPool();
+  renderAllZones();
+}
+
+function renderPool(){
+  const placed=Object.values(buildState).flat();
+  const pool=document.getElementById('pool');
+  pool.innerHTML=causes.filter(c=>!placed.includes(c.id)).map(c=>{
+    const col=catColors[c.cat];
+    const sel=selectedCard===c.id;
+    return `<span class="drag-card c-${col} bg-${col}${sel?' selected-card':''}" id="pc-${c.id}" onclick="selectCard('${c.id}')">${c.text}</span>`;
+  }).join('');
+  if(!pool.innerHTML) pool.innerHTML='<span style="font-size:.78rem;color:var(--muted);font-style:italic">Alle Karten platziert! Prüfe die Zuordnung.</span>';
+}
+
+function selectCard(id){
+  document.querySelectorAll('#pool .drag-card').forEach(el=>el.classList.remove('selected-card'));
+  if(selectedCard===id){selectedCard=null;document.getElementById('poolHint').textContent='Wähle eine Karte aus, dann klicke die Ziel-Kategorie.';return;}
+  selectedCard=id;
+  const el=document.getElementById('pc-'+id);
+  if(el) el.classList.add('selected-card');
+  document.getElementById('poolHint').textContent='✅ Karte gewählt! Jetzt eine Kategorie unten anklicken.';
+}
+
+function dropHere(cat){
+  if(!selectedCard) return;
+  Object.keys(buildState).forEach(k=>buildState[k]=buildState[k].filter(x=>x!==selectedCard));
+  if(!buildState[cat].includes(selectedCard)) buildState[cat].push(selectedCard);
+  selectedCard=null;
+  renderPool();
+  renderAllZones();
+  document.getElementById('poolHint').textContent='Wähle eine Karte aus, dann klicke die Ziel-Kategorie.';
+}
+
+function removeFromZone(cat,id){
+  buildState[cat]=buildState[cat].filter(x=>x!==id);
+  renderPool(); renderAllZones();
+}
+
+function renderAllZones(){
+  ['mensch','material','maschine','management','methode','mitwelt'].forEach(cat=>{
+    const dz=document.getElementById('dz-'+cat);
+    const col=catColors[cat];
+    const items=(buildState[cat]||[]).map(id=>{
+      const c=causes.find(x=>x.id===id);
+      return c?`<span class="drag-card c-${col} bg-${col}" style="cursor:pointer" onclick="event.stopPropagation();removeFromZone('${cat}','${id}')">${c.text} <span style="font-size:.62rem;opacity:.65">✕</span></span>`:'';
+    }).join('');
+    dz.innerHTML=items||'<span class="dz-placeholder">Klicke hier nach Kartenauswahl …</span>';
+  });
+}
+
+function checkBuild(){
+  let correct=0, wrongList=[];
+  causes.forEach(c=>{
+    const placed=Object.entries(buildState).find(([cat,ids])=>ids.includes(c.id));
+    if(placed){
+      if(placed[0]===c.cat) correct++;
+      else wrongList.push(`„${c.text}" → falsch in <em>${placed[0]}</em>, richtig: <em>${c.cat}</em>`);
+    }
+  });
+  const notPlaced=causes.length-correct-wrongList.length;
+  const fb=document.getElementById('fbBuild'), ft=document.getElementById('fbBuildT'), fb2=document.getElementById('fbBuildB');
+  const rev=document.getElementById('fbBuildReveal');
+  fb.className='feedback show';
+  if(correct===causes.length){
+    fb.classList.add('ok'); ft.textContent='🏆 Perfekt – alle Karten richtig zugeordnet!';
+    fb2.innerHTML=`Alle ${causes.length} Ursachen sind korrekt eingeordnet. Ausgezeichnet!`;
+    rev.style.display='none'; done(4);
+  } else {
+    fb.classList.add(correct>=8?'partial':'bad');
+    ft.textContent=`${correct>=8?'⚠️ Fast!':'❌'} ${correct}/${causes.length} korrekt`;
+    fb2.innerHTML=`${wrongList.length} falsch zugeordnet${wrongList.length?': <br>• '+wrongList.join('<br>• '):''}.${notPlaced?' '+notPlaced+' Karte(n) noch nicht platziert.':''}`;
+    showBuildSol(rev);
+    if(correct>=8) done(4);
+  }
+}
+
+function showBuildSol(rev){
+  rev.style.display='block';
+  const names={mensch:'👤 Mensch',material:'📦 Material',maschine:'⚙️ Maschine',management:'📋 Management',methode:'🔧 Methode',mitwelt:'🌍 Mitwelt'};
+  const grouped={};
+  causes.forEach(c=>{grouped[c.cat]=grouped[c.cat]||[];grouped[c.cat].push(c.text);});
+  document.getElementById('buildSol').innerHTML=Object.entries(grouped).map(([cat,items])=>
+    `<p style="font-size:.77rem;color:var(--muted);margin:.42rem 0 .3rem"><strong style="color:var(--c-${cat})">${names[cat]}</strong></p>
+     <div class="chips">${items.map(t=>`<span class="chip">${t}</span>`).join('')}</div>`).join('');
+}
+
+function resetBuild(){
+  Object.keys(buildState).forEach(k=>buildState[k]=[]);
+  selectedCard=null;
+  renderPool(); renderAllZones();
+  document.getElementById('fbBuild').className='feedback';
+}
+
+// ======================== QUIZ ========================
+const questions=[
+  {q:'Wie heißt das Ishikawa-Diagramm wegen seiner Form auch?',opts:['Tortendiagramm','Fischgrätendiagramm','Balkendiagramm','Netzdiagramm'],cor:1,ex:'Das Diagramm sieht aus wie ein Fischskelett: Wirbelsäule (Hauptpfeil), Gräten (Ursachenäste), Kopf/Kasten = das Problem.'},
+  {q:'Was steht am rechten Ende des Hauptpfeils im Ishikawa-Diagramm?',opts:['Die beste Lösung','Eine Kategorie','Das zu analysierende Problem','Der Projektverantwortliche'],cor:2,ex:'Das Problem (die "Wirkung") steht rechts im Kasten – z.B. "Desinteresse". Alle Ursachen zeigen pfeilförmig darauf hin.'},
+  {q:'Welches Werkzeug ergänzt das Ishikawa-Diagramm gut, indem man fünfmal "Warum?" fragt?',opts:['SWOT-Analyse','5-Why-Methode','Pareto-Prinzip','Gantt-Diagramm'],cor:1,ex:'Die 5-Why-Methode fragt fünfmal "Warum?", um zur Wurzelursache zu gelangen – ideal zur Vertiefung einzelner Äste im Ishikawa.'},
+  {q:'Welche Ursache gehört zum Zweig «Material» im Smartfit-Diagramm?',opts:['Unmotivierte Trainer','Fehlende Prozesse','Schlechte Flyer','Standort'],cor:2,ex:'"Schlechte Flyer" ist ein Werbemittel = Material. Trainer → Mensch. Fehlende Prozesse → Methode. Standort → Mitwelt.'},
+  {q:'In welchem Ast liegt "Fehlende Prozesse"?',opts:['Mensch','Management','Methode','Material'],cor:2,ex:'"Fehlende Prozesse" = fehlende Ablaufdefinitionen → «Methode». Die Methode-Kategorie beschreibt Vorgehensweisen und Workflows.'},
+  {q:'Was ist eine direkte Gegenmaßnahme für «Vertragsbindung»?',opts:['Mehr Trainer einstellen','Flexible monatliche Kündigung','Geräte reparieren','Neuen Standort suchen'],cor:1,ex:'Flexible Kündigung wirkt direkt auf die Ursache "Vertragsbindung" – die Hemmschwelle sinkt, wenn keine langen Laufzeiten drohen.'},
+  {q:'Welche Aussage zur Kategorie «Mitwelt» ist korrekt?',opts:['Sie beschreibt nur interne Faktoren','Sie umfasst Standort, Ruf und externe Einflüsse','Sie entspricht der Kategorie Maschine','Sie betrifft nur Mitarbeiter'],cor:1,ex:'«Mitwelt» umfasst alles Externe: Standort, Ruf, Wettbewerb, wirtschaftliches Umfeld – also alles, das das Unternehmen von außen beeinflusst.'},
+  {q:'Warum ist das Ishikawa-Diagramm nützlich für die Prozessanalyse?',opts:['Es berechnet Kosten automatisch','Es zeigt den Zeitplan','Es strukturiert alle möglichen Ursachen nach Kategorien','Es bewertet Mitarbeiter'],cor:2,ex:'Die Stärke des Diagramms liegt in der strukturierten Visualisierung – kein Bereich wird übersehen, alle Ursachen können priorisiert werden.'},
+  {q:'Was sind mögliche Ursachen für den Zweig «Mensch» bei Smartfit?',opts:['Alte Geräte und Verschleiß','Standort und schlechter Ruf','Zeitdruck, Stress und Konflikte im Team','Fehlende Software-Updates'],cor:2,ex:'Der «Mensch»-Ast umfasst personenbezogene Ursachen: Motivation, Wissen, Zeitdruck, Stress, Konflikte unter Mitarbeitern.'},
+  {q:'Welche Vorgehensweise hilft beim systematischen Füllen der Kategorien?',opts:['Einfach drauflos schreiben','W-Fragen pro Kategorie stellen (Wer? Was? Womit? …)','Nur den Chef befragen','Diagramm zufällig befüllen'],cor:1,ex:'W-Fragen helfen, alle Aspekte einer Kategorie abzudecken: Wer=Mensch/Management, Was=Material/Methode, Wo=Mitwelt usw.'},
+];
+let qA={}, qScore=0;
+
+function renderQuiz(){
+  qA={}; qScore=0;
+  document.getElementById('quizWrap').innerHTML=questions.map((q,qi)=>`
+    <div class="quiz-q" id="qq${qi}">
+      <div class="q-meta">Frage ${qi+1} / ${questions.length} <span class="q-pts">1 Pkt</span></div>
+      <div class="q-text">${q.q}</div>
+      <div class="q-opts">${q.opts.map((o,oi)=>`
+        <div class="q-opt" id="qo${qi}_${oi}" onclick="ansQ(${qi},${oi})">
+          <span class="opt-l">${['A','B','C','D'][oi]}</span><span>${o}</span>
+        </div>`).join('')}
+      </div>
+      <div class="q-fb" id="qf${qi}"></div>
+    </div>`).join('');
+  document.getElementById('finishBtn').style.display='none';
+  document.getElementById('scoreCard').classList.remove('show');
+}
+
+function ansQ(qi,oi){
+  if(qA[qi]!==undefined) return;
+  qA[qi]=oi;
+  const q=questions[qi], ok=oi===q.cor;
+  if(ok) qScore++;
+  q.opts.forEach((_,i)=>{
+    const el=document.getElementById(`qo${qi}_${i}`);
+    el.classList.add('disabled');
+    if(i===q.cor) el.classList.add('cor');
+    else if(i===oi&&!ok) el.classList.add('wrng');
+  });
+  document.getElementById('qq'+qi).classList.add(ok?'ok':'bad');
+  const fb=document.getElementById('qf'+qi);
+  fb.classList.add('show',ok?'ok':'bad');
+  fb.innerHTML=(ok?'✅ Richtig! ':'❌ Falsch. ')+q.ex;
+  if(Object.keys(qA).length===questions.length) document.getElementById('finishBtn').style.display='flex';
+}
+
+function finishQuiz(){
+  const pct=qScore/questions.length;
+  let g,e,m,c;
+  if(pct>=.9){g='Note 1 – Sehr gut';e='🏆';c='background:rgba(78,205,196,.15);color:var(--success)';m='Hervorragend! Du beherrschst das Ishikawa-Diagramm vollständig.';}
+  else if(pct>=.75){g='Note 2 – Gut';e='😊';c='background:rgba(149,212,74,.15);color:#95d44a';m='Gute Leistung! Mit etwas Übung bist du optimal für die Prüfung vorbereitet.';}
+  else if(pct>=.6){g='Note 3 – Befriedigend';e='😐';c='background:rgba(255,230,109,.15);color:var(--accent3)';m='Die Grundlagen sitzen. Wiederhole die schwächeren Bereiche nochmal.';}
+  else{g='Note 4–6 – Weiterüben!';e='📚';c='background:rgba(255,107,53,.15);color:var(--accent)';m='Gehe die Theorie und Methodik nochmal durch und probiere das Quiz erneut.';}
+  document.getElementById('scoreNum').textContent=qScore+'/'+questions.length;
+  document.getElementById('scoreGrade').textContent=g;
+  document.getElementById('scoreGrade').style.cssText=c+';padding:.42rem 1.3rem;border-radius:6px;';
+  document.getElementById('scoreEmoji').textContent=e;
+  document.getElementById('scoreMsg').textContent=m;
+  document.getElementById('scoreCard').classList.add('show');
+  document.getElementById('finishBtn').style.display='none';
+  done(5);
+}
+
+function resetQuiz(){renderQuiz();}
+
+// INIT
+initBuild();
+renderQuiz();
+</script>
+</body>
+</html>

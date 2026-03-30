@@ -14,15 +14,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .top-bar .title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;}
 .top-bar .score{margin-left:auto;display:flex;gap:12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text-muted);}
 .score .cs{color:var(--green);} .score .ws{color:var(--red);}
-.tabs-wrapper{background:var(--bg-card);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
-.tabs-wrapper::-webkit-scrollbar{display:none;}
-.tabs{display:flex;min-width:max-content;padding:0 12px;}
-.tab{padding:11px 16px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:7px;user-select:none;}
+.tabs-wrapper{background:var(--bg-card);border-bottom:1px solid var(--border);overflow:hidden;flex-shrink:0;position:relative;}
+.tabs-scroll{overflow-x:auto;scrollbar-width:none;}
+.tabs-scroll::-webkit-scrollbar{display:none;}
+.tabs{display:flex;min-width:max-content;padding:0 40px;}
+.tab{padding:11px 14px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:7px;user-select:none;}
 .tab:hover:not(.locked){color:var(--text);}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
 .tab.done{color:var(--green);}
 .tab.locked{opacity:.3;cursor:default;}
 .tab-icon{font-size:12px;}
+.tab-arrow{position:absolute;top:0;bottom:0;width:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;background:var(--bg-card);border:none;color:var(--text-muted);font-size:18px;transition:opacity .2s;}
+.tab-arrow:hover{color:var(--text);}
+.tab-arrow.left{left:0;border-right:1px solid var(--border);}
+.tab-arrow.right{right:0;border-left:1px solid var(--border);}
+.tab-arrow.hidden{opacity:0;pointer-events:none;}
 .progress-thin{height:3px;background:var(--border);flex-shrink:0;}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));transition:width .6s cubic-bezier(.22,1,.36,1);}
 .content-area{flex:1;overflow-y:auto;padding:28px 20px 50px;}
@@ -109,18 +115,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 </div>
 
 <div class="tabs-wrapper">
-  <div class="tabs" id="tabs">
-    <div class="tab active" data-s="0"><span class="tab-icon">📋</span> Szenario</div>
-    <div class="tab" data-s="1"><span class="tab-icon">🔒</span> So funktioniert's</div>
-    <div class="tab" data-s="2"><span class="tab-icon">🔒</span> 1) Einordnung</div>
-    <div class="tab" data-s="3"><span class="tab-icon">🔒</span> 2) Pseudocode</div>
-    <div class="tab" data-s="4"><span class="tab-icon">🔒</span> 3) Distanz berechnen</div>
-    <div class="tab" data-s="5"><span class="tab-icon">🔒</span> 4) Zuordnung</div>
-    <div class="tab" data-s="6"><span class="tab-icon">🔒</span> 5) Schwerpunkte</div>
-    <div class="tab" data-s="7"><span class="tab-icon">🔒</span> 6) Konfusionsmatrix</div>
-    <div class="tab" data-s="8"><span class="tab-icon">🔒</span> 7) Wahl von k</div>
-    <div class="tab" data-s="9"><span class="tab-icon">🔒</span> Ergebnis</div>
+  <button class="tab-arrow left hidden" id="arrow-l" onclick="scrollTabs(-1)">‹</button>
+  <div class="tabs-scroll" id="tabs-scroll">
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-s="0"><span class="tab-icon">📋</span> Szenario</div>
+      <div class="tab" data-s="1"><span class="tab-icon">💡</span> So funktioniert's</div>
+      <div class="tab" data-s="2"><span class="tab-icon">📂</span> 1) Einordnung</div>
+      <div class="tab" data-s="3"><span class="tab-icon">💻</span> 2) Pseudocode</div>
+      <div class="tab" data-s="4"><span class="tab-icon">📐</span> 3) Distanz berechnen</div>
+      <div class="tab" data-s="5"><span class="tab-icon">🎯</span> 4) Zuordnung</div>
+      <div class="tab" data-s="6"><span class="tab-icon">📊</span> 5) Schwerpunkte</div>
+      <div class="tab" data-s="7"><span class="tab-icon">🧮</span> 6) Konfusionsmatrix</div>
+      <div class="tab" data-s="8"><span class="tab-icon">🔢</span> 7) Wahl von k</div>
+      <div class="tab" data-s="9"><span class="tab-icon">🏆</span> Ergebnis</div>
+    </div>
   </div>
+  <button class="tab-arrow right" id="arrow-r" onclick="scrollTabs(1)">›</button>
 </div>
 <div class="progress-thin"><div class="progress-fill" id="pf" style="width:0%"></div></div>
 
@@ -633,6 +643,21 @@ function chkMetrics(){
 }
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(+t.dataset.s)));
+
+const scrollEl=document.getElementById('tabs-scroll');
+const arrowL=document.getElementById('arrow-l');
+const arrowR=document.getElementById('arrow-r');
+function scrollTabs(dir){scrollEl.scrollBy({left:dir*160,behavior:'smooth'});}
+function updateArrows(){
+  const sl=scrollEl.scrollLeft,sw=scrollEl.scrollWidth,cw=scrollEl.clientWidth;
+  arrowL.classList.toggle('hidden',sl<5);
+  arrowR.classList.toggle('hidden',sl+cw>=sw-5);
+}
+scrollEl.addEventListener('scroll',updateArrows);
+window.addEventListener('resize',updateArrows);
+const origGo=go;
+go=function(s){origGo(s);const tb=document.querySelector(`.tab[data-s="${s}"]`);if(tb)tb.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});setTimeout(updateArrows,300);};
+updateArrows();
 ui();
 </script>
 </body>

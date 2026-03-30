@@ -108,16 +108,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 <div class="tabs-wrapper">
   <div class="tabs" id="tabs">
     <div class="tab active" data-s="0"><span class="tab-icon">📋</span> Szenario</div>
-    <div class="tab locked" data-s="1"><span class="tab-icon">🔒</span> So funktioniert's</div>
-    <div class="tab locked" data-s="2"><span class="tab-icon">🔒</span> 1) Algorithmus</div>
-    <div class="tab locked" data-s="3"><span class="tab-icon">🔒</span> 2) Pseudocode</div>
-    <div class="tab locked" data-s="4"><span class="tab-icon">🔒</span> 3) Bootstrapping</div>
-    <div class="tab locked" data-s="5"><span class="tab-icon">🔒</span> 4) Vorteile</div>
-    <div class="tab locked" data-s="6"><span class="tab-icon">🔒</span> 5) Klassifikation</div>
-    <div class="tab locked" data-s="7"><span class="tab-icon">🔒</span> 6) Vergleich kNN</div>
-    <div class="tab locked" data-s="8"><span class="tab-icon">🔒</span> 7) Vergleich ID3</div>
-    <div class="tab locked" data-s="9"><span class="tab-icon">🔒</span> 8) Anwendung</div>
-    <div class="tab locked" data-s="10"><span class="tab-icon">🔒</span> Ergebnis</div>
+    <div class="tab" data-s="1"><span class="tab-icon">🔒</span> So funktioniert's</div>
+    <div class="tab" data-s="2"><span class="tab-icon">🔒</span> 1) Algorithmus</div>
+    <div class="tab" data-s="3"><span class="tab-icon">🔒</span> 2) Pseudocode</div>
+    <div class="tab" data-s="4"><span class="tab-icon">🔒</span> 3) Bootstrapping</div>
+    <div class="tab" data-s="5"><span class="tab-icon">🔒</span> 4) Vorteile</div>
+    <div class="tab" data-s="6"><span class="tab-icon">🔒</span> 5) Klassifikation</div>
+    <div class="tab" data-s="7"><span class="tab-icon">🔒</span> 6) Vergleich kNN</div>
+    <div class="tab" data-s="8"><span class="tab-icon">🔒</span> 7) Vergleich ID3</div>
+    <div class="tab" data-s="9"><span class="tab-icon">🔒</span> 8) Anwendung</div>
+    <div class="tab" data-s="10"><span class="tab-icon">🔒</span> Ergebnis</div>
   </div>
 </div>
 <div class="progress-thin"><div class="progress-fill" id="pf" style="width:0%"></div></div>
@@ -519,7 +519,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 <script>
 let C=0,W=0,T=0,cur=0;
 const STEPS=10;
-const UL=new Set([0]),DN=new Set();
+const UL=new Set([0,1,2,3,4,5,6,7,8,9,10]),DN=new Set();
 const SQ={
   0:{n:['q0'],d:new Set()},
   1:{n:['q1x'],d:new Set()},
@@ -544,20 +544,17 @@ function ui(){
     const ic=t.querySelector('.tab-icon');
     if(DN.has(s)){t.classList.add('done');if(ic)ic.textContent='✓';}
     else if(s===cur){t.classList.add('active');if(ic)ic.textContent=tabIcons[s];}
-    else if(!UL.has(s)){t.classList.add('locked');if(ic)ic.textContent='🔒';}
     else{if(ic)ic.textContent=tabIcons[s];}
   });
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('visible'));
   const pan=document.getElementById('p'+cur);
   if(pan)pan.classList.add('visible');
 }
-function go(s){if(!UL.has(s)&&!DN.has(s))return;cur=s;ui();document.getElementById('ca').scrollTo(0,0);}
+function go(s){cur=s;ui();document.getElementById('ca').scrollTo(0,0);}
 function unlock(from){
-  const nx=from+1;DN.add(from);
-  if(nx<=STEPS)UL.add(nx);
-  if(nx===STEPS){document.getElementById('fs').textContent=`${C} / ${T}`;const p=T>0?Math.round(C/T*100):0;let m='';if(p>=90)m='Hervorragend! Du beherrschst Random Forest! 🌟';else if(p>=70)m='Gut gemacht! Nur ein paar Lücken.';else if(p>=50)m='Solide – wiederhole die schwierigen Teile.';else m='Nicht aufgeben!';document.getElementById('fm').textContent=m;}
+  DN.add(from);
+  if(DN.size>=STEPS){document.getElementById('fs').textContent=`${C} / ${T}`;const p=T>0?Math.round(C/T*100):0;let m='';if(p>=90)m='Hervorragend! Du beherrschst Random Forest! 🌟';else if(p>=70)m='Gut gemacht! Nur ein paar Lücken.';else if(p>=50)m='Solide – wiederhole die schwierigen Teile.';else m='Nicht aufgeben!';document.getElementById('fm').textContent=m;}
   ui();
-  if(nx<=STEPS){const panel=document.getElementById('p'+from);if(panel&&!panel.querySelector('.next-btn')){const btn=document.createElement('button');btn.className='btn bp next-btn';btn.style.marginTop='24px';btn.textContent='Weiter →';btn.onclick=()=>{go(nx);const tb=document.querySelector(`.tab[data-s="${nx}"]`);if(tb)tb.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});};panel.appendChild(btn);}}
 }
 function done(step,qid){if(SQ[step]){SQ[step].d.add(qid);if(SQ[step].n.every(q=>SQ[step].d.has(q)))unlock(step);}}
 function quiz(id,el,ok){

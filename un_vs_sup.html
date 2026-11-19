@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unsupervised vs. Supervised Learning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f5f1;--paper:#fff;--ink:#1d2330;--muted:#5d6475;--line:#dcdad3;
+  --accent:#2f52c9;--accent-bg:#e7ecfb;--ok:#17866a;--ok-bg:#dff2ea;--err:#c2412d;--err-bg:#fbe4df;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'IBM Plex Sans',system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:28px 20px 80px}
+h1{font-size:32px;line-height:1.15;margin:4px 0 0}
+h2{font-size:22px;margin:0 0 6px}
+h3{font-size:14px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+p{margin:8px 0}
+section{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:24px;margin-top:18px}
+.sub{color:var(--muted);margin:0 0 14px}
+.mono{font-family:var(--mono)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.demo{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:22px;align-items:start}
+@media(max-width:900px){.grid4{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.grid2,.demo,.grid4{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:#fcfcfa}
+.key{border-left:4px solid var(--accent);background:var(--accent-bg);border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;color:#1c347f}
+.key b{color:#14275f}
+/* tabs */
+.tabs{display:flex;gap:6px;margin-top:22px;border-bottom:2px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5;padding-top:8px;flex-wrap:wrap}
+.tabs a{font-weight:600;font-size:16px;padding:11px 18px;border:1px solid transparent;border-bottom:none;border-radius:10px 10px 0 0;color:var(--muted);text-decoration:none;margin-bottom:-2px}
+.tabs a.on{background:var(--paper);border-color:var(--line);color:var(--ink);border-bottom:2px solid var(--paper)}
+.tabpanel{display:none}.tabpanel.on{display:block}
+/* phone mockup */
+.phone{border:1px solid var(--line);border-radius:18px;background:#fff;padding:14px;max-width:360px}
+.phone .bar{font-weight:600;font-size:15px;margin-bottom:10px}
+.people{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;font-size:13px}
+.people svg{width:64px;height:64px;display:block;margin:0 auto 4px}
+.people .q{color:var(--accent);font-weight:600}
+.tagphotos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tagphotos div{position:relative;border:1px solid var(--line);border-radius:8px;padding:6px;text-align:center;font-size:12px}
+.tagphotos svg{width:48px;height:48px}
+.tagphotos span{display:inline-block;margin-top:2px;padding:1px 7px;border-radius:99px;font-weight:600;font-size:11.5px}
+/* steps */
+.step{border:1px solid var(--line);border-radius:10px;padding:14px;background:#fcfcfa;display:flex;flex-direction:column;gap:6px}
+.step .n{width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;font:600 14px var(--mono);display:flex;align-items:center;justify-content:center}
+.step .t{font-weight:700}
+.step p{margin:0;font-size:14.5px}
+.step svg{width:100%;height:92px;display:block;margin:4px 0}
+/* rules */
+.rules{margin:0;padding:0;list-style:none;counter-reset:r}
+.rules li{counter-increment:r;padding:8px 10px 8px 40px;position:relative;border-radius:8px;margin:4px 0;font-size:15px;border:1px solid transparent}
+.rules li::before{content:counter(r);position:absolute;left:10px;top:8px;width:22px;height:22px;border-radius:50%;background:#e9e8e3;font:600 12px var(--mono);display:flex;align-items:center;justify-content:center}
+.rules li.on{background:var(--accent-bg);border-color:#b9c6f2}
+.rules li.on::before{background:var(--accent);color:#fff}
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+button{font:500 14px 'IBM Plex Sans',sans-serif;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 13px;cursor:pointer}
+button:hover{border-color:#9aa0ad}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.primary:hover{background:#353d4f}
+button:disabled{opacity:.4;cursor:default}
+label.inline{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+select,input[type=text]{font:14px 'IBM Plex Sans',sans-serif;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+input[type=range]{accent-color:var(--accent)}
+canvas{width:100%;display:block;border-radius:8px;border:1px solid var(--line);background:#fff;touch-action:manipulation}
+.status{border-radius:10px;padding:12px 14px;background:#f3f2ed;font-size:15px;min-height:70px}
+.status b{display:block;margin-bottom:2px}
+.done{background:var(--ok-bg);color:#0f5a47}
+.names{display:grid;gap:6px;margin-top:8px}
+.names label{display:grid;grid-template-columns:18px 1fr 70px;gap:8px;align-items:center;font-size:14px}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-block}
+.answer{margin-top:10px;border-radius:10px;padding:12px 14px;font-size:17px;font-weight:600;display:flex;gap:10px;align-items:center}
+.votes{display:grid;gap:6px;margin-top:8px}
+.vote{display:grid;grid-template-columns:52px 1fr 26px;gap:8px;align-items:center;font-size:14px}
+.vote .b{height:14px;border-radius:3px}
+.hint{font-size:13.5px;color:var(--muted);margin:8px 0}
+/* examples */
+.ex{border:1px solid var(--line);border-radius:10px;padding:14px;background:#fcfcfa}
+.ex .t{font-weight:700;margin-bottom:6px}
+.ex dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:14px}
+.ex dt{color:var(--muted);font-weight:600}
+.ex dd{margin:0}
+/* table */
+table.cmp{border-collapse:collapse;width:100%;font-size:15px}
+table.cmp th,table.cmp td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+table.cmp th{background:#f3f2ed}
+table.cmp td:first-child{font-weight:600;color:var(--muted);width:170px}
+/* quiz */
+.quiz{max-width:760px;margin:0 auto}
+.qprog{display:flex;gap:4px;margin-bottom:16px}
+.qprog i{flex:1;height:6px;border-radius:3px;background:#e9e8e3}
+.qprog i.ok{background:var(--ok)}.qprog i.err{background:var(--err)}.qprog i.cur{background:var(--accent)}
+.qcard{border:1px solid var(--line);border-radius:12px;padding:22px;background:#fcfcfa}
+.qnum{font:600 13px var(--mono);color:var(--muted)}
+.qtext{font-size:20px;font-weight:500;margin:8px 0 18px;line-height:1.4}
+.qbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qbtns button{padding:14px;font-size:16px;font-weight:600}
+.qbtns button.right{background:var(--ok-bg);border-color:var(--ok);color:#0f5a47}
+.qbtns button.wrong{background:var(--err-bg);border-color:var(--err);color:#8c2a1b}
+.qfb{margin-top:14px;border-radius:10px;padding:12px 14px;font-size:15px}
+.qfb.ok{background:var(--ok-bg);color:#0f5a47}.qfb.err{background:var(--err-bg);color:#7a2617}
+.score{font-size:42px;font-weight:700;font-family:var(--mono)}
+.review{margin-top:14px;display:grid;gap:6px}
+.review div{font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:#fff}
+.review .r{font-weight:600}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Unsupervised vs. Supervised Learning</h1>
+
+<nav class="tabs">
+  <a href="#unsupervised" data-t="unsupervised">1 · Unsupervised Learning</a>
+  <a href="#supervised" data-t="supervised">2 · Supervised Learning</a>
+  <a href="#quiz" data-t="quiz">3 · Quiz</a>
+</nav>
+
+<!-- ══════════════ UNSUPERVISED ══════════════ -->
+<div class="tabpanel" id="tab-unsupervised">
+
+<section>
+  <h2>Was ist Unsupervised Learning?</h2>
+  <div class="grid2" style="margin-top:10px;align-items:center">
+    <div>
+      <p>Der Computer bekommt <b>Daten ohne Lösung</b>. Niemand sagt ihm, was richtig ist. Er sucht selbst nach Mustern und bildet <b>Gruppen</b> aus Dingen, die sich ähneln.</p>
+      <p><b>Beispiel Handy-Galerie:</b> Du hast tausende Fotos. Ohne dass du etwas eingibst, zeigt die App unter „Personen“ Gruppen an. Sie hat erkannt, welche Fotos dieselbe Person zeigen – aber sie weiß nicht, <b>wer</b> das ist. Deshalb fragt sie dich: „Wer ist das?“</p>
+      <div class="key"><b>Merke:</b> Unsupervised = Daten ohne Label. Ergebnis sind Gruppen ohne Namen.</div>
+    </div>
+    <div class="phone">
+      <div class="bar">Personen</div>
+      <div class="people" id="peopleMock"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>So funktioniert's</h2>
+  <div class="grid4" style="margin-top:12px">
+    <div class="step"><div class="n">1</div><div class="t">Gesichter finden</div>
+      <svg viewBox="0 0 200 92" id="ill1"></svg>
+      <p>Das Handy sucht in jedem Foto, wo Gesichter sind, und schneidet sie aus.</p></div>
+    <div class="step"><div class="n">2</div><div class="t">In Zahlen übersetzen</div>
+      <svg viewBox="0 0 200 92" id="ill2"></svg>
+      <p>Aus jedem Gesicht wird eine Liste von Zahlen – ein „Gesichts-Fingerabdruck“. Gleiche Person → ähnliche Zahlen. Beispiel siehe unten.</p></div>
+    <div class="step"><div class="n">3</div><div class="t">Gruppen bilden</div>
+      <svg viewBox="0 0 200 92" id="ill3"></svg>
+      <p>Jedes Gesicht wird zu einem Punkt. Punkte, die nah beieinander liegen, kommen in dieselbe Gruppe.</p></div>
+    <div class="step"><div class="n">4</div><div class="t">Du gibst den Namen</div>
+      <svg viewBox="0 0 200 92" id="ill4"></svg>
+      <p>Die App zeigt dir die Gruppen. Du tippst den Namen ein – erst dann weiß sie, wer das ist.</p></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>Beispiel: So entsteht eine Zahl</h3>
+    <p style="margin:0">Man misst etwas im Gesicht, zum Beispiel den <b style="color:#2f52c9">Augenabstand</b>, und teilt ihn durch die <b style="color:#854F0B">Gesichtsbreite</b>. Das Teilen ist wichtig: Ob jemand nah oder weit weg fotografiert wurde, das Verhältnis bleibt gleich.</p>
+    <svg viewBox="0 0 680 250" width="100%" style="display:block;max-width:820px;margin:6px auto 0"><defs><marker id="ma" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" fill="#2f52c9"/></marker><marker id="mb" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" fill="#BA7517"/></marker></defs><rect x="20" y="10" width="230" height="230" rx="8" fill="#f6f5f1" stroke="#dcdad3"/><text x="32" y="30" font-size="13" fill="#5d6475" font-weight="600">Foto A (nah)</text><ellipse cx="135" cy="118" rx="70" ry="82.6" fill="#f1e3d3" stroke="#9aa0ad"/><circle cx="109.8" cy="105.4" r="7.0" fill="#1d2330"/><circle cx="160.2" cy="105.4" r="7.0" fill="#1d2330"/><path d="M135,114.5 L128.0,139.0 L139.2,140.4" fill="none" stroke="#5d6475" stroke-width="2" stroke-linejoin="round"/><path d="M110.5,156.5 Q135,172.6 159.5,156.5" fill="none" stroke="#5d6475" stroke-width="2.2" stroke-linecap="round"/><line x1="109.8" y1="83.0" x2="160.2" y2="83.0" stroke="#2f52c9" stroke-width="2.5" marker-start="url(#ma)" marker-end="url(#ma)"/><text x="135" y="75.0" text-anchor="middle" font-size="14" font-weight="700" fill="#2f52c9">60 Pixel</text><line x1="65" y1="216.6" x2="205" y2="216.6" stroke="#BA7517" stroke-width="2.5" marker-start="url(#mb)" marker-end="url(#mb)"/><text x="135" y="236.6" text-anchor="middle" font-size="14" font-weight="700" fill="#854F0B">140 Pixel</text><line x1="65" y1="118" x2="65" y2="220.6" stroke="#BA7517" stroke-dasharray="3 3"/><line x1="205" y1="118" x2="205" y2="220.6" stroke="#BA7517" stroke-dasharray="3 3"/><rect x="270" y="10" width="150" height="230" rx="8" fill="#f6f5f1" stroke="#dcdad3"/><text x="282" y="30" font-size="13" fill="#5d6475" font-weight="600">Foto B (weit weg)</text><ellipse cx="345" cy="120" rx="35" ry="41.3" fill="#f1e3d3" stroke="#9aa0ad"/><circle cx="332.4" cy="113.7" r="3.5" fill="#1d2330"/><circle cx="357.6" cy="113.7" r="3.5" fill="#1d2330"/><path d="M345,118.25 L341.5,130.5 L347.1,131.2" fill="none" stroke="#5d6475" stroke-width="2" stroke-linejoin="round"/><path d="M332.75,139.25 Q345,147.3 357.25,139.25" fill="none" stroke="#5d6475" stroke-width="2.2" stroke-linecap="round"/><line x1="332.4" y1="102.5" x2="357.6" y2="102.5" stroke="#2f52c9" stroke-width="2.5" marker-start="url(#ma)" marker-end="url(#ma)"/><text x="345" y="94.5" text-anchor="middle" font-size="12" font-weight="700" fill="#2f52c9">30 Px</text><line x1="310" y1="177.3" x2="380" y2="177.3" stroke="#BA7517" stroke-width="2.5" marker-start="url(#mb)" marker-end="url(#mb)"/><text x="345" y="195.3" text-anchor="middle" font-size="12" font-weight="700" fill="#854F0B">70 Px</text><line x1="310" y1="120" x2="310" y2="181.3" stroke="#BA7517" stroke-dasharray="3 3"/><line x1="380" y1="120" x2="380" y2="181.3" stroke="#BA7517" stroke-dasharray="3 3"/><text x="445" y="70" font-size="14" fill="#1d2330" font-weight="700">Augenabstand ÷ Gesichtsbreite</text><text x="445" y="104" font-size="15" font-family="IBM Plex Mono, monospace" fill="#1d2330">Foto A:  60 ÷ 140 = <tspan font-weight="700" fill="#2f52c9">0,43</tspan></text><text x="445" y="132" font-size="15" font-family="IBM Plex Mono, monospace" fill="#1d2330">Foto B:  30 ÷ 70  = <tspan font-weight="700" fill="#2f52c9">0,43</tspan></text><rect x="445" y="152" width="222" height="56" rx="8" fill="#dff2ea"/><text x="456" y="176" font-size="13.5" fill="#0f5a47" font-weight="700">Gleiche Person → gleiche Zahl,</text><text x="456" y="196" font-size="13.5" fill="#0f5a47">egal wie groß sie im Foto ist.</text></svg>
+    <p class="hint" style="margin-bottom:0">Genauso entsteht Zahl 2, z. B. Nasenlänge ÷ Gesichtshöhe. Echte Handys nutzen über 100 solcher Zahlen. Welche genau, hat ein Programm vorher selbst gelernt – viele davon kann man gar nicht so einfach benennen.</p>
+  </div>
+  <p class="hint" style="margin-top:12px">In der Demo unten nehmen wir nur <b>2 Zahlen</b> (Augenabstand und Nasenlänge) – dann kann man jedes Gesicht als Punkt in ein Diagramm zeichnen.</p>
+</section>
+
+<section>
+  <h2>Ausprobieren: Gruppen bilden mit k-Means</h2>
+  <p class="sub">k-Means ist ein bekannter Algorithmus zum Gruppenbilden. <b>k</b> ist die Anzahl der Gruppen, die er suchen soll.</p>
+  <div class="demo">
+    <div>
+      <canvas id="kmCanvas"></canvas>
+      <p class="hint">Jedes Gesicht = ein Foto, gezeichnet nach seinen 2 Zahlen. ★ = Mittelpunkt einer Gruppe.</p>
+    </div>
+    <div>
+      <h3>Die Regeln</h3>
+      <ol class="rules" id="kmRules">
+        <li>k Mittelpunkte zufällig setzen.</li>
+        <li>Jedes Gesicht gehört zum nächstgelegenen Mittelpunkt.</li>
+        <li>Jeden Mittelpunkt in die Mitte seiner Gesichter schieben.</li>
+        <li>Schritte 2 und 3 wiederholen, bis sich nichts mehr ändert.</li>
+      </ol>
+      <div class="controls">
+        <button id="kmStep" class="primary">Nächster Schritt</button>
+        <button id="kmAuto">▶ Automatisch</button>
+        <button id="kmReset">Neu starten</button>
+        <label class="inline">k = <select id="kmK"><option>2</option><option selected>3</option><option>4</option></select></label>
+      </div>
+      <div class="status" id="kmStatus"></div>
+      <div id="kmNaming"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Weitere Beispiele</h2>
+  <div class="grid2" style="margin-top:12px">
+    <div class="ex"><div class="t">Musik-App: Mixe nach Stimmung</div><dl>
+      <dt>Daten</dt><dd>Tausende Songs mit Tempo, Lautstärke, Instrumenten …</dd>
+      <dt>Ergebnis</dt><dd>Gruppen ähnlich klingender Songs → daraus werden Mixe</dd>
+      <dt>Ohne Label</dt><dd>Niemand hat vorher festgelegt, welche Stimmungen es gibt</dd></dl></div>
+    <div class="ex"><div class="t">Online-Shop: Kundengruppen</div><dl>
+      <dt>Daten</dt><dd>Was, wie oft und wie teuer Kunden einkaufen</dd>
+      <dt>Ergebnis</dt><dd>z. B. „Schnäppchenjäger“, „Vielkäufer“, „Gelegenheitskäufer“</dd>
+      <dt>Ohne Label</dt><dd>Die Namen der Gruppen vergibt erst ein Mensch</dd></dl></div>
+    <div class="ex"><div class="t">Bank: Ungewöhnliche Abbuchungen</div><dl>
+      <dt>Daten</dt><dd>Alle Kartenzahlungen: Betrag, Ort, Uhrzeit</dd>
+      <dt>Ergebnis</dt><dd>Zahlungen, die zu keiner Gruppe passen (Ausreißer) → prüfen, ob Betrug</dd>
+      <dt>Ohne Label</dt><dd>Man muss vorher keine Betrugsfälle kennen</dd></dl></div>
+    <div class="ex"><div class="t">Nachrichten-App: Themen</div><dl>
+      <dt>Daten</dt><dd>Tausende Artikel des Tages</dd>
+      <dt>Ergebnis</dt><dd>Artikel über dasselbe Ereignis werden zusammengefasst</dd>
+      <dt>Ohne Label</dt><dd>Welche Themen es heute gibt, weiß vorher niemand</dd></dl></div>
+  </div>
+</section>
+</div>
+
+<!-- ══════════════ SUPERVISED ══════════════ -->
+<div class="tabpanel" id="tab-supervised">
+
+<section>
+  <h2>Was ist Supervised Learning?</h2>
+  <div class="grid2" style="margin-top:10px;align-items:center">
+    <div>
+      <p>Der Computer bekommt <b>Daten mit Lösung</b>. Zu jedem Beispiel steht die richtige Antwort dabei – das nennt man <b>Label</b>. Er lernt aus diesen Beispielen und kann danach <b>neue</b> Daten selbst beantworten. Wie Lernen mit Lösungsheft.</p>
+      <p><b>Beispiel Handy-Galerie:</b> Du tippst bei einigen Fotos ein: „Das ist Oma“, „Das ist Max“. Jetzt erkennt die App die beiden auch auf neuen Fotos – <b>mit Namen</b>.</p>
+      <div class="key"><b>Merke:</b> Supervised = Daten mit Label. Ergebnis ist eine Vorhersage mit Namen.</div>
+    </div>
+    <div class="phone">
+      <div class="bar">Fotos mit Namen (Labels)</div>
+      <div class="tagphotos" id="tagMock"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>So funktioniert's</h2>
+  <div class="grid4" style="margin-top:12px">
+    <div class="step"><div class="n">1</div><div class="t">Beispiele mit Label</div>
+      <svg viewBox="0 0 200 92" id="sill1"></svg>
+      <p>Du gibst Fotos mit Namen vor. Jedes Gesicht wird – wie vorher – in Zahlen übersetzt, also ein Punkt mit Namen.</p></div>
+    <div class="step"><div class="n">2</div><div class="t">Lernen (Training)</div>
+      <svg viewBox="0 0 200 92" id="sill2"></svg>
+      <p>Das Modell lernt aus den Beispielen, welche Zahlen zu welchem Namen gehören.</p></div>
+    <div class="step"><div class="n">3</div><div class="t">Vorhersagen</div>
+      <svg viewBox="0 0 200 92" id="sill3"></svg>
+      <p>Neues Foto ohne Namen → das Modell sagt, wer es wahrscheinlich ist.</p></div>
+    <div class="step"><div class="n">4</div><div class="t">Prüfen (Testen)</div>
+      <svg viewBox="0 0 200 92" id="sill4"></svg>
+      <p>Mit Fotos, deren Namen man kennt, prüft man, wie oft das Modell richtig liegt. Das geht nur, weil es Labels gibt.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Ausprobieren: Nächste Nachbarn (k-NN)</h2>
+  <p class="sub">Ein einfacher Algorithmus fürs Vorhersagen: „Sag mir, wem du ähnlich siehst, und ich sag dir, wer du bist.“ <b>Klicke ins Diagramm</b>, um ein neues Foto einzufügen.</p>
+  <div class="demo">
+    <div>
+      <canvas id="knnCanvas"></canvas>
+      <div class="controls">
+        <label class="inline">k = <input id="knnK" type="range" min="1" max="9" step="2" value="3"> <b id="knnKv" class="mono">3</b></label>
+        <label class="inline"><input id="knnReg" type="checkbox"> Bereiche anzeigen</label>
+        <button id="knnTest">Modell testen</button>
+      </div>
+    </div>
+    <div>
+      <h3>Die Regeln</h3>
+      <ol class="rules" id="knnRules">
+        <li>Neues Foto in Zahlen übersetzen → neuer Punkt.</li>
+        <li>Die k ähnlichsten bekannten Fotos suchen (die k nächsten Punkte).</li>
+        <li>Abstimmung: Der Name, der am häufigsten vorkommt, gewinnt.</li>
+      </ol>
+      <div id="knnOut"></div>
+      <div id="testOut"></div>
+    </div>
+  </div>
+  <p class="hint">Bei k-NN besteht das „Lernen“ fast nur aus dem Merken der Beispiele. Andere Verfahren (z. B. die neuronalen Netze im Handy) lernen, indem sie ihre Vorhersage mit dem Label vergleichen und sich bei Fehlern korrigieren. Die Grundidee bleibt gleich: lernen aus Beispielen mit Lösung.</p>
+</section>
+
+<section>
+  <h2>Weitere Beispiele</h2>
+  <div class="grid2" style="margin-top:12px">
+    <div class="ex"><div class="t">Spamfilter</div><dl>
+      <dt>Daten</dt><dd>E-Mails</dd>
+      <dt>Label</dt><dd>„Spam“ oder „kein Spam“ – entsteht, wenn du auf „Als Spam markieren“ klickst</dd>
+      <dt>Vorhersage</dt><dd>Neue Mail landet automatisch im Spam-Ordner oder nicht</dd></dl></div>
+    <div class="ex"><div class="t">Handschrift erkennen</div><dl>
+      <dt>Daten</dt><dd>Bilder von handgeschriebenen Ziffern</dd>
+      <dt>Label</dt><dd>Die richtige Ziffer (0–9)</dd>
+      <dt>Vorhersage</dt><dd>Die Post liest Postleitzahlen auf Briefen automatisch</dd></dl></div>
+    <div class="ex"><div class="t">Wohnungspreis schätzen</div><dl>
+      <dt>Daten</dt><dd>Größe, Lage, Baujahr verkaufter Wohnungen</dd>
+      <dt>Label</dt><dd>Der tatsächliche Verkaufspreis</dd>
+      <dt>Vorhersage</dt><dd>Preis einer neuen Wohnung – hier eine Zahl statt eines Namens</dd></dl></div>
+    <div class="ex"><div class="t">Hautkrebs auf Fotos erkennen</div><dl>
+      <dt>Daten</dt><dd>Fotos von Muttermalen</dd>
+      <dt>Label</dt><dd>Diagnose eines Arztes: harmlos oder gefährlich</dd>
+      <dt>Vorhersage</dt><dd>Einschätzung für ein neues Foto</dd></dl></div>
+  </div>
+</section>
+
+<section>
+  <h2>Der Unterschied auf einen Blick</h2>
+  <table class="cmp" style="margin-top:10px">
+    <tr><th></th><th>Unsupervised Learning</th><th>Supervised Learning</th></tr>
+    <tr><td>Daten</td><td>ohne Label (keine Lösung)</td><td>mit Label (Lösung steht dabei)</td></tr>
+    <tr><td>Ziel</td><td>Muster und Gruppen finden</td><td>Lösung für neue Daten vorhersagen</td></tr>
+    <tr><td>Ergebnis im Handy</td><td>„Person 1“, „Person 2“</td><td>„Oma“, „Max“</td></tr>
+    <tr><td>Richtig oder falsch?</td><td>kann man nicht direkt prüfen</td><td>kann man mit Testdaten prüfen</td></tr>
+    <tr><td>Vergleich</td><td>Socken ohne Anleitung nach Farbe sortieren</td><td>Üben mit Lösungsheft</td></tr>
+    <tr><td>Algorithmus hier</td><td>k-Means</td><td>k-Nächste-Nachbarn (k-NN)</td></tr>
+  </table>
+  <div class="key"><b>Die Testfrage:</b> Steht beim Lernen die richtige Antwort (Label) dabei? Ja → Supervised. Nein → Unsupervised.</div>
+</section>
+</div>
+
+<!-- ══════════════ QUIZ ══════════════ -->
+<div class="tabpanel" id="tab-quiz">
+<section>
+  <div class="quiz">
+    <h2>Supervised oder Unsupervised?</h2>
+    <p class="sub">Entscheide für jedes Beispiel. Tipp: Frag dich, ob beim Lernen die richtige Antwort (Label) bekannt war – auch wenn es nicht ausdrücklich dasteht.</p>
+    <div class="qprog" id="qprog"></div>
+    <div id="qbox"></div>
+  </div>
+</section>
+</div>
+
+</main>
+
+<script>
+// ═════════ Helpers
+const $=id=>document.getElementById(id);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+function gauss(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+const GCOL=['#7F77DD','#1D9E75','#D85A30','#BA7517'];
+const GDARK=['#3C3489','#085041','#712B13','#633806'];
+const PEOPLE=[{name:'Oma',c:[2.6,7.3]},{name:'Max',c:[7.3,7.0]},{name:'Lena',c:[4.9,2.6]}];
+
+function genPoints(seed,n,sd){
+  const r=mulberry32(seed),pts=[];
+  PEOPLE.forEach((p,i)=>{for(let j=0;j<n;j++)pts.push({x:clamp(p.c[0]+gauss(r)*sd,0.4,9.6),y:clamp(p.c[1]+gauss(r)*sd,0.4,9.6),who:i});});
+  return pts;
+}
+
+// face drawing (canvas)
+function face(ctx,x,y,r,fill,opt={}){
+  ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=fill;ctx.fill();
+  if(opt.stroke){ctx.lineWidth=opt.lw||2;ctx.strokeStyle=opt.stroke;ctx.stroke();}
+  ctx.fillStyle='rgba(20,22,30,.85)';
+  ctx.beginPath();ctx.arc(x-r*.33,y-r*.18,r*.12,0,7);ctx.arc(x+r*.33,y-r*.18,r*.12,0,7);ctx.fill();
+  ctx.strokeStyle='rgba(20,22,30,.85)';ctx.lineWidth=Math.max(1,r*.12);
+  ctx.beginPath();ctx.arc(x,y+r*.05,r*.42,.2*Math.PI,.8*Math.PI);ctx.stroke();
+}
+function star(ctx,x,y,r,fill){
+  ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}ctx.closePath();
+  ctx.fillStyle=fill;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();ctx.lineWidth=1;ctx.strokeStyle='#1d2330';ctx.stroke();
+}
+// SVG face
+function sface(cx,cy,r,fill){return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><circle cx="${cx-r*.33}" cy="${cy-r*.18}" r="${r*.12}" fill="#1d2330"/><circle cx="${cx+r*.33}" cy="${cy-r*.18}" r="${r*.12}" fill="#1d2330"/><path d="M${cx-r*.36},${cy+r*.22} Q${cx},${cy+r*.55} ${cx+r*.36},${cy+r*.22}" stroke="#1d2330" stroke-width="${Math.max(1.2,r*.1)}" fill="none" stroke-linecap="round"/>`;}
+
+// canvas setup / mapping (data space 0..10)
+const PAD={l:34,r:12,t:12,b:30};
+function setup(c){
+  const dpr=window.devicePixelRatio||1,w=c.clientWidth,h=Math.round(w*0.82);
+  if(!w)return null;
+  c.style.height=h+'px';c.width=w*dpr;c.height=h*dpr;
+  const ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  const pw=w-PAD.l-PAD.r,ph=h-PAD.t-PAD.b;
+  return {ctx,w,h,pw,ph,sx:x=>PAD.l+x/10*pw,sy:y=>PAD.t+(1-y/10)*ph,ix:px=>(px-PAD.l)/pw*10,iy:py=>(1-(py-PAD.t)/ph)*10};
+}
+function axes(g){
+  const {ctx}=g;ctx.clearRect(0,0,g.w,g.h);
+  ctx.strokeStyle='#efeee9';ctx.lineWidth=1;
+  for(let i=0;i<=10;i+=2){ctx.beginPath();ctx.moveTo(g.sx(i),g.sy(0));ctx.lineTo(g.sx(i),g.sy(10));ctx.stroke();ctx.beginPath();ctx.moveTo(g.sx(0),g.sy(i));ctx.lineTo(g.sx(10),g.sy(i));ctx.stroke();}
+  ctx.strokeStyle='#9aa0ad';ctx.strokeRect(g.sx(0),g.sy(10),g.pw,g.ph);
+  ctx.fillStyle='#5d6475';ctx.font='600 12px IBM Plex Sans, sans-serif';ctx.textAlign='center';
+  ctx.fillText('Zahl 1: Augenabstand →',PAD.l+g.pw/2,g.h-9);
+  ctx.save();ctx.translate(13,PAD.t+g.ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('Zahl 2: Nasenlänge →',0,0);ctx.restore();
+}
+function canvasPoint(c,e,g){const r=c.getBoundingClientRect();return [clamp(g.ix(e.clientX-r.left),0,10),clamp(g.iy(e.clientY-r.top),0,10)];}
+
+// ═════════ Illustrationen
+(function ills(){
+  const gray='#d3d1c7';
+  // people mock
+  $('peopleMock').innerHTML=[['Person 1','340 Fotos'],['Person 2','85 Fotos'],['Person 3','12 Fotos']].map((p,i)=>`<div><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="31" fill="#f3f2ed"/>${sface(32,32,22,GCOL[i])}</svg><b>${p[0]}</b><br><span style="color:#5d6475">${p[1]}</span><br><span class="q">Wer ist das?</span></div>`).join('');
+  $('tagMock').innerHTML=[0,1,0,2,1,2].map((w,i)=>`<div><svg viewBox="0 0 48 48">${sface(24,24,18,GCOL[w])}</svg><br><span style="background:${GCOL[w]}22;color:${GDARK[w]}">${PEOPLE[w].name}</span></div>`).join('');
+  // step 1: photo with faces + boxes
+  $('ill1').innerHTML=`<rect x="20" y="8" width="160" height="78" rx="6" fill="#f3f2ed" stroke="#9aa0ad"/>${sface(62,44,14,gray)}${sface(100,40,14,gray)}${sface(140,46,14,gray)}`+
+    [62,100,140].map((x,i)=>`<rect x="${x-19}" y="${[44,40,46][i]-19}" width="38" height="38" fill="none" stroke="#2f52c9" stroke-width="2" stroke-dasharray="4 3"/>`).join('');
+  // step 2: face -> numbers
+  $('ill2').innerHTML=`${sface(30,46,20,gray)}<path d="M58 46 H80" stroke="#1d2330" stroke-width="2"/><path d="M76 41 L82 46 L76 51" fill="none" stroke="#1d2330" stroke-width="2"/>
+    <rect x="88" y="16" width="104" height="60" rx="6" fill="#e7ecfb" stroke="#b9c6f2"/>
+    <text x="140" y="36" font-family="IBM Plex Mono, monospace" font-size="12" text-anchor="middle" fill="#1c347f">0,42 · 0,87</text>
+    <text x="140" y="52" font-family="IBM Plex Mono, monospace" font-size="12" text-anchor="middle" fill="#1c347f">0,13 · 0,66</text>
+    <text x="140" y="68" font-family="IBM Plex Mono, monospace" font-size="12" text-anchor="middle" fill="#1c347f">…</text>`;
+  // step 3: clusters
+  const r=mulberry32(7);let s3='';
+  [[50,30],[150,34],[100,68]].forEach((c,i)=>{s3+=`<ellipse cx="${c[0]}" cy="${c[1]}" rx="34" ry="20" fill="${GCOL[i]}18" stroke="${GCOL[i]}" stroke-dasharray="4 3"/>`;for(let j=0;j<5;j++)s3+=`<circle cx="${c[0]+gauss(r)*11}" cy="${c[1]+gauss(r)*6}" r="4.5" fill="${GCOL[i]}"/>`;});
+  $('ill3').innerHTML=s3;
+  // step 4: naming
+  $('ill4').innerHTML=`${sface(40,46,22,GCOL[0])}<text x="80" y="34" font-size="13" fill="#9aa0ad">Person 1</text><path d="M80 42 H104" stroke="#9aa0ad" stroke-width="1.5"/><path d="M100 38 L105 42 L100 46" fill="none" stroke="#9aa0ad" stroke-width="1.5"/><rect x="78" y="52" width="100" height="30" rx="6" fill="#fff" stroke="${GCOL[0]}" stroke-width="2"/><text x="90" y="72" font-size="15" font-weight="700" fill="${GDARK[0]}">Oma|</text>`;
+  // supervised steps
+  let s1='';[[30,24,0],[75,24,0],[125,24,1],[170,24,1],[55,62,2],[115,62,2]].forEach(([x,y,w])=>{s1+=sface(x,y,11,GCOL[w])+`<text x="${x}" y="${y+22}" font-size="10" text-anchor="middle" fill="${GDARK[w]}" font-weight="700">${PEOPLE[w].name}</text>`;});
+  $('sill1').innerHTML=s1;
+  $('sill2').innerHTML=`<rect x="14" y="18" width="70" height="56" rx="6" fill="#f3f2ed" stroke="#9aa0ad"/><text x="49" y="42" font-size="11" text-anchor="middle" fill="#5d6475">Beispiele</text><text x="49" y="58" font-size="11" text-anchor="middle" fill="#5d6475">+ Labels</text>
+    <path d="M88 46 H112" stroke="#1d2330" stroke-width="2"/><path d="M108 41 L114 46 L108 51" fill="none" stroke="#1d2330" stroke-width="2"/>
+    <rect x="118" y="18" width="70" height="56" rx="6" fill="#e7ecfb" stroke="#b9c6f2"/><text x="153" y="50" font-size="13" text-anchor="middle" fill="#1c347f" font-weight="700">Modell</text>`;
+  $('sill3').innerHTML=`${sface(40,46,22,'#d3d1c7')}<text x="40" y="54" font-size="0"></text><path d="M70 46 H96" stroke="#1d2330" stroke-width="2"/><path d="M92 41 L98 46 L92 51" fill="none" stroke="#1d2330" stroke-width="2"/>
+    <rect x="104" y="28" width="86" height="36" rx="18" fill="${GCOL[0]}22" stroke="${GCOL[0]}"/><text x="147" y="51" font-size="15" text-anchor="middle" font-weight="700" fill="${GDARK[0]}">Oma?</text>`;
+  $('sill4').innerHTML=[0,1,2,1,0].map((w,i)=>sface(24+i*38,34,13,GCOL[w])+`<text x="${24+i*38}" y="74" font-size="16" text-anchor="middle" font-weight="700" fill="${i===3?'#c2412d':'#17866a'}">${i===3?'✗':'✓'}</text>`).join('');
+})();
+
+// ═════════ k-Means
+const KM_PTS=genPoints(11,15,0.95);
+let km={};
+function kmReset(){
+  kmStop();
+  km={k:+$('kmK').value,centers:[],prev:null,assign:KM_PTS.map(()=>-1),phase:'start',iter:0,changed:0,anim:1,newPt:null,names:[]};
+  kmRender();
+}
+function nearest(p,centers){let b=0,bd=1e9;centers.forEach((c,i)=>{const d=dist([p.x,p.y],c);if(d<bd){bd=d;b=i;}});return b;}
+function kmStepFn(){
+  if(km.phase==='done')return;
+  if(km.phase==='start'){
+    km.centers=[];for(let i=0;i<km.k;i++)km.centers.push([1+Math.random()*8,1+Math.random()*8]);
+    km.phase='init';
+  } else if(km.phase==='init'||km.phase==='update'){
+    let ch=0;KM_PTS.forEach((p,i)=>{const a=nearest(p,km.centers);if(a!==km.assign[i])ch++;km.assign[i]=a;});
+    km.changed=ch;
+    if(km.phase==='update'&&ch===0){km.phase='done';km.names=km.centers.map((_,i)=>'Person '+(i+1));}
+    else{km.phase='assign';km.iter++;}
+  } else if(km.phase==='assign'){
+    km.prev=km.centers.map(c=>c.slice());
+    km.centers=km.centers.map((c,i)=>{const m=KM_PTS.filter((_,j)=>km.assign[j]===i);if(!m.length)return c;return [m.reduce((s,p)=>s+p.x,0)/m.length,m.reduce((s,p)=>s+p.y,0)/m.length];});
+    km.phase='update';kmAnimate();return;
+  }
+  kmRender();
+}
+function kmAnimate(){
+  const t0=performance.now(),D=550;km.anim=0;
+  const f=now=>{km.anim=Math.min(1,(now-t0)/D);kmRender();if(km.anim<1)requestAnimationFrame(f);};
+  requestAnimationFrame(f);
+}
+let kmTimer=null;
+function kmStop(){if(kmTimer){clearInterval(kmTimer);kmTimer=null;}$('kmAuto').textContent='▶ Automatisch';}
+$('kmAuto').onclick=()=>{if(kmTimer){kmStop();return;}$('kmAuto').textContent='❚❚ Pause';kmTimer=setInterval(()=>{kmStepFn();if(km.phase==='done')kmStop();},950);};
+$('kmStep').onclick=()=>{kmStop();kmStepFn();};
+$('kmReset').onclick=kmReset;
+$('kmK').onchange=kmReset;
+
+function kmRender(){
+  const g=setup($('kmCanvas'));
+  if(g){
+    axes(g);const {ctx}=g;
+    const ease=t=>1-Math.pow(1-t,3);
+    const cen=km.centers.map((c,i)=>km.prev&&km.anim<1&&km.phase==='update'?[km.prev[i][0]+(c[0]-km.prev[i][0])*ease(km.anim),km.prev[i][1]+(c[1]-km.prev[i][1])*ease(km.anim)]:c);
+    // Zuordnungslinien
+    if(km.phase==='assign'){
+      KM_PTS.forEach((p,i)=>{const a=km.assign[i];ctx.strokeStyle=GCOL[a]+'55';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(g.sx(p.x),g.sy(p.y));ctx.lineTo(g.sx(cen[a][0]),g.sy(cen[a][1]));ctx.stroke();});
+    }
+    // Gesichter
+    KM_PTS.forEach((p,i)=>{const a=km.assign[i];face(ctx,g.sx(p.x),g.sy(p.y),8.5,a<0?'#d3d1c7':GCOL[a]);});
+    // Bewegungsspur
+    if(km.phase==='update'&&km.prev){
+      km.prev.forEach((p,i)=>{ctx.setLineDash([4,4]);ctx.strokeStyle=GDARK[i];ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(g.sx(p[0]),g.sy(p[1]));ctx.lineTo(g.sx(cen[i][0]),g.sy(cen[i][1]));ctx.stroke();ctx.setLineDash([]);
+        ctx.globalAlpha=.35;star(ctx,g.sx(p[0]),g.sy(p[1]),11,GCOL[i]);ctx.globalAlpha=1;});
+    }
+    cen.forEach((c,i)=>star(ctx,g.sx(c[0]),g.sy(c[1]),15,GCOL[i]));
+    if(km.phase==='done'){
+      cen.forEach((c,i)=>{ctx.font="700 13px 'IBM Plex Sans', sans-serif";ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.strokeText(km.names[i],g.sx(c[0]),g.sy(c[1])-20);ctx.fillStyle=GDARK[i];ctx.fillText(km.names[i],g.sx(c[0]),g.sy(c[1])-20);});
+    }
+    if(km.newPt){
+      const a=nearest({x:km.newPt[0],y:km.newPt[1]},km.centers);
+      ctx.setLineDash([5,4]);ctx.strokeStyle=GDARK[a];ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(g.sx(km.newPt[0]),g.sy(km.newPt[1]));ctx.lineTo(g.sx(km.centers[a][0]),g.sy(km.centers[a][1]));ctx.stroke();ctx.setLineDash([]);
+      face(ctx,g.sx(km.newPt[0]),g.sy(km.newPt[1]),13,GCOL[a],{stroke:'#1d2330',lw:3});
+    }
+  }
+  // Regeln + Status
+  const ruleIdx={start:-1,init:0,assign:1,update:2,done:3}[km.phase];
+  document.querySelectorAll('#kmRules li').forEach((li,i)=>li.classList.toggle('on',i===ruleIdx||(km.phase==='done'&&i===3)));
+  const S={
+    start:['Ausgangslage',`${KM_PTS.length} Gesichter, alle grau: Niemand weiß, wer wer ist. Der Algorithmus soll ${km.k} Gruppen finden.`],
+    init:['Regel 1: Mittelpunkte setzen',`${km.k} Sterne wurden zufällig platziert. Sie sind die ersten „Rate-Mittelpunkte“ der Gruppen – noch völlig daneben.`],
+    assign:[`Regel 2: Zuordnen (Runde ${km.iter})`,km.iter===1?'Jedes Gesicht schaut, welcher Stern am nächsten ist, und nimmt dessen Farbe an.':`Jedes Gesicht prüft erneut den nächsten Stern. <b style="display:inline">${km.changed}</b> Gesicht${km.changed===1?' hat':'er haben'} die Gruppe gewechselt.`],
+    update:[`Regel 3: Mittelpunkte verschieben (Runde ${km.iter})`,'Jeder Stern wandert in die Mitte seiner Gesichter (Durchschnitt aller Zahlen).'],
+    done:['Fertig!',`Nach ${km.iter} Runden wechselt kein Gesicht mehr die Gruppe. Der Algorithmus hat ${km.k} Gruppen gefunden – aber er weiß nicht, wer das ist.`]
+  }[km.phase];
+  $('kmStatus').className='status'+(km.phase==='done'?' done':'');
+  $('kmStatus').innerHTML=`<b>${S[0]}</b>${S[1]}`+(km.hint&&km.phase!=='done'?'<div class="hint" style="margin:6px 0 0">Erst die Gruppen fertig bilden, dann kannst du neue Fotos einordnen.</div>':'');
+  $('kmStep').disabled=km.phase==='done';$('kmAuto').disabled=km.phase==='done';
+  // Namen
+  if(km.phase==='done'){
+    if(!$('kmNameList')){
+      const sizes=km.centers.map((_,i)=>km.assign.filter(a=>a===i).length);
+      $('kmNaming').innerHTML=`<h3 style="margin-top:16px">Im Handy: Du gibst die Namen</h3>
+        <div class="names" id="kmNameList">${km.centers.map((_,i)=>`<label><span class="dot" style="background:${GCOL[i]}"></span><input type="text" data-i="${i}" value="${km.names[i]}"><span class="mono" style="font-size:12.5px;color:var(--muted)">${sizes[i]} Fotos</span></label>`).join('')}</div>
+        <p class="hint">Neues Foto? <b>Klicke ins Diagramm.</b> Es kommt in die Gruppe mit dem nächsten Stern.</p><div id="kmNewOut"></div>
+        ${km.k!==3?`<p class="hint">Hinweis: Es gibt eigentlich 3 Personen. Mit k = ${km.k} ${km.k<3?'werden zwei Personen in eine Gruppe gesteckt':'wird eine Person auf zwei Gruppen verteilt'}. k-Means braucht die richtige Anzahl k vorher.</p>`:''}`;
+      $('kmNameList').querySelectorAll('input').forEach(inp=>inp.oninput=()=>{km.names[+inp.dataset.i]=inp.value||('Person '+(+inp.dataset.i+1));kmRender();});
+    }
+    if(km.newPt){const a=nearest({x:km.newPt[0],y:km.newPt[1]},km.centers);
+      $('kmNewOut').innerHTML=`<div class="answer" style="background:${GCOL[a]}22;color:${GDARK[a]}"><span class="dot" style="background:${GCOL[a]};width:18px;height:18px"></span>Neues Foto gehört zu: ${km.names[a]}</div>`;}
+  } else $('kmNaming').innerHTML='';
+}
+$('kmCanvas').addEventListener('click',e=>{
+  const g=setup($('kmCanvas'));
+  if(km.phase!=='done'){km.hint=true;kmRender();return;}
+  km.newPt=canvasPoint($('kmCanvas'),e,g);kmRender();
+});
+
+// ═════════ k-NN
+const TRAIN=genPoints(23,12,0.95);
+const TEST=genPoints(91,4,1.35);
+let knn={k:3,q:[3.9,5.6],reg:false,test:false};
+function knnPredict(p,k){
+  const nb=TRAIN.map(t=>({t,d:dist(p,[t.x,t.y])})).sort((a,b)=>a.d-b.d).slice(0,k);
+  const votes=[0,0,0];nb.forEach(n=>votes[n.t.who]++);
+  let best=0;votes.forEach((v,i)=>{if(v>votes[best])best=i;});
+  // Gleichstand: nächster Nachbar unter den Besten entscheidet
+  const top=votes.map((v,i)=>v===votes[best]?i:-1).filter(i=>i>=0);
+  if(top.length>1)best=nb.find(n=>top.includes(n.t.who)).t.who;
+  return {nb,votes,best};
+}
+function knnRender(){
+  const g=setup($('knnCanvas'));
+  if(g){
+    axes(g);const {ctx}=g;
+    if(knn.reg){const cs=8;for(let px=PAD.l;px<PAD.l+g.pw;px+=cs)for(let py=PAD.t;py<PAD.t+g.ph;py+=cs){const r=knnPredict([g.ix(px+cs/2),g.iy(py+cs/2)],knn.k);ctx.fillStyle=GCOL[r.best]+'26';ctx.fillRect(px,py,Math.min(cs,PAD.l+g.pw-px),Math.min(cs,PAD.t+g.ph-py));}}
+    const R=knnPredict(knn.q,knn.k);
+    R.nb.forEach(n=>{ctx.strokeStyle=GDARK[n.t.who];ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(g.sx(knn.q[0]),g.sy(knn.q[1]));ctx.lineTo(g.sx(n.t.x),g.sy(n.t.y));ctx.stroke();ctx.setLineDash([]);});
+    TRAIN.forEach(t=>face(ctx,g.sx(t.x),g.sy(t.y),8.5,GCOL[t.who]));
+    R.nb.forEach(n=>{ctx.beginPath();ctx.arc(g.sx(n.t.x),g.sy(n.t.y),12,0,7);ctx.strokeStyle='#1d2330';ctx.lineWidth=2;ctx.stroke();});
+    if(knn.test){
+      TEST.forEach(t=>{const p=knnPredict([t.x,t.y],knn.k).best,ok=p===t.who;const x=g.sx(t.x),y=g.sy(t.y);
+        ctx.fillStyle='#fff';ctx.strokeStyle=GDARK[t.who];ctx.lineWidth=2.5;ctx.beginPath();ctx.rect(x-10,y-10,20,20);ctx.fill();ctx.stroke();
+        ctx.font="700 14px 'IBM Plex Sans', sans-serif";ctx.textAlign='center';ctx.fillStyle=ok?'#17866a':'#c2412d';ctx.fillText(ok?'✓':'✗',x,y+5);});
+    }
+    face(ctx,g.sx(knn.q[0]),g.sy(knn.q[1]),13,'#d3d1c7',{stroke:'#1d2330',lw:3});
+    ctx.font="700 13px 'IBM Plex Sans', sans-serif";ctx.textAlign='left';ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.strokeText('neu',g.sx(knn.q[0])+16,g.sy(knn.q[1])-10);ctx.fillStyle='#1d2330';ctx.fillText('neu',g.sx(knn.q[0])+16,g.sy(knn.q[1])-10);
+    // Legende
+    ctx.textAlign='left';ctx.font="600 12px 'IBM Plex Sans', sans-serif";
+    PEOPLE.forEach((p,i)=>{const x=g.sx(0)+10+i*64,y=g.sy(10)+16;face(ctx,x,y-4,6,GCOL[i]);ctx.fillStyle=GDARK[i];ctx.fillText(p.name,x+10,y);});
+  }
+  const R=knnPredict(knn.q,knn.k),max=Math.max(...R.votes,1);
+  $('knnOut').innerHTML=`<h3 style="margin-top:16px">Abstimmung der ${knn.k} nächsten Nachbarn</h3>
+    <div class="votes">${PEOPLE.map((p,i)=>`<div class="vote"><b style="color:${GDARK[i]}">${p.name}</b><div class="b" style="width:${R.votes[i]/max*100}%;background:${GCOL[i]};${R.votes[i]?'':'opacity:0'}"></div><span class="mono">${R.votes[i]}</span></div>`).join('')}</div>
+    <div class="answer" style="background:${GCOL[R.best]}22;color:${GDARK[R.best]}"><span class="dot" style="background:${GCOL[R.best]};width:18px;height:18px"></span>Vorhersage: Das ist ${PEOPLE[R.best].name}</div>
+    ${R.votes.filter(v=>v===Math.max(...R.votes)).length>1?'<p class="hint">Gleichstand! Dann entscheidet der allernächste Nachbar.</p>':''}<p class="hint">Probier es aus: Klicke zwischen zwei Gruppen und ändere k.</p>`;
+  if(knn.test){
+    const res=TEST.map(t=>({t,p:knnPredict([t.x,t.y],knn.k).best}));const ok=res.filter(r=>r.p===r.t.who).length;
+    $('testOut').innerHTML=`<h3 style="margin-top:16px">Test mit ${TEST.length} Fotos, deren Namen bekannt sind</h3>
+      <div class="status ${ok===TEST.length?'done':''}"><b>${ok} von ${TEST.length} richtig (${Math.round(ok/TEST.length*100)} %)</b>Die Testfotos (□) waren beim Lernen nicht dabei. Vorhersage und Label werden verglichen: ✓ = richtig, ✗ = falsch.${ok<TEST.length?' Falsch liegen vor allem Fotos zwischen zwei Gruppen.':''}</div>`;
+  } else $('testOut').innerHTML='';
+  $('knnTest').textContent=knn.test?'Test ausblenden':'Modell testen';
+}
+$('knnCanvas').addEventListener('click',e=>{const g=setup($('knnCanvas'));knn.q=canvasPoint($('knnCanvas'),e,g);knnRender();});
+$('knnK').oninput=()=>{knn.k=+$('knnK').value;$('knnKv').textContent=knn.k;knnRender();};
+$('knnReg').onchange=()=>{knn.reg=$('knnReg').checked;knnRender();};
+$('knnTest').onclick=()=>{knn.test=!knn.test;knnRender();};
+
+// ═════════ Quiz
+const QUIZ=[
+ ['Eine Nachrichten-App zeigt unter einem Artikel „Weitere Berichte zu diesem Ereignis“ – mit Artikeln anderer Zeitungen, die über dasselbe schreiben.','U','Die App findet Artikel, die sich ähneln, und fasst sie zusammen. Was ein „Ereignis“ ist, hat ihr niemand mit Beispielen beigebracht – es entstehen Gruppen ohne vorgegebene Namen.'],
+ ['Eine Nachrichten-App ordnet jeden neuen Artikel automatisch einer der Rubriken Sport, Politik, Wirtschaft oder Kultur zu. Gelernt hat sie aus dem Archiv der Zeitung.','S','Achtung, Falle: Im Archiv stand jeder Artikel schon in seiner Rubrik. Die Rubrik ist das Label – die App lernt, es für neue Artikel vorherzusagen.'],
+ ['In der Galerie-App erscheint unter „Personen“ ein neues Gesicht mit 12 Fotos und der Frage „Wer ist das?“.','U','Die App hat ähnliche Gesichter gruppiert, kennt aber keinen Namen. Gruppe ohne Namen = Unsupervised.'],
+ ['Die Galerie-App schreibt unter ein neues Urlaubsfoto automatisch „Oma“.','S','Den Namen „Oma“ kann die App nur kennen, weil du ihn irgendwann eingetippt hast. Deine Eingabe war das Label.'],
+ ['Dein E-Mail-Programm schiebt neue Mails automatisch in den Spam-Ordner. Es hat dafür aus Millionen Mails gelernt, die Nutzer selbst in den Spam-Ordner verschoben hatten.','S','Jedes Verschieben in den Spam-Ordner ist ein Label („Spam“). Das Programm lernt aus diesen Beispielen mit Lösung.'],
+ ['Deine Bank sperrt deine Karte, weil nachts um 3 Uhr in einem fremden Land eine hohe Zahlung auftaucht, die nicht zu deinem bisherigen Kaufverhalten passt.','U','Hier wird erkannt, dass eine Zahlung vom üblichen Muster abweicht (Ausreißer). Dafür braucht man keine Beispiele, bei denen „Betrug“ dransteht.'],
+ ['Ein Immobilienportal zeigt bei jeder Wohnungsanzeige einen geschätzten Preis an. Grundlage sind tausende Wohnungen, die in den letzten Jahren in der Gegend verkauft wurden.','S','Bei verkauften Wohnungen ist der tatsächliche Preis bekannt – das ist das Label. Vorhergesagt wird eine Zahl statt eines Namens.'],
+ ['Ein Immobilienportal schlägt dir „ähnliche Stadtviertel“ vor. Dazu hat es alle Viertel nach Mieten, Einwohnern und Geschäften miteinander verglichen.','U','Es gibt keine richtige Antwort, welches Viertel zu welchem gehört. Das Portal findet selbst Gruppen ähnlicher Viertel.'],
+ ['Eine Wetter-App gibt für morgen eine Regenwahrscheinlichkeit an. Sie hat dafür die Messwerte der letzten 30 Jahre ausgewertet.','S','Für jeden vergangenen Tag weiß man, ob es am Tag danach geregnet hat. Das ist das Label, auch wenn es hier nicht ausdrücklich dasteht.'],
+ ['Ein Tablet wandelt deine handgeschriebenen Notizen in getippten Text um.','S','Trainiert wurde mit Schriftproben, bei denen der richtige Text bekannt war. Bild + richtiger Buchstabe = Beispiel mit Label.'],
+ ['Ein Supermarkt stellt fest, dass Kunden, die Grillkohle kaufen, oft auch Senf und Bier mitnehmen – und stellt die Produkte nebeneinander.','U','Niemand hat vorgegeben, welche Produkte zusammengehören. Das Muster wurde in den Kassenbons entdeckt.'],
+ ['Eine Musik-App erstellt aus Millionen Songs automatisch Playlists wie „Mix 1“, „Mix 2“ und „Mix 3“, jeweils mit ähnlich klingenden Songs.','U','Die Songs wurden nach Ähnlichkeit gruppiert. Die nichtssagenden Namen „Mix 1, 2, 3“ verraten es: Die Gruppen haben keine echten Namen – wie „Person 1, 2, 3“.'],
+ ['Eine Hautarzt-App bewertet ein Foto deines Muttermals mit „unbedenklich“ oder „bitte zum Arzt“.','S','Die App wurde mit Fotos trainiert, die Ärzte vorher beurteilt hatten. Die Diagnose der Ärzte ist das Label.'],
+ ['Ein Modehändler stellt fest, dass sich seine Kunden in vier Typen aufteilen lassen, und schickt jedem Typ eigene Werbung.','U','Die vier Typen standen vorher nicht fest – sie wurden in den Kaufdaten entdeckt. Erst danach gibt man ihnen Namen.']
+];
+let Q={order:[],i:0,ans:[]};
+function qStart(){Q={order:QUIZ.map((_,i)=>i).sort(()=>Math.random()-.5),i:0,ans:[]};qRender();}
+function qRender(){
+  $('qprog').innerHTML=Q.order.map((_,i)=>`<i class="${i<Q.ans.length?(Q.ans[i].ok?'ok':'err'):(i===Q.i?'cur':'')}"></i>`).join('');
+  if(Q.i>=Q.order.length){
+    const ok=Q.ans.filter(a=>a.ok).length;
+    $('qbox').innerHTML=`<div class="qcard" style="text-align:center"><div class="score">${ok} / ${Q.order.length}</div>
+      <p style="font-size:18px">${ok===Q.order.length?'Perfekt! Du kannst Supervised und Unsupervised sicher unterscheiden.':ok>=Q.order.length*.75?'Sehr gut! Schau dir die falschen nochmal an.':'Lies dir die Erklärungen zu den falschen Antworten durch und versuch es nochmal.'}</p>
+      <button class="primary" id="qAgain">Nochmal (neue Reihenfolge)</button></div>
+      <div class="review">${Q.ans.map(a=>{const q=QUIZ[a.q];return `<div><span class="r" style="color:${a.ok?'#17866a':'#c2412d'}">${a.ok?'✓':'✗'} ${q[1]==='S'?'Supervised':'Unsupervised'}:</span> ${q[0]}</div>`;}).join('')}</div>`;
+    $('qAgain').onclick=qStart;return;
+  }
+  const q=QUIZ[Q.order[Q.i]],answered=Q.ans.length>Q.i;
+  $('qbox').innerHTML=`<div class="qcard"><div class="qnum">Frage ${Q.i+1} von ${Q.order.length}</div><div class="qtext">${q[0]}</div>
+    <div class="qbtns"><button data-a="S">Supervised</button><button data-a="U">Unsupervised</button></div><div id="qfb"></div></div>`;
+  $('qbox').querySelectorAll('.qbtns button').forEach(b=>b.onclick=()=>{
+    if(Q.ans.length>Q.i)return;
+    const ok=b.dataset.a===q[1];Q.ans.push({q:Q.order[Q.i],ok});
+    $('qbox').querySelectorAll('.qbtns button').forEach(x=>{x.disabled=true;x.style.opacity=1;if(x.dataset.a===q[1])x.classList.add('right');else if(x===b)x.classList.add('wrong');});
+    $('qfb').innerHTML=`<div class="qfb ${ok?'ok':'err'}"><b>${ok?'Richtig!':'Leider falsch.'}</b> Es ist <b>${q[1]==='S'?'Supervised':'Unsupervised'}</b>: ${q[2]}</div>
+      <div style="text-align:right;margin-top:12px"><button class="primary" id="qNext">${Q.i+1<Q.order.length?'Nächste Frage →':'Ergebnis anzeigen'}</button></div>`;
+    $('qprog').innerHTML=Q.order.map((_,i)=>`<i class="${i<Q.ans.length?(Q.ans[i].ok?'ok':'err'):(i===Q.i?'cur':'')}"></i>`).join('');
+    $('qNext').onclick=()=>{Q.i++;qRender();};
+  });
+}
+
+// ═════════ Tabs
+function showTab(){
+  const t=['supervised','quiz'].includes(location.hash.slice(1))?location.hash.slice(1):'unsupervised';
+  document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.t===t));
+  document.querySelectorAll('.tabpanel').forEach(p=>p.classList.toggle('on',p.id==='tab-'+t));
+  if(t==='unsupervised')kmRender();if(t==='supervised')knnRender();
+}
+window.addEventListener('hashchange',showTab);
+window.addEventListener('resize',()=>{kmRender();knnRender();});
+kmReset();qStart();showTab();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{kmRender();knnRender();});
+</script>
+</body>
+</html>

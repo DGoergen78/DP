@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perzeptron – interaktiv</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f5f1; --paper:#ffffff; --ink:#1d2330; --muted:#5d6475; --line:#dcdad3;
+  --good:#17866a; --good-bg:#dff2ea; --bad:#c2412d; --bad-bg:#fbe4df;
+  --accent:#2f52c9; --accent-bg:#e7ecfb; --warn:#a86a00; --warn-bg:#fff3d6;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'IBM Plex Sans',system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:32px 20px 80px}
+header .kicker{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:34px;line-height:1.15;margin:10px 0 6px}
+h2{font-size:22px;margin:0 0 4px;display:flex;align-items:baseline;gap:10px}
+h2 .num{font:600 13px var(--mono);color:#fff;background:var(--ink);border-radius:4px;padding:3px 7px}
+h3{font-size:15px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+section{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:26px;margin-top:22px}
+p{margin:8px 0}
+.sub{color:var(--muted);margin:0 0 16px}
+code,.mono{font-family:var(--mono);font-size:.92em}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.grid-train{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:start}
+@media(max-width:860px){.grid2,.grid-train{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:10px;padding:16px;background:#fcfcfa}
+ul.tight{margin:6px 0;padding-left:20px} ul.tight li{margin:4px 0}
+ol.steps{margin:6px 0;padding-left:22px} ol.steps li{margin:6px 0}
+.pill{display:inline-block;font:600 12px var(--mono);padding:2px 8px;border-radius:99px}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.formula{font-family:var(--mono);background:var(--accent-bg);color:#1c347f;border-radius:8px;padding:10px 14px;margin:10px 0;font-size:15px;overflow-x:auto;white-space:nowrap}
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+button{font:500 14px 'IBM Plex Sans',sans-serif;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 13px;cursor:pointer}
+button:hover{border-color:#9aa0ad}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.primary:hover{background:#353d4f}
+button:disabled{opacity:.4;cursor:default}
+label.inline{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+input[type=range]{accent-color:var(--accent)}
+input[type=number]{width:62px;font:14px var(--mono);padding:5px 6px;border:1px solid var(--line);border-radius:6px}
+canvas{width:100%;display:block;border-radius:8px;border:1px solid var(--line);background:#fff}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;display:inline-block}
+/* weights */
+.weights{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.wbox{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+.wbox .k{font:600 12px var(--mono);color:var(--muted)}
+.wbox .v{font:600 20px var(--mono)}
+.wbox .arr{font:500 11px var(--mono);color:var(--muted)}
+.wbox.changed{border-color:var(--accent);background:var(--accent-bg)}
+.status{font-size:14px;margin-bottom:10px;color:var(--muted)}
+.status b{color:var(--ink)}
+/* calc */
+.calc{font-family:var(--mono);font-size:13.5px;line-height:1.7}
+.calc .row{display:flex;gap:8px}
+.calc .lbl{color:var(--muted);min-width:92px}
+.calc .ok{color:var(--good);font-weight:600} .calc .err{color:var(--bad);font-weight:600}
+.calc hr{border:none;border-top:1px dashed var(--line);margin:6px 0}
+.empty{color:var(--muted);font-style:italic;font-family:'IBM Plex Sans',sans-serif}
+/* pseudocode */
+pre.code{font:13px/1.7 var(--mono);margin:0;padding:12px 0;background:#1f2430;color:#d6dbe6;border-radius:8px;overflow-x:auto}
+pre.code .ln{display:block;padding:0 14px;border-left:3px solid transparent}
+pre.code .ln.hit{background:#2c3a5c;border-left-color:#7c9bff;color:#fff}
+pre.code .ln.hot{background:#5a2b26;border-left-color:#ff8a70;color:#fff}
+pre.code .c{color:#7f8aa3}
+pre.code .tag{color:#ffd27a}
+/* epochs */
+.epochs{display:flex;gap:6px;align-items:flex-end;height:90px;padding:6px 4px 0;border-bottom:1px solid var(--line)}
+.epochs .bar{flex:1;max-width:44px;background:var(--bad);border-radius:3px 3px 0 0;position:relative;min-height:2px}
+.epochs .bar.zero{background:var(--good)}
+.epochs .bar span{position:absolute;top:-18px;left:0;right:0;text-align:center;font:600 11px var(--mono);color:var(--ink)}
+.epochs-x{display:flex;gap:6px;padding:3px 4px 0}
+.epochs-x div{flex:1;max-width:44px;text-align:center;font:11px var(--mono);color:var(--muted)}
+.log{max-height:190px;overflow:auto;font:12.5px/1.6 var(--mono);border:1px solid var(--line);border-radius:8px;background:#fff}
+.log table{border-collapse:collapse;width:100%}
+.log th,.log td{padding:3px 8px;text-align:right;border-bottom:1px solid #eeede8;white-space:nowrap}
+.log th{position:sticky;top:0;background:#f3f2ed;font-weight:600;color:var(--muted)}
+.log tr.latest td{background:var(--accent-bg)}
+.note{font-size:13.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px;margin:10px 0}
+.banner{border-radius:8px;padding:10px 14px;font-size:14px;margin-bottom:12px}
+.banner.ok{background:var(--good-bg);color:#0f5a47}
+.banner.warn{background:var(--warn-bg);color:#6b4500}
+/* result */
+.result{border-radius:10px;padding:14px 18px;font-size:18px;font-weight:600;margin-top:12px;display:flex;align-items:center;gap:12px}
+.result.good{background:var(--good-bg);color:var(--good)} .result.bad{background:var(--bad-bg);color:var(--bad)}
+.result .big{font:700 26px var(--mono);white-space:nowrap}
+.sliders{display:grid;gap:10px;margin-bottom:12px}
+.sliders label{display:grid;grid-template-columns:70px 1fr 54px;align-items:center;gap:10px;font-family:var(--mono);font-size:14px}
+.sliders output{font-weight:600;text-align:right}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.presets button{font-size:12.5px;padding:5px 9px}
+svg text{font-family:'IBM Plex Sans',sans-serif}
+.neuron-wrap{overflow-x:auto}
+.sol{font-size:13px}
+.sol table{border-collapse:collapse;font-size:14px;margin-top:6px}
+.sol td{border:1px solid var(--line);padding:4px 10px}
+.sol td:first-child{font:600 14px var(--mono);text-align:center;background:#f3f2ed}
+.wv-inputs{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:16px;font-family:var(--mono);font-size:14px}
+.wv-inputs label{display:flex;align-items:center;gap:6px}
+.wv-inputs input{width:72px}
+.wv-inputs select{font:14px var(--mono);padding:5px;border:1px solid var(--line);border-radius:6px}
+.wv-inputs .sep{width:1px;height:26px;background:var(--line)}
+.stepper{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.stepper button{font-size:12.5px;padding:6px 10px;border-radius:99px;color:var(--muted)}
+.stepper button.done{background:var(--accent-bg);border-color:#b9c6f2;color:#1c347f}
+.stepper button.cur{background:var(--accent);border-color:var(--accent);color:#fff}
+.grid-walk{display:grid;grid-template-columns:1fr;gap:14px}
+.grid-walk svg{display:block;max-width:920px;margin:0 auto}
+.walk-panel{min-height:230px}
+.walk-title{font-weight:700;font-size:18px;margin-bottom:8px}
+.walk-panel p{margin:6px 0 10px}
+.walk-panel .calc{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.walk-panel .verdict{margin-top:10px;padding:8px 12px;border-radius:8px;font-weight:600}
+.walk-panel .verdict.ok{background:var(--good-bg);color:#0f5a47}
+.walk-panel .verdict.err{background:var(--bad-bg);color:#8c2a1b}
+.inrow{display:grid;grid-template-columns:1fr 1fr;gap:12px 28px}
+@media(max-width:700px){.inrow{grid-template-columns:1fr}}
+.inrow label{display:grid;grid-template-columns:28px 1fr 78px;align-items:center;gap:10px;font-family:var(--mono)}
+.inrow .nm{font-size:20px;font-weight:600}
+.inrow input[type=number]{width:78px;font-size:16px;font-weight:600}
+.presets{margin-top:12px}
+.calcsteps{display:grid;gap:8px}
+.cs{display:grid;grid-template-columns:28px 1fr;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
+.cs .n{width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font:600 13px var(--mono);display:flex;align-items:center;justify-content:center}
+.cs .t{font-weight:600;font-size:14.5px}
+.cs .m{font-family:var(--mono);font-size:13.5px;line-height:1.65;margin-top:2px}
+.cs .d{font-size:13px;color:var(--muted)}
+.fx{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 14px;font:500 20px var(--mono);background:var(--accent-bg);color:#1c347f;border-radius:10px;padding:16px 18px;margin:6px 0 4px}
+.sig{display:inline-flex;flex-direction:column;align-items:center;line-height:1;vertical-align:middle}
+.sig .up,.sig .lo{font-size:12px}
+.sig .s{font-size:36px;line-height:1;margin:-2px 0}
+.fx .sep2{width:1px;align-self:stretch;background:#b9c6f2;margin:0 8px}
+.fx small{font-size:13px;color:#4a5a92;font-family:'IBM Plex Sans',sans-serif}
+.tabs{display:flex;gap:6px;margin-top:26px;border-bottom:2px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5;padding-top:8px}
+.tabs a{font-weight:600;font-size:16px;padding:11px 18px;border:1px solid transparent;border-bottom:none;border-radius:10px 10px 0 0;color:var(--muted);text-decoration:none;margin-bottom:-2px}
+.tabs a.on{background:var(--paper);border-color:var(--line);color:var(--ink);border-bottom:2px solid var(--paper)}
+.tabpanel{display:none}.tabpanel.on{display:block}
+.tabpanel>section:first-child{margin-top:16px}
+.terms{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:760px){.terms{grid-template-columns:1fr}}
+.terms>div{border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:#fcfcfa;display:flex;flex-direction:column;gap:2px}
+.terms b{font-size:15px}.terms span{font-size:14.5px;color:#3b4252}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.flow div{border:1px solid #b9c6f2;background:var(--accent-bg);color:#1c347f;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:500;text-align:center}
+.flow span{color:var(--muted);font-weight:700}
+table.rules{border-collapse:collapse;width:100%;font-size:14.5px}
+table.rules th,table.rules td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+table.rules th{background:#f3f2ed;font-size:13px;color:var(--muted)}
+table.rules td:nth-child(-n+3){font-family:var(--mono);text-align:center;width:64px}
+table.rules tr.up td{background:#fff7f5}table.rules tr.dn td{background:#fff7f5}
+.algo{display:grid;gap:10px}
+.as{display:grid;grid-template-columns:34px 1fr;gap:12px;border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:#fcfcfa}
+.as .n{width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;font:600 15px var(--mono);display:flex;align-items:center;justify-content:center}
+.as .t{font-weight:700;font-size:16px;margin-bottom:2px}
+.as p{margin:4px 0}
+ol.sub-steps{margin:6px 0;padding-left:20px}ol.sub-steps li{margin:4px 0}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>Das Perzeptron</h1>
+  <div class="card" style="margin-top:14px;background:#fff">
+    <h3>Ausgangsszenario</h3>
+    <p style="margin:0">Die AMAG Soft GmbH vertreibt mobile Kassensysteme. Der technische Zustand ihres Datenspeichers wird über zwei Messwerte <b>x₁</b> und <b>x₂</b> überwacht. Eine KI soll anhand der Messwerte automatisch entscheiden, ob der Speicher <span class="pill good">good</span> oder <span class="pill bad">bad</span> ist. Dafür gibt es 100 bereits beurteilte Messungen als Trainingsdaten. Die Klassifizierung übernimmt ein einfaches Perzeptron (ein einzelnes künstliches Neuron).</p>
+    <p style="margin:10px 0 0"><b>Was sind x₁ und x₂?</b> Die Aufgabe sagt nicht, was genau gemessen wird. Vorstellen kann man sich zwei Diagnosewerte, wie sie Festplatten und SSDs selbst liefern, zum Beispiel:</p>
+    <ul class="tight" style="margin-bottom:0">
+      <li><b>x₁ = mittlere Zugriffszeit</b> in Millisekunden (Werte ca. 4–7): Ein verschlissener Speicher wird langsamer.</li>
+      <li><b>x₂ = Lesefehler pro Stunde</b> (Werte ca. 1–5): Ein defekter Speicher muss häufiger Daten neu lesen.</li>
+    </ul>
+    <p style="margin:6px 0 0">Ein gesunder Speicher hat also wenige Fehler und eine kurze Zugriffszeit (unten links im Diagramm), ein kaputter liegt weiter oben rechts.</p>
+  </div>
+</header>
+<!-- 1 ─────────────────────────────── -->
+<section id="ziel">
+  <h2>Worum geht's?</h2>
+  <div class="grid2" style="margin-top:14px">
+    <div>
+      <h3>Was wir haben</h3>
+      <p>Einen Datensatz mit 100 Messungen. Jede Messung besteht aus zwei Werten <b>x₁</b> und <b>x₂</b> und der Angabe, ob der Speicher dabei <span class="pill good">good</span> (in Ordnung) oder <span class="pill bad">bad</span> (defekt bzw. kurz vor dem Ausfall) war.</p>
+      <h3 style="margin-top:16px">Was wir wollen</h3>
+      <p>Bei einem <b>neuen Gerät</b> messen wir x₁ und x₂. Ob der Speicher good oder bad ist, wissen wir noch nicht. Das Perzeptron soll es <b>vorhersagen</b>.</p>
+    </div>
+    <div>
+      <h3>Wie das geht</h3>
+      <ol class="steps">
+        <li><b>Training:</b> Das Perzeptron lernt aus den 100 bekannten Messungen eine <b>Trennlinie</b> zwischen good und bad. Das Ergebnis sind drei Zahlen, die Gewichte w₀, w₁, w₂.</li>
+        <li><b>Anwendung:</b> Für ein neues Gerät rechnet das Perzeptron mit diesen Gewichten. Liegt der Messpunkt auf der einen Seite der Linie, lautet die Vorhersage good, auf der anderen bad.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<nav class="tabs"><a href="#anwendung" data-t="anwendung">Das Perzeptron – Anwendung</a><a href="#lernen" data-t="lernen">Das Perzeptron – Lernen</a></nav>
+<div class="tabpanel" id="tab-anwendung">
+<section id="anwenden">
+  <h2>Das fertig trainierte Perzeptron anwenden</h2>
+  <p class="sub">Messwerte eines neuen Geräts eingeben (Regler, Zahlenfeld oder Klick ins Diagramm). Das Perzeptron rechnet sofort.</p>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="inrow">
+      <label><span class="nm">x₁</span><input id="sx1" type="range" min="4" max="7.5" step="0.05" value="5.2"><input id="nx1" type="number" min="4" max="7.5" step="0.1"></label>
+      <label><span class="nm">x₂</span><input id="sx2" type="range" min="0.5" max="5.5" step="0.05" value="1.8"><input id="nx2" type="number" min="0.5" max="5.5" step="0.1"></label>
+    </div>
+    <div class="presets">
+      <span class="mono" style="font-size:12.5px;color:var(--muted);align-self:center">Beispiele:</span>
+      <button data-p="5.0,1.5">(5,0 | 1,5)</button>
+      <button data-p="6.2,4.4">(6,2 | 4,4)</button>
+      <button data-p="5.5,2.6">(5,5 | 2,6)</button>
+      <button data-p="6.8,2.3">(6,8 | 2,3)</button>
+      <button data-p="4.5,3.2">(4,5 | 3,2)</button>
+    </div>
+  </div>
+
+  <h3>Das Perzeptron</h3>
+  <div class="fx">
+    <span>z =</span><span class="sig"><span class="up">2</span><span class="s">Σ</span><span class="lo">i=0</span></span><span>wᵢ·xᵢ</span><span>= w₀·x₀ + w₁·x₁ + w₂·x₂</span>
+    <span class="sep2"></span>
+    <span>y = 1 falls z ≥ 0, sonst 0</span>
+  </div>
+  <p class="note" style="text-align:center;border:none;margin:0 0 6px">x₀ = 1 ist der feste Bias-Eingang. Das Σ heißt: für i = 0, 1, 2 jeweils wᵢ·xᵢ berechnen und alles addieren.</p>
+  <div class="neuron-wrap"><svg id="neuron" viewBox="0 0 780 300" width="100%" style="display:block;max-width:920px;margin:0 auto"></svg></div>
+  <p class="note" style="margin-top:4px">Gelernte Gewichte (fest): <b class="mono" id="wtxt"></b>. Im Anwendungsfall gibt es kein Lernen und keine Fehlerrückmeldung – nur Rechnen.</p>
+
+  <div class="grid2" style="margin-top:20px;align-items:start">
+    <div>
+      <h3>Rechnung</h3>
+      <div class="calcsteps" id="calc"></div>
+      <div id="result"></div>
+    </div>
+    <div>
+      <h3>Im Diagramm</h3>
+      <canvas id="plot"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--good-bg);border:1px solid var(--good)"></span>Vorhersage good (z &lt; 0)</span>
+        <span><span class="sw" style="background:var(--bad-bg);border:1px solid var(--bad)"></span>Vorhersage bad (z ≥ 0)</span>
+        <span>● / × bekannte Messungen</span>
+        <span>◆ neues Gerät</span>
+      </div>
+      <p class="note">Die schwarze Linie ist die Trennlinie: alle Punkte mit z = 0, also <span class="mono" id="linetxt"></span>. Was das Perzeptron rechnet, ist nichts anderes als die Frage: <b>Liegt der Punkt über oder unter dieser Linie?</b></p>
+    </div>
+  </div>
+</section>
+</div>
+
+<div class="tabpanel" id="tab-lernen">
+
+<section id="begriffe">
+  <h2><span class="num">1</span>Die Idee und die Begriffe</h2>
+  <p class="sub">Vor dem Training sind alle Gewichte 0 – das Perzeptron „weiß“ noch nichts. Es lernt, indem es die Trainingsdaten durchgeht und aus seinen Fehlern Korrekturen ableitet.</p>
+  <div class="terms">
+    <div><b>Trainingsdaten</b><span>Die 100 Messungen (x₁, x₂), bei denen das richtige Ergebnis bekannt ist.</span></div>
+    <div><b>Label</b><span>Das bekannte richtige Ergebnis eines Datensatzes: 0 = good, 1 = bad.</span></div>
+    <div><b>Vorhersage y</b><span>Was das Perzeptron mit den aktuellen Gewichten ausrechnet (wie in der Anwendung).</span></div>
+    <div><b>Fehler (update)</b><span>update = label − y. Ist 0, wenn die Vorhersage stimmt, sonst +1 oder −1.</span></div>
+    <div><b>Lernschritt</b><span>Ein Datensatz wird durchs Perzeptron geschickt: vorhersagen → mit Label vergleichen → bei Fehler Gewichte anpassen.</span></div>
+    <div><b>Epoche</b><span>Ein kompletter Durchlauf durch <b>alle</b> Trainingsdaten. Hier: 100 Lernschritte. Danach hat das Perzeptron jeden Datensatz genau einmal gesehen.</span></div>
+    <div><b>anzEpochen</b><span>Wie viele Epochen maximal trainiert wird. Eine reicht meist nicht: Eine Korrektur für einen Punkt kann einen anderen, vorher richtigen Punkt wieder falsch machen.</span></div>
+    <div><b>Konvergenz</b><span>Eine ganze Epoche ohne einen einzigen Fehler: Alle Trainingsdaten werden richtig erkannt, die Trennlinie ist gefunden. Training fertig.</span></div>
+  </div>
+  <h3 style="margin-top:20px">Ablauf</h3>
+  <div class="flow">
+    <div>Gewichte = 0</div><span>→</span>
+    <div>Epoche starten</div><span>→</span>
+    <div>nächster Datensatz:<br>vorhersagen, vergleichen, ggf. anpassen</div><span>→</span>
+    <div>alle 100 durch?<br>→ Epoche fertig</div><span>→</span>
+    <div>Fehler in der Epoche?<br>ja → nächste Epoche<br>nein → fertig</div>
+  </div>
+</section>
+
+<section id="algo">
+  <h2><span class="num">2</span>Wie arbeitet der Algorithmus?</h2>
+  <p class="sub">Der Ablauf des Trainings im Groben.</p>
+  <div class="algo">
+    <div class="as"><div class="n">1</div><div><div class="t">Gewichte initialisieren</div>
+      <p>Alle Gewichte werden auf 0 gesetzt: w₀ = w₁ = w₂ = 0. Das Perzeptron hat damit noch keine „Meinung“ – für jeden Punkt ist z = 0, also lautet die Vorhersage immer y = 1 (bad).</p>
+      <p class="note">Statt 0 sind auch kleine Zufallswerte üblich. Wichtig ist nur: Die Startwerte sind beliebig, die richtigen Werte entstehen erst durchs Lernen.</p></div></div>
+    <div class="as"><div class="n">2</div><div><div class="t">Epoche 1 starten: Datensätze der Reihe nach durchgehen</div>
+      <p>Für jeden der 100 Trainingsdatensätze (j = 0 … 99) passiert dasselbe:</p>
+      <ol class="sub-steps">
+        <li><b>Vorhersagen:</b> Mit den aktuellen Gewichten y berechnen – genau wie in der Anwendung: z = Σ wᵢ·xᵢ, dann Sprungfunktion.</li>
+        <li><b>Vergleichen:</b> Vorhersage mit dem Label vergleichen: update = label − y.</li>
+        <li><b>Anpassen:</b> Ist update ≠ 0 (Fehler), werden alle Gewichte korrigiert (siehe Abschnitt 3). Ist update = 0, bleiben sie unverändert.</li>
+      </ol>
+      <p>Der nächste Datensatz wird dann schon mit den (eventuell) neuen Gewichten gerechnet.</p></div></div>
+    <div class="as"><div class="n">3</div><div><div class="t">Epoche beenden: Fehler zählen</div>
+      <p>Nach dem 100. Datensatz ist die Epoche vorbei. Gezählt wird, bei wie vielen Datensätzen ein Fehler aufgetreten ist.</p></div></div>
+    <div class="as"><div class="n">4</div><div><div class="t">Nächste Epoche</div>
+      <p>Wieder alle 100 Datensätze von vorn – aber die Gewichte werden <b>nicht</b> zurückgesetzt. Das Perzeptron macht dort weiter, wo es aufgehört hat. Nötig ist das, weil eine spätere Korrektur einen früher richtig erkannten Punkt wieder falsch machen kann.</p></div></div>
+    <div class="as"><div class="n">5</div><div><div class="t">Ende</div>
+      <p>Das Training endet, wenn eine ganze Epoche <b>ohne Fehler</b> durchläuft (Konvergenz) oder die maximale Anzahl an Epochen (anzEpochen) erreicht ist. Die Gewichte, die dann vorliegen, sind das Ergebnis – mit ihnen wird das Perzeptron angewendet.</p></div></div>
+  </div>
+  <div class="banner ok" style="margin-top:14px">Bei unseren 100 Messungen: Start mit 0, 0, 0. Die letzte Anpassung passiert in Epoche 5, <b>Epoche 6 läuft fehlerfrei</b> durch → fertig. Insgesamt wurden die Gewichte nur <b>10-mal</b> angepasst (bei 600 Lernschritten). Ergebnis: w₀ = −2,0, w₁ = −3,4, w₂ = 9,1 – genau die Gewichte aus dem Tab „Anwendung“.</div>
+</section>
+
+<section id="regel">
+  <h2><span class="num">3</span>Wie werden die Gewichte angepasst?</h2>
+  <p class="sub">Nur bei einem Fehler. Dann gilt für jedes Gewicht dieselbe Lernregel:</p>
+  <div class="fx" style="margin-bottom:14px">
+    <span>update = label − y</span><span class="sep2"></span><span>wᵢ := wᵢ + update · xᵢ</span><small>(für i = 0, 1, 2; x₀ = 1)</small>
+  </div>
+  <table class="rules">
+    <tr><th>label</th><th>y</th><th>update</th><th>Was ist passiert?</th><th>Anpassung</th></tr>
+    <tr><td>0</td><td>0</td><td>0</td><td>richtig (good erkannt)</td><td>keine</td></tr>
+    <tr><td>1</td><td>1</td><td>0</td><td>richtig (bad erkannt)</td><td>keine</td></tr>
+    <tr class="up"><td>1</td><td>0</td><td>+1</td><td>sagt good, ist aber bad → <b>z war zu klein</b></td><td>wᵢ := wᵢ <b>+</b> xᵢ → z wird größer</td></tr>
+    <tr class="dn"><td>0</td><td>1</td><td>−1</td><td>sagt bad, ist aber good → <b>z war zu groß</b></td><td>wᵢ := wᵢ <b>−</b> xᵢ → z wird kleiner</td></tr>
+  </table>
+  <div class="grid2" style="margin-top:16px">
+    <div>
+      <h3>Warum geht das in die richtige Richtung?</h3>
+      <p>Nach der Anpassung ändert sich z für genau diesen Datensatz um</p>
+      <div class="formula">update · (x₀² + x₁² + x₂²)</div>
+      <p>Die Klammer ist immer positiv. Bei update = +1 wird z also größer, bei −1 kleiner – genau wie gewünscht.</p>
+    </div>
+    <div>
+      <h3>Was heißt das im Diagramm?</h3>
+      <p>Die Gewichte bestimmen die Trennlinie (z = 0). Jede Anpassung <b>kippt und verschiebt</b> die Linie ein Stück in Richtung des falsch eingeordneten Punkts. Richtige Punkte ändern nichts.</p>
+      <p class="note">Oft gibt es noch eine Lernrate η: wᵢ := wᵢ + η · update · xᵢ. Sie macht die Schritte kleiner. Hier ist η = 1.</p>
+    </div>
+  </div>
+</section>
+</div>
+
+</main>
+<script>
+// Bekannte Messungen (0 = good, 1 = bad)
+const GOOD=[[5.1,1.4],[4.9,1.4],[4.7,1.3],[4.6,1.5],[5.0,1.4],[5.4,1.7],[4.6,1.4],[5.0,1.5],[4.4,1.4],[4.9,1.5],[5.4,1.5],[4.8,1.6],[4.8,1.4],[4.3,1.1],[5.8,1.2],[5.7,1.5],[5.4,1.3],[5.1,1.4],[5.7,1.7],[5.1,1.5],[5.4,1.7],[5.1,1.5],[4.6,1.0],[5.1,1.7],[4.8,1.9],[5.0,1.6],[5.0,1.6],[5.2,1.5],[5.2,1.4],[4.7,1.6],[4.8,1.6],[5.4,1.5],[5.2,1.5],[5.5,1.4],[4.9,1.5],[5.0,1.2],[5.5,1.3],[4.9,1.4],[4.4,1.3],[5.1,1.5],[5.0,1.3],[4.5,1.3],[4.4,1.3],[5.0,1.6],[5.1,1.9],[4.8,1.4],[5.1,1.6],[4.6,1.4],[5.3,1.5],[5.0,1.4]];
+const BAD=[[7.0,4.7],[6.4,4.5],[6.9,4.9],[5.5,4.0],[6.5,4.6],[5.7,4.5],[6.3,4.7],[4.9,3.3],[6.6,4.6],[5.2,3.9],[5.0,3.5],[5.9,4.2],[6.0,4.0],[6.1,4.7],[5.6,3.6],[6.7,4.4],[5.6,4.5],[5.8,4.1],[6.2,4.5],[5.6,3.9],[5.9,4.8],[6.1,4.0],[6.3,4.9],[6.1,4.7],[6.4,4.3],[6.6,4.4],[6.8,4.8],[6.7,5.0],[6.0,4.5],[5.7,3.5],[5.5,3.8],[5.5,3.7],[5.8,3.9],[6.0,5.1],[5.4,4.5],[6.0,4.5],[6.7,4.7],[6.3,4.4],[5.6,4.1],[5.5,4.0],[5.5,4.4],[6.1,4.6],[5.8,4.0],[5.0,3.3],[5.6,4.2],[5.7,4.2],[5.7,4.2],[6.2,4.3],[5.1,3.0],[5.7,4.1]];
+const DATA=[...GOOD.map(p=>[p[0],p[1],0]),...BAD.map(p=>[p[0],p[1],1])];
+const NAME=['good','bad'];
+const W=[-2,-3.4,9.1];   // gelernt: w0 (Bias), w1, w2
+
+const $=id=>document.getElementById(id);
+function f(v,d=2){if(Math.abs(v)<1e-9)v=0;return v.toFixed(d).replace('.',',').replace(/^-/,'−');}
+function fs(v,d=2){return (v<0?'− ':'+ ')+f(Math.abs(v),d);}
+function par(v,d=2){return v<0?'('+f(v,d)+')':f(v,d);}
+const net=(w,x1,x2)=>w[0]+w[1]*x1+w[2]*x2;
+const step=z=>z>=0?1:0;
+
+// ── Plot
+const X1=[4.0,7.5], X2=[0.5,5.5], PAD={l:46,r:14,t:14,b:40};
+function setupCanvas(c){
+  const dpr=window.devicePixelRatio||1,w=c.clientWidth,h=Math.round(w*0.8);
+  c.style.height=h+'px';c.width=w*dpr;c.height=h*dpr;
+  const ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w,h};
+}
+function mapper(w,h){
+  const pw=w-PAD.l-PAD.r, ph=h-PAD.t-PAD.b;
+  return {pw,ph,
+    sx:x=>PAD.l+(x-X1[0])/(X1[1]-X1[0])*pw, sy:y=>PAD.t+(1-(y-X2[0])/(X2[1]-X2[0]))*ph,
+    ix:px=>X1[0]+(px-PAD.l)/pw*(X1[1]-X1[0]), iy:py=>X2[0]+(1-(py-PAD.t)/ph)*(X2[1]-X2[0])};
+}
+function drawPlot(x1,x2,y){
+  const {ctx,w,h}=setupCanvas($('plot')), m=mapper(w,h);
+  ctx.clearRect(0,0,w,h);
+  const cs=5;
+  for(let px=PAD.l;px<PAD.l+m.pw;px+=cs)for(let py=PAD.t;py<PAD.t+m.ph;py+=cs){
+    ctx.fillStyle=step(net(W,m.ix(px+cs/2),m.iy(py+cs/2)))?'rgba(194,65,45,0.10)':'rgba(23,134,106,0.10)';
+    ctx.fillRect(px,py,Math.min(cs,PAD.l+m.pw-px),Math.min(cs,PAD.t+m.ph-py));
+  }
+  ctx.strokeStyle='#ecebe6';ctx.lineWidth=1;ctx.fillStyle='#5d6475';ctx.font='12px IBM Plex Mono, monospace';ctx.textAlign='center';
+  for(let x=4;x<=7.5+1e-9;x+=0.5){const s=m.sx(x);ctx.beginPath();ctx.moveTo(s,PAD.t);ctx.lineTo(s,PAD.t+m.ph);ctx.stroke();ctx.fillText(f(x,1),s,PAD.t+m.ph+16);}
+  ctx.textAlign='right';
+  for(let v=1;v<=5;v++){const s=m.sy(v);ctx.beginPath();ctx.moveTo(PAD.l,s);ctx.lineTo(PAD.l+m.pw,s);ctx.stroke();ctx.fillText(v,PAD.l-8,s+4);}
+  ctx.strokeStyle='#9aa0ad';ctx.strokeRect(PAD.l,PAD.t,m.pw,m.ph);
+  ctx.fillStyle='#1d2330';ctx.font='600 12px IBM Plex Sans, sans-serif';ctx.textAlign='center';
+  ctx.fillText('Messwert x₁',PAD.l+m.pw/2,h-6);
+  ctx.save();ctx.translate(13,PAD.t+m.ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('Messwert x₂',0,0);ctx.restore();
+  // Trennlinie
+  ctx.save();ctx.beginPath();ctx.rect(PAD.l,PAD.t,m.pw,m.ph);ctx.clip();
+  const ly=x=>-(W[0]+W[1]*x)/W[2];
+  ctx.strokeStyle='#1d2330';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(m.sx(X1[0]),m.sy(ly(X1[0])));ctx.lineTo(m.sx(X1[1]),m.sy(ly(X1[1])));ctx.stroke();
+  // Hilfslinie vom Punkt zur Trennlinie (senkrecht nach oben/unten)
+  ctx.setLineDash([4,4]);ctx.strokeStyle=y?'#c2412d':'#17866a';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(m.sx(x1),m.sy(x2));ctx.lineTo(m.sx(x1),m.sy(ly(x1)));ctx.stroke();ctx.setLineDash([]);
+  ctx.restore();
+  ctx.fillStyle='#1d2330';ctx.font='600 12px IBM Plex Sans';ctx.textAlign='left';
+  ctx.fillText('z = 0',m.sx(7.0),m.sy(ly(7.0))+16);
+  // Punkte
+  DATA.forEach(([a,b,l])=>{
+    const sx=m.sx(a),sy=m.sy(b);ctx.globalAlpha=.45;
+    if(!l){ctx.fillStyle='#17866a';ctx.beginPath();ctx.arc(sx,sy,4,0,7);ctx.fill();}
+    else{ctx.strokeStyle='#c2412d';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(sx-4,sy-4);ctx.lineTo(sx+4,sy+4);ctx.moveTo(sx+4,sy-4);ctx.lineTo(sx-4,sy+4);ctx.stroke();}
+    ctx.globalAlpha=1;
+  });
+  const sx=m.sx(x1),sy=m.sy(x2);
+  ctx.fillStyle=y?'#c2412d':'#17866a';ctx.strokeStyle='#fff';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(sx,sy-12);ctx.lineTo(sx+12,sy);ctx.lineTo(sx,sy+12);ctx.lineTo(sx-12,sy);ctx.closePath();ctx.stroke();ctx.fill();
+  ctx.fillStyle='#1d2330';ctx.font='600 12px IBM Plex Mono';ctx.fillText(`(${f(x1,1)} | ${f(x2,1)})`,sx+15,sy-8);
+  return m;
+}
+
+// ── Perzeptron-Schema
+function drawNeuron(d){
+  const A='#2f52c9',INK='#1d2330';
+  const inY=[60,150,240], sum=[360,150], act=[555,150], mono='font-family="IBM Plex Mono"';
+  const halo='paint-order="stroke" stroke="#fff" stroke-width="5"';
+  let s=`<defs><marker id="arN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="${INK}"/></marker></defs>`;
+  const inLbl=['1','x₁','x₂'], wLbl=['w₀','w₁','w₂'], xv=[1,d.x1,d.x2];
+  inY.forEach((y,i)=>{
+    const ex=sum[0]-62, ey=sum[1]+(y-sum[1])*0.18;
+    s+=`<line x1="70" y1="${y}" x2="${ex}" y2="${ey}" stroke="${A}" stroke-width="2" marker-end="url(#arN)"/>`;
+    s+=`<text x="42" y="${y+9}" font-size="28" text-anchor="middle" font-weight="600">${inLbl[i]}</text>`;
+    if(i>0) s+=`<text x="42" y="${y+30}" font-size="13" text-anchor="middle" ${mono}>= ${f(xv[i])}</text>`;
+    else s+=`<text x="42" y="${y+30}" font-size="12" text-anchor="middle" fill="#5d6475">x₀ (Bias)</text>`;
+    s+=`<text x="125" y="${[66,138,242][i]}" font-size="15" text-anchor="middle" ${mono} ${halo} fill="${A}" font-weight="600">${wLbl[i]} = ${f(W[i],1)}</text>`;
+    const px=218, py=y+(ey-y)*((218-70)/(ex-70));
+    s+=`<rect x="${px-44}" y="${py-11}" width="88" height="22" rx="5" fill="#fff" stroke="${A}"/><text x="${px}" y="${py+4.5}" font-size="12.5" text-anchor="middle" ${mono} fill="${A}" font-weight="600">${f(d.p[i])}</text>`;
+  });
+  s+=`<circle cx="${sum[0]}" cy="${sum[1]}" r="60" fill="#e7ecfb" stroke="${A}" stroke-width="2.5"/>`;
+  s+=`<text x="${sum[0]}" y="${sum[1]-6}" font-size="30" text-anchor="middle">Σ</text><text x="${sum[0]}" y="${sum[1]+26}" font-size="15" text-anchor="middle" ${mono} font-weight="600">z = ${f(d.z)}</text>`;
+  s+=`<line x1="${sum[0]+60}" y1="${sum[1]}" x2="${act[0]-50}" y2="${act[1]}" stroke="${INK}" stroke-width="1.6" marker-end="url(#arN)"/>`;
+  s+=`<circle cx="${act[0]}" cy="${act[1]}" r="48" fill="#e7ecfb" stroke="${A}" stroke-width="2.5"/>`;
+  s+=`<path d="M${act[0]-26},${act[1]+14} H${act[0]} V${act[1]-14} H${act[0]+26}" fill="none" stroke="${INK}" stroke-width="2.5"/>`;
+  s+=`<text x="${act[0]}" y="${act[1]+72}" font-size="13" text-anchor="middle" ${mono}>${f(d.z)} ${d.z>=0?'≥':'<'} 0</text>`;
+  s+=`<line x1="${act[0]+48}" y1="${act[1]}" x2="672" y2="${act[1]}" stroke="${INK}" stroke-width="1.6" marker-end="url(#arN)"/>`;
+  const c=d.y?'#c2412d':'#17866a',bg=d.y?'#fbe4df':'#dff2ea';
+  s+=`<rect x="676" y="${act[1]-34}" width="96" height="68" rx="8" fill="${bg}" stroke="${c}" stroke-width="2"/><text x="724" y="${act[1]+4}" font-size="24" text-anchor="middle" font-weight="700" fill="${c}">y = ${d.y}</text><text x="724" y="${act[1]+24}" font-size="13" text-anchor="middle" fill="${c}" font-weight="600">${NAME[d.y]}</text>`;
+  // Beschriftungen der Bausteine
+  const cap=(x,y,t)=>`<text x="${x}" y="${y}" font-size="12" text-anchor="middle" fill="#5d6475" font-weight="600" letter-spacing=".04em">${t}</text>`;
+  s+=cap(42,290,'INPUT')+cap(160,290,'GEWICHTE')+cap(sum[0],290,'NETTOEINGABE')+cap(act[0],290,'SPRUNGFUNKTION')+cap(724,290,'OUTPUT');
+  $('neuron').innerHTML=s;
+}
+
+// ── Rechnung
+function drawCalc(d){
+  const step1=`<div class="cs"><div class="n">1</div><div><div class="t">Input</div><div class="m">1 (Bias) | x₁ = ${f(d.x1)} | x₂ = ${f(d.x2)}</div></div></div>`;
+  const step2=`<div class="cs"><div class="n">2</div><div><div class="t">Gewichten</div><div class="m">
+    w₀·1 &nbsp;= ${par(W[0],1)}·1 = ${f(d.p[0])}<br>
+    w₁·x₁ = ${par(W[1],1)}·${f(d.x1)} = ${f(d.p[1])}<br>
+    w₂·x₂ = ${par(W[2],1)}·${f(d.x2)} = ${f(d.p[2])}</div></div></div>`;
+  const step3=`<div class="cs"><div class="n">3</div><div><div class="t">Nettoeingabe: alles addieren</div><div class="m">z = Σ wᵢ·xᵢ = ${f(d.p[0])} ${fs(d.p[1])} ${fs(d.p[2])} = <b>${f(d.z)}</b></div></div></div>`;
+  const step4=`<div class="cs"><div class="n">4</div><div><div class="t">Sprungfunktion</div><div class="m">${f(d.z)} ${d.z>=0?'≥':'&lt;'} 0 → y = <b>${d.y}</b></div><div class="d">Regel: z ≥ 0 → 1 (bad), sonst 0 (good)</div></div></div>`;
+  $('calc').innerHTML=step1+step2+step3+step4;
+  $('result').innerHTML=`<div class="result ${NAME[d.y]}"><span class="big">y = ${d.y}</span><span>Vorhersage: Speicher ist <b>${NAME[d.y]}</b>${Math.abs(d.z)<1?' <span style="font-weight:400;font-size:14px">(knapp an der Trennlinie)</span>':''}</span></div>`;
+}
+
+// ── Update
+let lastM=null;
+function update(x1,x2,src){
+  x1=Math.min(7.5,Math.max(4,x1)); x2=Math.min(5.5,Math.max(0.5,x2));
+  if(src!=='range'){$('sx1').value=x1;$('sx2').value=x2;}
+  if(src!=='num'){$('nx1').value=+x1.toFixed(2);$('nx2').value=+x2.toFixed(2);}
+  const p=[W[0],W[1]*x1,W[2]*x2], z=p[0]+p[1]+p[2], y=step(z), d={x1,x2,p,z,y};
+  drawNeuron(d); drawCalc(d); lastM=drawPlot(x1,x2,y);
+}
+const cur=()=>[+$('sx1').value,+$('sx2').value];
+$('sx1').oninput=$('sx2').oninput=()=>update(...cur(),'range');
+$('nx1').oninput=$('nx2').oninput=()=>{const a=parseFloat($('nx1').value),b=parseFloat($('nx2').value);if(!isNaN(a)&&!isNaN(b))update(a,b,'num');};
+document.querySelectorAll('.presets button').forEach(b=>b.onclick=()=>{const [a,c]=b.dataset.p.split(',').map(Number);update(a,c);});
+$('plot').style.cursor='crosshair';
+$('plot').addEventListener('click',e=>{const r=e.target.getBoundingClientRect(),m=mapper(r.width,r.height);update(Math.round(m.ix(e.clientX-r.left)*20)/20,Math.round(m.iy(e.clientY-r.top)*20)/20);});
+window.addEventListener('resize',()=>update(...cur()));
+$('wtxt').textContent=`w₀ = ${f(W[0],1)}, w₁ = ${f(W[1],1)}, w₂ = ${f(W[2],1)}`;
+$('linetxt').textContent=`${f(W[0],1)} ${fs(W[1],1)}·x₁ ${fs(W[2],1)}·x₂ = 0`;
+update(5.2,1.8);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>update(...cur()));
+
+// ═════════ Tabs
+function showTab(){
+  const t=location.hash==='#lernen'?'lernen':'anwendung';
+  document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.t===t));
+  document.querySelectorAll('.tabpanel').forEach(p=>p.classList.toggle('on',p.id==='tab-'+t));
+  if(t!=='lernen') update(...cur());
+}
+window.addEventListener('hashchange',showTab);
+showTab();
+</script>
+</body>
+</html>
